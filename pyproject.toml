@@ -9,7 +9,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.urls]
-Repository = "https://github.com/USER/ComfyUI-QG-Multipack"  # TODO: 建 GitHub 仓库后改成实际地址
+Repository = "https://github.com/live1617/ComfyUI-QG-Multipack"
 
 [tool.comfy]
 DisplayName = "QG 工具（ComfyUI-QG-Multipack）"
