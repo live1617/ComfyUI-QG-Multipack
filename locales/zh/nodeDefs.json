@@ -482,7 +482,6 @@
     "outputs": {}
   },
   "QG_QwenTextEncode": {
-    "title": "Qwen Image 2.1 文本编码",
     "inputs": {
       "clip": {
         "name": "clip",
@@ -554,10 +553,28 @@
         "tooltip": "参考图的目标面积：「自动」按 latent 尺寸（1~2 图）/1024²（3~4 图）/768²（5 图及以上）取；固定值则用该边长平方（上限 2048²）。"
       }
     },
-    "outputs": {}
+    "outputs": {
+      "0": {
+        "name": "正向条件",
+        "tooltip": "CONDITIONING：正向提示词与参考图编码后的条件。"
+      },
+      "1": {
+        "name": "负向条件",
+        "tooltip": "CONDITIONING：负向提示词编码后的条件。"
+      },
+      "2": {
+        "name": "潜空间",
+        "tooltip": "LATENT：填充模式下的初始 latent（图 1 参考 latent）。"
+      },
+      "3": {
+        "name": "还原信息",
+        "tooltip": "QWEN_IMAGE_21_GH_RESTORE_INFO：接 QG_QwenRestore 还原画布。"
+      }
+    },
+    "display_name": "Qwen Image 2.1 文本编码",
+    "description": "Qwen Image 2.1 专用文本编码：1~10 张参考图各占一个稳定槽位（主图决定尺寸路径），自动按宽高比安全缩放参考图，支持局部采样遮罩与 VAE 参考 latent 注入；填充模式下输出 info 供 QG_QwenRestore 还原画布。上游为 Goohaitools「Qwen image 2.1 文本编码」，与原版可互换。"
   },
   "QG_QwenRestore": {
-    "title": "还原 Qwen Image 2.1 画布",
     "inputs": {
       "image": {
         "name": "image",
@@ -571,13 +588,14 @@
     "widgets": {},
     "outputs": {
       "0": {
-        "name": "image",
+        "name": "图像",
         "tooltip": "按 info 里记录的画布/内容位置比例，把填充时加的灰边裁掉的图像。"
       }
-    }
+    },
+    "display_name": "还原 Qwen Image 2.1 画布",
+    "description": "配合「Qwen Image 2.1 文本编码」的填充模式使用：按 info 里记录的画布/内容位置比例，把编码时加的灰边裁掉，恢复内容本身的画布。与上游原版可互换。"
   },
   "QG_QwenPromptOptimizer": {
-    "title": "Qwen image 2.1 提示词优化",
     "inputs": {
       "图像_01": {
         "name": "图像 1",
@@ -650,10 +668,21 @@
       }
     },
     "outputs": {
-      "prompt": "优化/反推得到的最终提示词文本。",
-      "json": "同一结果的 JSON 串（rewritten_prompt + wh_ratio 等）。",
-      "是否反推": "BOOLEAN：本次执行是否走了反推模式（接图且提示词为空）。"
-    }
+      "0": {
+        "name": "优化提示词",
+        "tooltip": "优化/反推得到的最终提示词文本。"
+      },
+      "1": {
+        "name": "JSON 结果",
+        "tooltip": "同一结果的 JSON 串（rewritten_prompt + wh_ratio 等）。"
+      },
+      "2": {
+        "name": "是否反推",
+        "tooltip": "BOOLEAN：本次执行是否走了反推模式（接图且提示词为空）。"
+      }
+    },
+    "display_name": "Qwen image 2.1 提示词优化",
+    "description": "本地 llama-cpp 提示词优化：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；最多 10 张参考图，语言锁定、透明背景改写等行为与上游逐项对齐。需 models/LLM 下的 Qwen GGUF + mmproj。"
   },
   "QG_IDPhotoParams": {
     "display_name": "QG 证件照参数",

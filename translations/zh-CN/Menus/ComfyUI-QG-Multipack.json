@@ -31,5 +31,10 @@
   "square_long": "1:1 长边不变",
   "square_short": "1:1 短边不变",
   "square_width": "1:1 宽度不变",
-  "stop the run": "终止运行"
+  "stop the run": "终止运行",
+  "solid": "纯色",
+  "vertical_gradient": "上下渐变",
+  "radial_gradient": "中心渐变",
+  "custom_color": "自定义颜色",
+  "border_color": "边框颜色"
 }
