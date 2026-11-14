@@ -599,5 +599,21 @@
     "outputs": {
       "image": "图像"
     }
+  },
+  "QG_IDPhotoOutfit": {
+    "title": "QG 证件照服装发型",
+    "description": "证件照服装/发型模板选择：扫描 ComfyUI/models/id_photo/ 下的分类目录，节点面板里浏览缩略图、搜索、点选模板，选中模板的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。素材全部自备（目录格式与 Goohaitools「孤海」素材兼容，拷入即用），未放素材时下拉显示「无数据」提示。来源为参照 Goohaitools「孤海-证件照服装发型」规格的独立实现（GPL-3.0，未复制上游源码），素材不随本包分发。",
+    "inputs": {
+      "style": "风格类型",
+      "prompt_output": "提示词",
+      "unique_id": "唯一 ID"
+    },
+    "widgets": {
+      "style": "风格类型",
+      "prompt_output": "提示词"
+    },
+    "outputs": {
+      "prompt": "提示词"
+    }
   }
 }

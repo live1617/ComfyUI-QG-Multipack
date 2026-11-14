@@ -26,3 +26,7 @@ ISSUES.md
 # 字体不进仓库（2026-11-14 用户决定）：版权字体，节点下拉实际扫
 # ComfyUI/models/fonts 与系统字体，需要时把 ttf 丢进 models/fonts 即可。
 fonts/
+
+# 模板素材（2026-11-14 用户决定）：服装/发型模板图与提示词全部自备，
+# 节点扫 ComfyUI/models/id_photo/，不在插件目录、不进仓库。
+models/id_photo/

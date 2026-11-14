@@ -41,10 +41,12 @@
 #           图片进、主色 #RRGGBB 出，降采样+滤边+容差分桶）
 #   · 后端：面部对齐节点（face_align_node.py，注册 key QG_FaceAlign，
 #           目标图人脸按参考图缩放旋转对齐，无参考图时仅摆平角度）
+#   · 后端：证件照服装发型节点（qg_id_photo_outfit.py，注册 key QG_IDPhotoOutfit，
+#           扫描 models/id_photo/ 自备素材，前端网格选模板出提示词）
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.7.1"
+__version__ = "2.8.0"
 
 import asyncio
 import os
@@ -320,6 +322,19 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 面部对齐导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+# 证件照服装发型：qg_id_photo_outfit.py（注册 key QG_IDPhotoOutfit）
+try:
+    from . import qg_id_photo_outfit as _id_photo_outfit
+
+    NODE_CLASS_MAPPINGS.update(_id_photo_outfit.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_id_photo_outfit.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 证件照服装发型导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 
