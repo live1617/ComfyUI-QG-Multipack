@@ -1,0 +1,33 @@
+# QG-Multipack / QG 工具 —— 额外依赖
+#
+# 安装（用 ComfyUI 自带的 Python）：
+#   <ComfyUI>/python_embeded/python.exe -m pip install -r requirements.txt
+#
+# 约定：torch / numpy / Pillow / safetensors / huggingface_hub / aiohttp 都已随
+# ComfyUI 提供，这里不重复声明，避免把 ComfyUI 自己的版本顶掉。
+# 每个节点在 __init__.py 里都是独立 try/except 导入，缺某个依赖只会少一个
+# 节点，不会拖垮整包。
+
+# ---- QG BiRefNet 去除背景 ----
+# birefnet.py / birefnet_lite.py 的两处依赖：timm 的 SwinB backbone、
+# transformers 的 PretrainedConfig（用来读 config.json）。两者 ComfyUI 通常已带，
+# 这里只做下限声明，不锁定版本，避免顶掉 ComfyUI 自己的版本。
+timm>=0.9
+transformers>=4.30
+# 注意这里**故意不声明 opencv**：opencv-python / opencv-contrib-python /
+# opencv-python-headless 三个包提供同一个 `cv2` 模块，装任意一个都会覆盖
+# 另一个的文件，而 ComfyUI 自带的是 contrib 版。为了 `refine_foreground`
+# 这一个可选开关去顶掉它，代价是别的节点可能报 undefined symbol。
+# 实测 ComfyUI 环境里 cv2 本来就在；万一没有，单独装一次即可：
+#   <ComfyUI>/python_embeded/python.exe -m pip install opencv-contrib-python
+# 没装 cv2 时节点照常工作，只有「前景颜色精修」那个开关会报缺依赖。
+
+# ---- QG 人脸自动矫正 ----
+# dlib 是延迟导入的：缺它时节点照样出现在菜单里，只有执行到那一步才报
+# ModuleNotFoundError；缺 .dat 才是优雅降级（原图直通）。
+# Windows 用预编译的 dlib-bin：官方 dlib 源码包要 MSVC 工具链，十有八九装不上。
+dlib-bin>=19.24 ; sys_platform == "win32"
+dlib>=19.24 ; sys_platform != "win32"
+
+# ---- 可选，不装也有纯 numpy 回退，只是慢一些 ----
+# scipy>=1.10

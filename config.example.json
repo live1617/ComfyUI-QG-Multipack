@@ -1,0 +1,9 @@
+{
+  "providers": [],
+  "default_provider": "",
+  "preset_api_keys": {},
+  "baidu": {
+    "appid": "",
+    "key": ""
+  }
+}

@@ -1,0 +1,17 @@
+# ComfyUI 插件元信息（ComfyUI Manager / Registry 读取）。
+# version 由 打包备份.py 从 VERSION 文件自动同步，请勿手改这一行。
+[project]
+name = "comfyui-qg-multipack"
+description = "QG 工具包：提示词规则/翻译/优化、图生文反推、Qwen Image 2.1 提示词优化与文本编码、BiRefNet 抠图、证件照/排版/拼版、人脸矫正与面部对齐、取色器/颜色转换/自定义颜色/主色提取、水印、Note、参考线对齐等 22 个节点的中文友好合集（GPL-3.0）"
+version = "2.7.0"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/USER/ComfyUI-QG-Multipack"  # TODO: 建 GitHub 仓库后改成实际地址
+
+[tool.comfy]
+DisplayName = "QG 工具（ComfyUI-QG-Multipack）"
+PublisherId = ""
+Icon = ""

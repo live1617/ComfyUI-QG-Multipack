@@ -1,0 +1,28 @@
+# 本机私有配置：里面装着 API Key 和百度凭证，不要提交、不要打包分发。
+config.json
+config.json.tmp
+
+# 用户改过的规则库。默认规则写在 prompt_rules.py 里，删掉这个文件只会
+# 回到内置默认值。想连自己写的规则一起分发就把下面这行删掉。
+rules.json
+
+# 运行产物
+__pycache__/
+*.pyc
+*.pyo
+
+# BiRefNet 补丁副本的兜底目录（首选目录在 models/RMBG/_qg_patched）
+.patched/
+
+# 模型与字体缓存（体积大，按需下载）
+*.safetensors
+*.ckpt
+*.pt
+
+# 内部开发文档：问题清单与工作规范，不公开进仓库（2026-11-14 用户决定）
+ISSUES.md
+开发规范.md
+
+# 字体不进仓库（2026-11-14 用户决定）：版权字体，节点下拉实际扫
+# ComfyUI/models/fonts 与系统字体，需要时把 ttf 丢进 models/fonts 即可。
+fonts/

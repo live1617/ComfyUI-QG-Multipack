@@ -1,0 +1,514 @@
+{
+  "QG_Translate": {
+    "title": "LLM 翻译",
+    "description": "调用大模型 API 做翻译，支持 DeepSeek、Kimi、通义千问、智谱 GLM、SiliconFlow、OpenRouter、本地 Ollama 等所有 OpenAI 兼容接口。服务商（地址 / 模型 / Key）统一在 设置 → QG 工具 里配置，可以存多条，节点上只选名字；Key 存在本机 ComfyUI/user 目录，插件目录和工作流都不含密钥。翻译失败时默认把原文传下去不挡生图（可改为报错终止）。同一句话有缓存，重复运行不重复扣费。英文为默认目标语言，因为 SAM 3 等检测模型只认英文。",
+    "widgets": {
+      "text": "文本",
+      "provider": "服务商",
+      "to_lang": "目标语言",
+      "from_lang": "源语言",
+      "api_url": "接口地址",
+      "model": "模型",
+      "api_key": "API 密钥",
+      "if_fail": "翻译失败时",
+      "The text to translate. Type it here or wire a text output in (right-click the field to convert it to an input).": "要翻译的文字。直接在这里输入，或把上游文本接到这个口上（右键字段可转换为输入口）。",
+      "Which service to call. A plain name uses that provider's default model; an entry like 'DeepSeek/deepseek-reasoner' picks one specific model. The list is the built-in vendors plus every provider you saved in the settings panel; all of them speak the OpenAI chat format.": "调用哪一条服务商。列表 = 内置厂商 + 你在 设置 → QG 工具 里添加的条目；只写服务商名就用它的默认模型，写成「服务商/模型」可以指名某个模型。地址、模型、Key 都跟着设置面板那条配置走。",
+      "The language to translate into. English is the default because detection models like SAM 3 read English.": "翻译成什么语言。默认英文——SAM 3 这类检测模型只认英文。",
+      "The language the text is in. auto lets the model tell for itself; pin it when the text is short and ambiguous.": "原文是什么语言。auto 让模型自己判断；原文很短且有歧义时建议指定。",
+      "The chat/completions address. Empty uses the picked provider's own address; filled, it overrides - this is the custom door to any other vendor.": "已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。",
+      "The model name on that service. Empty uses the picked provider's default.": "已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。",
+      "Leave empty and put the key in config.json under ComfyUI/user/ComfyUI-QG-Multipack/ (set it in the settings panel). What you type here is NOT saved into the workflow JSON - it only lasts for this session, so a file you share never carries a secret. Local Ollama needs no key.": "已移到系统设置，一般不用填。Key 存在 ComfyUI/user/ComfyUI-QG-Multipack/config.json，插件目录和工作流都不含密钥。这里填的只在本次会话有效，不会写进工作流。",
+      "When the API cannot be reached or refuses. Output original: the run goes on with the text as it is. Stop the run: the workflow stops here with the vendor's message.": "API 连不上或拒绝时怎么办。输出原文：继续运行，文字原样传下去。终止运行：工作流在此停止并给出服务商的报错信息。"
+    },
+    "outputs": {
+      "text": "文本"
+    }
+  },
+  "QG_PromptTranslate": {
+    "title": "提示词翻译",
+    "description": "把中文提示词翻成英文（或其它目标语言）后直接喂给文本编码器。原文从左侧输入口进来，节点上不显示文本框——提示词通常由上游节点产生。翻译服务 = 两条百度通道 + 设置面板里配好的全部 OpenAI 兼容服务商：百度只要一对 appid 与密钥（按字符计费，有免费额度）；「百度翻译（大模型）」翻提示词更准，会保持逗号短语结构与括号权重，未开通时自动回落到普通百度通道。源语言自动判断（含中文算中文、纯 ASCII 算英文），目标语言与源语言相同时直接跳过、不发起请求。翻译失败时控制台打一行警告并把原文传下去，不中断工作流。同一段文字有缓存，重复运行不重复扣费。",
+    "inputs": {
+      "source_text": "原文"
+    },
+    "widgets": {
+      "source_text": "原文",
+      "target_language": "目标语言",
+      "translate_service": "翻译服务",
+      "auto_unload": "自动释放显存",
+      "seed": "随机种子"
+    },
+    "outputs": {
+      "translated_text": "提示词输出"
+    }
+  },
+  "QG_ImageToPrompt": {
+    "title": "图像反推提示词",
+    "description": "给一张图，用视觉模型反推成能复现它的提示词。规则在 设置 → QG 工具 → 提示词规则 里管理（可增删改、也能改默认项），决定输出形态：像素级描述出 200~400 字长段落，Tag 标签流出 30~60 个带权重的逗号标签，自然语言短描述出 60~90 词英文段落（喂 SDXL / Flux），图像编辑指令配合 user prompt 出单条编辑指令，视频动态提示词出首帧描述加运动。视觉服务按「服务商/模型」选，地址与 Key 取自 设置 → QG 工具 → API 服务商，工作流文件里不落密钥；一个服务商可以配多个模型，下拉里会逐个列出来。图片先压到长边 1024 再发，batch 逐帧独立反推、合并文本用 --- 分隔、另一个输出口给逐帧列表。执行时节点下方会实时显示已经收到的文字，不用干等。服务商不认某个参数时自动降级重试，思考链在请求和输出两端各关一次。",
+    "inputs": {
+      "image": "图像"
+    },
+    "widgets": {
+      "rule": "规则预设",
+      "custom_rule": "自定义规则",
+      "custom_rule_content": "自定义规则内容",
+      "user_prompt": "附加要求",
+      "vlm_service": "视觉服务",
+      "auto_unload": "自动释放显存",
+      "seed": "随机种子"
+    }
+  },
+  "QG_PromptOptimize": {
+    "title": "提示词优化",
+    "description": "一段粗糙的提示词进去，一段能直接出图的出来。规则在 设置 → QG 工具 → 提示词规则 的「提示词优化规则」页管理：扩写-通用在不换题材的前提下补主体、服装、构图、环境、光线、画质；润色-精炼只去重调序、不加新元素；扩写-细节质感专攻材质与光影的微观描写；改写-英文输出逗号短语，喂 SDXL / Flux。原文写进文本框，或者接上游的文本输出（两路会合在一起）；执行时节点下方实时显示模型已经吐出来的字。括号权重 (word:1.2)、[word]、LoRA 标签 <lora:name:0.8> 会原样保留——规则里写明，输出端再兜一层。LLM 服务按「服务商」或「服务商/模型」选，地址与 Key 取自 设置 → QG 工具 → API 服务商，工作流文件里不落密钥。纯文本任务，任何对话模型都能跑；失败直接报错、不原样输出，免得下游以为优化生效了。",
+    "inputs": {
+      "extra_text": "另一路文本"
+    },
+    "widgets": {
+      "text": "原文输入",
+      "rule": "规则预设",
+      "custom_rule": "自定义规则",
+      "custom_rule_content": "自定义规则内容",
+      "llm_service": "LLM 服务",
+      "auto_unload": "自动释放显存",
+      "seed": "随机种子",
+      "extra_text": "另一路文本"
+    }
+  },
+  "QG_MaskByName": {
+    "title": "文字取蒙版",
+    "description": "输入一句文字描述（如「红色夹克」「那只狗」），SAM 3 在图里找到对应物体，输出蒙版和透明背景抠图，节点上直接显示染色预览。什么都没找到时默认报错终止流水线（可改为输出空蒙版继续跑）。检测复用 ComfyUI 原生 SAM3_Detect 节点；SAM 3 检查点直接在节点下拉框里选（sam3.1_multiplex_fp16.safetensors，放 models/checkpoints），节点内部加载，无需再摆一个检查点加载器，也无需单独下载 CLIP。「查找」只运行本节点，可先看蒙版再跑全图。多个匹配可选全部合并或只取最大；自动剔除蒙版里不属于目标的零碎噪点（面积占比可调），支持填补内部孔洞、外扩、边缘软化，找不到的小物体可以调低「确信度」再试。",
+    "inputs": {
+      "image": "图像",
+      "The picture to search.": "要搜索的图片。"
+    },
+    "widgets": {
+      "checkpoint": "检查点",
+      "name": "名称",
+      "several": "多个匹配",
+      "grow": "外扩",
+      "soften": "软化",
+      "if_nothing": "找不到时",
+      "preview": "预览",
+      "drop_small": "剔除碎块",
+      "small_size": "碎块面积",
+      "threshold": "确信度",
+      "fill_holes": "填补孔洞",
+      "free_vram": "释放显存",
+      "The SAM 3 checkpoint: sam3.1_multiplex_fp16.safetensors, in models/checkpoints (or any checkpoints folder added through extra_model_paths.yaml). Loaded inside this node - no Checkpoint Loader needed. The file's text reader does the name reading; no separate CLIP.": "SAM 3 检查点：sam3.1_multiplex_fp16.safetensors（放 models/checkpoints，或 extra_model_paths.yaml 里配置的 checkpoints 目录）。节点内部加载，无需检查点加载器；文件里的文字读取器负责读名称，无需单独的 CLIP。",
+      "What to find, in a few plain words: \"the dog\", \"the red jacket\". For several things, put a comma between the names.": "要找什么，几个普通词即可，如「那只狗」「红色夹克」。要找多个物体就用逗号隔开。",
+      "When more than one thing matches: mask all of them joined, or only the biggest one.": "匹配到多个物体时：全部合并成一个蒙版，或只取面积最大的那个。",
+      "Pixels to grow the mask past the thing's edge. 0 keeps the exact outline.": "蒙版向外扩多少像素。0 保持精确轮廓。",
+      "Soften the mask's edge by this many pixels. 0 keeps a hard edge.": "蒙版边缘软化多少像素。0 保持硬边。",
+      "When nothing matches the name. Stop the run: the workflow stops here with a message, and nothing after this node runs. Empty mask: the run goes on with a mask of nothing.": "没有任何匹配时怎么办。终止运行：工作流在此停止并给出提示，本节点之后一律不跑。空蒙版：继续运行，输出一张全黑蒙版。",
+      "Show what was found, tinted and outlined, on this node. Off skips writing the preview file to the temp folder.": "在节点上显示染色+描边的找到区域。关掉可省去写临时预览文件。",
+      "Remove stray white specks the search sometimes leaves next to the thing - small separate islands in the mask that are not part of it. The biggest piece always stays.": "剔除搜索偶尔在目标旁边留下的零碎小白斑——蒙版里独立、不属于目标的小岛。面积最大的一块永远保留。",
+      "How small a separate piece must be to count as a stray speck: a percent of the biggest piece's area. Only used when drop_small is on.": "多小的一块算零碎噪点：以最大块面积的百分比计。仅在「剔除碎块」开启时生效。",
+      "How sure SAM 3 must be that something matches the name. Lower it when a small thing is missed. Raise it when it picks up something that is not the thing.": "SAM 3 判定「匹配」所需的最低确信度。小物体被漏掉就调低；把不是目标的东西框进来了就调高。",
+      "Fill gaps that lie fully inside the mask, like the spots segmentation leaves in hair or cloth. On gives a solid shape.": "填补完全位于蒙版内部的空隙（分割在头发、布料上常留的洞）。开启后得到实心形状。",
+      "Take SAM 3 out of the graphics card's memory right after the search. Turn it on in a workflow that loads a big model after this node; off keeps the next search a little faster.": "搜索结束后立刻把 SAM 3 移出显存。后面还要加载大模型的工作流建议开启；关闭则下一次搜索稍快。"
+    },
+    "outputs": {
+      "mask": "蒙版",
+      "cut_out": "抠图",
+      "found": "找到数量"
+    }
+  },
+  "QG_FaceRectify": {
+    "title": "QG 人脸自动矫正",
+    "description": "自动把歪的、横竖颠倒的人脸照片转正。流程：先按 0°/90°/180°/270° 四个方向检测人脸，找到正向（解决横拍竖拍颠倒）；再用 5 点人脸关键点的左右眼中心连线计算倾斜角，以图像中心旋转（Lanczos4，边缘复制填充无黑角）；旋转后中心裁剪回原尺寸，并按倾斜角从四边裁掉旋转拉出的模糊边缘（裁剪量 = 边长 × 角度^0.8 ÷ 100 ÷ 边缘裁剪，边缘裁剪越大裁得越少），因此轻微倾斜时最终尺寸会略小于原图。检测不到人脸、模型缺失或任何异常时原图直通，不会中断流水线。依赖 dlib 与包内置的 shape_predictor_5_face_landmarks.dat 模型。",
+    "inputs": {
+      "image": "图像"
+    },
+    "widgets": {
+      "enable_fix": "开启矫正",
+      "edge_trim": "边缘裁剪"
+    },
+    "outputs": {
+      "image": "矫正后的图像"
+    }
+  },
+  "QG_BiRefNet": {
+    "title": "QG BiRefNet 去除背景",
+    "description": "用 BiRefNet 二分图像分割模型做高精度抠图，发丝、半透明边缘处理效果好。流程：图片缩放到模型推理分辨率（方形、32 对齐）推理出前景概率，再缩回原尺寸；随后依次做灵敏度增益、高斯模糊、遮罩偏移（Max/MinFilter 腐蚀膨胀）、可选反转、可选前景精修，最后按背景类型输出透明 RGBA 或纯色底合成图。输出三路：IMAGE（抠图结果）、MASK（单通道遮罩）、MASK_IMAGE（遮罩的三通道可视化）。模型查找顺序：models/RMBG/BiRefNet/ 共享缓存（与 ComfyUI-RMBG 插件互通）→ extra_model_paths.yaml 挂载的 BiRefNet、RMBG 类别目录。挂载库里的 ZhengPeng7 官方命名权重（如 General.safetensors、General-Lite.safetensors）会被自动识别为对应变体（两套命名是同一文件）。都找不到时才从 HuggingFace 下载到共享缓存。",
+    "inputs": {
+      "image": "图像"
+    },
+    "widgets": {
+      "model": "模型",
+      "sensitivity": "灵敏度",
+      "mask_blur": "遮罩模糊",
+      "mask_offset": "遮罩偏移",
+      "invert_output": "反转输出",
+      "refine_foreground": "精修前景优化",
+      "unload_model": "释放模型显存",
+      "background": "背景类型",
+      "background_color": "背景颜色"
+    },
+    "outputs": {
+      "IMAGE": "图像",
+      "MASK": "遮罩",
+      "MASK_IMAGE": "遮罩预览图"
+    }
+  },
+  "QG_Note": {
+    "title": "QG 注释",
+    "description": "画布上的便签 / 标题注释，纯展示节点，没有任何输出，不会被加入执行队列。双击编辑文字，编辑时上方的工具条可以调字号、左中右对齐、行距、文字颜色、底色与透明度、圆角、描边；中文会自动折行，文字里的 http(s) 链接、www 链接，以及 [[显示文字|网址]] 写法会变成可点击的蓝色链接。按住右键左右拖动可等比缩放文字和底板，拖右下角只改底板尺寸。右键菜单里可以固定节点（固定后点击穿透到下面的节点）、复制文本、切换配色预设或重置样式。文本和样式都随工作流一起保存。"
+  },
+  "QG_QwenTextEncode": {
+    "title": "Qwen Image 2.1 文本编码",
+    "inputs": {
+      "image_01": "图像 1",
+      "image_02": "图像 2",
+      "image_03": "图像 3",
+      "image_04": "图像 4",
+      "image_05": "图像 5",
+      "image_06": "图像 6",
+      "image_07": "图像 7",
+      "image_08": "图像 8",
+      "image_09": "图像 9",
+      "image_10": "图像 10"
+    },
+    "widgets": {},
+    "outputs": {}
+  },
+  "QG_QwenRestore": {
+    "title": "还原 Qwen Image 2.1 画布",
+    "inputs": {},
+    "widgets": {},
+    "outputs": {}
+  },
+  "QG_QwenPromptOptimizer": {
+    "title": "Qwen image 2.1 提示词优化",
+    "inputs": {
+      "图像_01": "图像 1",
+      "图像_02": "图像 2",
+      "图像_03": "图像 3",
+      "图像_04": "图像 4",
+      "图像_05": "图像 5",
+      "图像_06": "图像 6",
+      "图像_07": "图像 7",
+      "图像_08": "图像 8",
+      "图像_09": "图像 9",
+      "图像_10": "图像 10"
+    },
+    "widgets": {},
+    "outputs": {}
+  },
+  "QG_IDPhotoParams": {
+    "title": "QG 证件照参数",
+    "description": "把「这张照片要什么样」集中在一个节点里：尺寸、底色、渲染方式、打印 dpi。输出一路参数连给抠图换背景节点，另外把算好的像素宽高与 dpi 单独引出来 ——排版节点的照片 DPI 直接接这根线就行，不用手抄数字。底色是下拉，界面显示中文；要别的颜色选「自定义」再填色值。",
+    "inputs": {
+      "preset": "大小",
+      "bg_color": "背景颜色",
+      "bg_custom": "自定义色值",
+      "bg_color_2": "渐变第二色",
+      "render": "渲染",
+      "dpi": "DPI",
+      "custom_width": "自定义宽（仅 custom）",
+      "custom_height": "自定义高（仅 custom）"
+    },
+    "widgets": {
+      "preset": "大小",
+      "bg_color": "背景颜色",
+      "bg_custom": "自定义色值",
+      "bg_color_2": "渐变第二色",
+      "render": "渲染",
+      "dpi": "DPI",
+      "custom_width": "自定义宽（仅 custom）",
+      "custom_height": "自定义高（仅 custom）"
+    },
+    "outputs": {
+      "params": "参数",
+      "width": "宽",
+      "height": "高",
+      "dpi": "DPI"
+    }
+  },
+  "QG_PortraitMatte": {
+    "title": "QG 人像抠图换背景",
+    "description": "把人像从背景里抠出来，换纯色或渐变底，按证件照的构图裁好。尺寸与底色来自「证件照参数」节点 —— 这一头只管怎么抠、怎么修。抠图用 onnx 模型：modnet 系快（512 输入），rmbg / birefnet 慢但边缘更准，模型放 ComfyUI/models/background_removal 就会出现在下拉里。输出成品图、目标尺寸的蒙版，以及一张长边不小于 600 像素的高清版。批量输入逐帧处理；某帧找不到脸时会等比装入目标尺寸并居中。",
+    "inputs": {
+      "image": "输入图像",
+      "params": "参数",
+      "matting_model": "抠图模型",
+      "face_alignment": "人脸对齐",
+      "change_bg_only": "仅更换背景",
+      "crop_only": "仅裁剪",
+      "head_height": "头高占比",
+      "top_distance": "顶部距离",
+      "whitening_strength": "美白强度",
+      "brightness_strength": "亮度强度",
+      "contrast_strength": "对比度强度",
+      "saturation_strength": "饱和度强度",
+      "sharpen_strength": "锐化强度"
+    },
+    "widgets": {
+      "params": "参数",
+      "matting_model": "抠图模型",
+      "face_alignment": "人脸对齐",
+      "change_bg_only": "仅更换背景",
+      "crop_only": "仅裁剪",
+      "head_height": "头高占比",
+      "top_distance": "顶部距离",
+      "whitening_strength": "美白强度",
+      "brightness_strength": "亮度强度",
+      "contrast_strength": "对比度强度",
+      "saturation_strength": "饱和度强度",
+      "sharpen_strength": "锐化强度"
+    },
+    "outputs": {
+      "image": "成品图",
+      "mask": "蒙版",
+      "hd": "高清图"
+    }
+  },
+  "QG_IDPhotoCrop": {
+    "title": "QG 证件照裁剪",
+    "description": "把一张人像裁成指定尺寸的证件照：一寸、美签、358×441 的电子身份证这些都在预设里。眼睛自动摆平，人脸按指定比例占画面宽，构图不对的地方用背景色或从画面顶部取的颜色补上。整张图只重采样一次 —— 裁剪框直接在原图上算好，一次仿射就出结果。输出补出来的区域的遮罩、是否补过边的布尔、实际用到的 DPI，以及一张把脸框、眼线和裁剪框画在原图上的定位示意图，方便眼睛核对参数。批量输入逐帧处理；某帧找不到脸时会等比装入目标尺寸并居中，而不是把原图原样丢出去。",
+    "inputs": {
+      "image": "图像",
+      "preset": "预设尺寸",
+      "custom_width": "自定义宽",
+      "custom_height": "自定义高",
+      "unit": "单位",
+      "dpi": "DPI",
+      "face_ratio": "脸部大小",
+      "eye_line": "垂直偏移",
+      "auto_rotate": "人脸矫正",
+      "face_pick": "多脸时取哪张",
+      "max_side": "检测降采样",
+      "fill_mode": "填充模式",
+      "fill_color": "填充颜色"
+    },
+    "widgets": {
+      "preset": "预设尺寸",
+      "custom_width": "自定义宽",
+      "custom_height": "自定义高",
+      "unit": "单位",
+      "dpi": "DPI",
+      "face_ratio": "脸部大小",
+      "eye_line": "垂直偏移",
+      "auto_rotate": "人脸矫正",
+      "face_pick": "多脸时取哪张",
+      "max_side": "检测降采样",
+      "fill_mode": "填充模式",
+      "fill_color": "填充颜色"
+    },
+    "outputs": {
+      "image": "裁剪后图像",
+      "mask": "扩展遮罩",
+      "filled": "是否扩图",
+      "dpi": "DPI",
+      "guide": "定位示意图"
+    }
+  },
+  "QG_PhotoSheet": {
+    "title": "QG 照片排版",
+    "description": "把一张照片按相纸尺寸铺满排版：填相纸宽高（厘米）、分辨率、安全边距和照片间距，能放多少张就居中等距排多少张。相纸、边距、间距的单位是厘米，描边和字号是像素 —— 参数名里写清楚了。照片放不下时直接报错并给出实际数字，不会给你一张白纸。批量输入每帧各出一张相纸。可选画裁切角标、在下方加一行标注文字。",
+    "inputs": {
+      "image": "图像",
+      "paper_w": "相纸宽",
+      "paper_h": "相纸高",
+      "dpi": "分辨率",
+      "margin": "安全边距",
+      "spacing": "照片间距",
+      "border": "描边",
+      "cut_marks": "裁切角标",
+      "auto_orient": "自动横竖版",
+      "caption": "标注文字",
+      "font": "字体",
+      "font_size": "字号",
+      "auto_fit": "自动缩小",
+      "photo_dpi": "照片 DPI"
+    },
+    "widgets": {
+      "paper_w": "相纸宽",
+      "paper_h": "相纸高",
+      "dpi": "分辨率",
+      "margin": "安全边距",
+      "spacing": "照片间距",
+      "border": "描边",
+      "cut_marks": "裁切角标",
+      "auto_orient": "自动横竖版",
+      "caption": "标注文字",
+      "font": "字体",
+      "font_size": "字号",
+      "auto_fit": "自动缩小",
+      "photo_dpi": "照片 DPI"
+    },
+    "outputs": {
+      "sheet": "排版图像",
+      "columns": "列数",
+      "rows": "行数",
+      "total": "总张数"
+    }
+  },
+  "QG_IDCardSheet": {
+    "title": "QG 身份证拼版",
+    "description": "把拍歪的卡片摆正，铺到纸上。给正面（和可选的背面）图像 + 蒙版，节点按蒙版找四角拉成正射图，加圆角与投影，按厘米居中排在纸上。只放一面就把背面两根线都拔掉。",
+    "inputs": {
+      "front_image": "正面图",
+      "front_mask": "正面蒙版",
+      "paper_w": "纸宽(cm)",
+      "paper_h": "纸高(cm)",
+      "dpi": "打印 dpi",
+      "gap": "间距(cm)",
+      "card_w": "卡片宽(cm)",
+      "card_h": "卡片高(cm)",
+      "corner_pct": "圆角(%)",
+      "rotate_180": "旋转180°",
+      "shadow_offset": "阴影偏移(mm)",
+      "shadow_blur": "阴影模糊(mm)",
+      "shadow_opacity": "阴影不透明度",
+      "auto_contrast": "自动对比度",
+      "auto_tone": "自动色调",
+      "grayscale": "黑白",
+      "bg_color": "背景色",
+      "back_image": "背面图",
+      "back_mask": "背面蒙版"
+    },
+    "widgets": {
+      "paper_w": "纸宽(cm)",
+      "paper_h": "纸高(cm)",
+      "dpi": "打印 dpi",
+      "gap": "间距(cm)",
+      "card_w": "卡片宽(cm)",
+      "card_h": "卡片高(cm)",
+      "corner_pct": "圆角(%)",
+      "rotate_180": "旋转180°",
+      "shadow_offset": "阴影偏移(mm)",
+      "shadow_blur": "阴影模糊(mm)",
+      "shadow_opacity": "阴影不透明度",
+      "auto_contrast": "自动对比度",
+      "auto_tone": "自动色调",
+      "grayscale": "黑白",
+      "bg_color": "背景色"
+    },
+    "outputs": {
+      "image": "图像"
+    }
+  },
+  "QG_Watermark": {
+    "title": "QG 斜向水印",
+    "description": "在任何图上斜向平铺文字水印。字体走和照片排版节点同一套发现逻辑，下拉里只列这台机器上真能读到的字体。",
+    "inputs": {
+      "image": "图像",
+      "text": "水印文字",
+      "font": "水印字体",
+      "size": "字号(px)",
+      "color": "颜色",
+      "opacity": "不透明度",
+      "spacing": "间距(px)",
+      "angle": "角度"
+    },
+    "widgets": {
+      "text": "水印文字",
+      "font": "水印字体",
+      "size": "字号(px)",
+      "color": "颜色",
+      "opacity": "不透明度",
+      "spacing": "间距(px)",
+      "angle": "角度"
+    },
+    "outputs": {
+      "image": "图像"
+    }
+  },
+  "QG_DualColorPicker": {
+    "title": "QG 双色取色器",
+    "description": "选一个颜色模式和主色、辅色两路颜色，输出三个字符串给下游节点用。模式值以英文存档：solid（纯色）/ vertical_gradient（上下渐变）/ radial_gradient（中心渐变）；色值统一成小写 #rrggbb，#rgb、无 # 前缀、8 位带透明度、RGB 元组都能吃，非法值回退默认色。两个颜色控件点一下弹色板，也可以直接手填色值。",
+    "inputs": {
+      "mode": "模式",
+      "primary_color": "主色",
+      "secondary_color": "辅色"
+    },
+    "widgets": {
+      "mode": "模式",
+      "primary_color": "主色",
+      "secondary_color": "辅色"
+    },
+    "outputs": {
+      "mode": "模式",
+      "primary_color": "主色",
+      "secondary_color": "辅色"
+    }
+  },
+  "QG_ColorConvert": {
+    "title": "QG 颜色转换",
+    "description": "把各种写法的颜色字符串转成目标格式：输入支持带/不带 # 的十六进制（3 位自动展开）、RGB 整数、HSL 百分比、0-1 浮点，全角逗号括号也能吃，解析失败回退白色。输出两路：字符串是按所选格式的转换结果，颜色控件始终是规范化的小写 #rrggbb。下拉值保持 #HEX / HEX / RGB / HSL 原文（存档与 API 不变），中文界面显示带注释的格式名。",
+    "inputs": {
+      "color": "色值",
+      "format": "转换后"
+    },
+    "widgets": {
+      "color": "色值",
+      "format": "转换后"
+    },
+    "outputs": {
+      "string": "字符串",
+      "color_control": "颜色控件"
+    }
+  },
+  "QG_CustomColor": {
+    "title": "QG 自定义颜色",
+    "description": "按宽度高度生成一张纯色或渐变底图输出：模式下拉为 纯色 / 上下渐变 / 中心渐变（存档值英文 solid / vertical_gradient / radial_gradient，与双色取色器同一套），颜色1 / 颜色2 点色条弹色板。缩放控制渐变推进或半径（100 标准，0 有特殊语义，>100 钳制在两色之间），颗粒叠加灰度噪声。非法色值回退各自默认色。",
+    "inputs": {
+      "width": "宽度",
+      "height": "高度",
+      "mode": "模式",
+      "color1": "颜色1",
+      "color2": "颜色2",
+      "scale": "缩放",
+      "grain": "颗粒"
+    },
+    "widgets": {
+      "width": "宽度",
+      "height": "高度",
+      "mode": "模式",
+      "color1": "颜色1",
+      "color2": "颜色2",
+      "scale": "缩放",
+      "grain": "颗粒"
+    },
+    "outputs": {
+      "image": "图像"
+    }
+  },
+  "QG_DominantColor": {
+    "title": "QG 主色提取",
+    "description": "统计整张图里出现最多的颜色，输出大写 #RRGGBB 字符串。流程：按降采样系数 LANCZOS 缩小 → 剔除黑边/白边像素（平均亮度 <15 或 >240，全被剔则回退全部） → 按颜色容差把每通道量化分桶 → 取像素最多的桶（频次并列取亮度更高的）。批量图像只取第一帧；容差 0 时逐原色统计。来源为参照 Goohaitools「孤海-主色提取」规格的独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "image": "图像",
+      "downsample": "降采样系数",
+      "tolerance": "颜色容差"
+    },
+    "widgets": {
+      "downsample": "降采样系数",
+      "tolerance": "颜色容差"
+    },
+    "outputs": {
+      "hex": "主色 HEX"
+    }
+  },
+  "QG_FaceAlign": {
+    "title": "QG 面部对齐",
+    "description": "把目标图的人脸对齐到参考图：按人脸面积比缩放整图、按眼线角差旋转（可关），目标脸中心对齐参考脸中心后裁回参考图尺寸；不接参考图时只把目标图绕图中心摆平。多张脸取离图中心最近的一张；填充模式决定旋转/扩画布的空白底色（自定义颜色或按四边像素自适应的边框颜色）。没检出人脸时原样返回目标图。人脸检测复用本包 _face_helpers：mediapipe 优先，模型缺失自动按需下载 face_landmarker.task，缺 mediapipe 回退 OpenCV Haar。来源为参照 Goohaitools「孤海-面部对齐」规格的独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "target_image": "目标图",
+      "reference_image": "参考图",
+      "confidence": "面部置信度",
+      "angle_align": "角度对齐",
+      "fill_mode": "填充模式",
+      "custom_fill_color": "自定义填充色"
+    },
+    "widgets": {
+      "confidence": "面部置信度",
+      "angle_align": "角度对齐",
+      "fill_mode": "填充模式",
+      "custom_fill_color": "自定义填充色"
+    },
+    "outputs": {
+      "image": "图像"
+    }
+  }
+}
