@@ -70,6 +70,14 @@ def rgb_tensor(h=48, w=64):
     return torch.rand(1, h, w, 3, dtype=torch.float32)
 
 
+def cutout_tensor(subject_alpha=1.0, h=48, w=64):
+    """Cut-out shape: transparent margin, subject in the middle."""
+    array = np.zeros((h, w, 4), dtype=np.float32)
+    array[..., :3] = 0.9
+    array[8:h - 8, 8:w - 8, 3] = subject_alpha
+    return torch.from_numpy(array).unsqueeze(0)
+
+
 def main():
     pkg = load_package()
     mod = importlib.import_module(pkg + ".id_photo_crop_node")
@@ -150,16 +158,35 @@ def main():
     check("输出四通道", img.shape[-1] == 4, str(img.shape))
     check("补边区 alpha=0", img[0, 0, 3] < 0.01, "%.3f" % img[0, 0, 3])
 
-    out = run(rgba_tensor(1.0), alpha_mode="keep")
+    out = run(cutout_tensor(), alpha_mode="keep")
     img = np.asarray(out[0][0])
     mid = img[img.shape[0] // 2, img.shape[1] // 2, 3]
     check("补边区仍透明", img[0, 0, 3] < 0.01, "%.3f" % img[0, 0, 3])
     check("主体 alpha 保持不透明", mid > 0.99, "%.3f" % mid)
 
-    out = run(rgba_tensor(0.5), alpha_mode="keep")
+    out = run(cutout_tensor(subject_alpha=0.5), alpha_mode="keep")
     img = np.asarray(out[0][0])
     mid = img[img.shape[0] // 2, img.shape[1] // 2, 3]
-    check("半透明 0.5 不被二次相乘（曾变 0.25）", 0.45 < mid < 0.55, "%.3f" % mid)
+    check("半透明主体 0.5 不被二次相乘（曾变 0.25）", 0.45 < mid < 0.55, "%.3f" % mid)
+
+    print("\n[5b] 没有透明区的四通道 = 整体不透明度，不是抠图遮罩")
+    # 整幅 alpha 均匀 0.5 的素材：保留它会把成品整体压成半透明，叠在深色
+    # 画布上就是「裁剪后变色」——红底照看起来成了暗橙。
+    for mode in ("fill", "keep"):
+        out = run(rgba_tensor(0.5), alpha_mode=mode)
+        img = np.asarray(out[0][0])
+        mid = img[img.shape[0] // 2, img.shape[1] // 2]
+        check("整幅 alpha=0.5 + %s -> 三通道" % mode, img.shape[-1] == 3, str(img.shape))
+        check("整幅 alpha=0.5 + %s -> 不压暗（中心仍 0.9）" % mode,
+              mid[0] > 0.85, "%.3f" % mid[0])
+    out = run(rgba_tensor(1.0), alpha_mode="keep")
+    check("alpha 全 1 + keep -> 三通道",
+          np.asarray(out[0][0]).shape[-1] == 3)
+    # 真抠图必须仍然保留透明：只有存在实际透明像素时才认这个通道。
+    out = run(cutout_tensor(), alpha_mode="keep")
+    img = np.asarray(out[0][0])
+    check("有透明区的抠图 + keep -> 仍是四通道", img.shape[-1] == 4, str(img.shape))
+    check("抠图补边区透明", img[0, 0, 3] < 0.05, "%.3f" % img[0, 0, 3])
 
     print("\n[6] RGB 输入两种模式都输出三通道")
     rgb = rgb_tensor()

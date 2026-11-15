@@ -288,8 +288,11 @@ class QGIDPhotoCrop:
                                "outputs an opaque RGB photo - the ID-photo "
                                "default. 'keep' preserves the alpha channel "
                                "and outputs RGBA, so transparent areas stay "
-                               "see-through. Ordinary RGB images are "
-                               "unaffected either way.",
+                               "see-through. A four-channel image with no "
+                               "see-through pixels at all (a semi-transparent "
+                               "asset) is treated as opaque either way, so it "
+                               "does not come out dimmed. Ordinary RGB images "
+                               "are unaffected.",
                 }),
             },
         }
@@ -322,6 +325,26 @@ class QGIDPhotoCrop:
         # get an opaque alpha). Otherwise everything is flattened to RGB.
         keep_alpha = str(alpha_mode) == "keep"
         channels = int(batch.shape[-1]) if batch.dim() >= 4 else 3
+        # A fourth channel is not always a cut-out mask. A semi-transparent
+        # asset (or one whose alpha was pre-multiplied) carries a near-uniform
+        # alpha around 0.5 and no fully see-through pixel at all. Keeping that
+        # alpha turns the whole photo translucent, which on the dark canvas
+        # reads as "the crop changed the colours" - a red background comes out
+        # dark orange because half of it is the canvas showing through. So the
+        # channel is honoured only when there is a real transparent area;
+        # otherwise it is an opacity hint and is dropped, leaving the colours
+        # as the user sees them upstream.
+        if channels >= 4:
+            alpha = np.asarray(batch[..., 3].detach().cpu().numpy(),
+                               dtype=np.float32)
+            see_through = float((alpha <= 0.02).mean())
+            if see_through < 0.005:
+                print("[ID Photo Crop] the 4th channel has no transparent area "
+                      "(min alpha %.2f) - it is an opacity hint, not a cut-out "
+                      "mask; dropping it so the crop keeps the original "
+                      "colours" % float(alpha.min()))
+                batch = batch[..., :3].contiguous()
+                channels = 3
         emit_rgba = keep_alpha and channels >= 4
         custom_rgb = parse_color(fill_color, "ID Photo Crop fill_color")
         crops = []
