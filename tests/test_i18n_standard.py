@@ -22,6 +22,15 @@
 
 3. 分类无需 Categories 词表：本包全部节点 category="QG 工具"，已是中文。
 
+ComfyUI-Global-Translation v3.0.1 规范补充（2026-11-15 整理）：
+- 禁止恒等翻译：键==值的条目没有翻译意义，且会污染汉化插件的
+  "已翻译文本判定集合"（虽 v3.0.1 已跳过恒等，仍按规范不写）。
+  因此 nodeDefs 里 name==key 的端口（如 Qwen 的 clip/vae/mask、
+  上游本就是中文的 QwenPromptOptimizer 参数名）在 translations 中缺失
+  是正确行为，"需覆盖"只针对 nodeDefs 里 name!=key 的真需要汉化项。
+- ui 字段（翻译节点内嵌 DOM 面板的英文原文）本包用不上：本包面板文案
+  全部是中文硬编码，无英文原文可映射；若将来某节点面板出现英文才补。
+
 历史背景：v2.7.1 之前 translations 的 10 个节点 inputs/widgets 大量缺词条、
 nodeDefs 的 3 个 Qwen 节点用非官方字段（官方前端显示英文），本测试固化
 修正后的口径，防止回归。
@@ -84,16 +93,27 @@ miss_in = []
 miss_w = []
 for k, v in nd.items():
     t = tr[k]
-    for ik in v.get("inputs", {}):
-        if ik not in t.get("inputs", {}):
+    # 只需覆盖 name!=key 的项：name==key 是恒等端口（技术术语/本就中文），
+    # 按汉化插件规范不写恒等条目，缺失是正确的。
+    for ik, iv in v.get("inputs", {}).items():
+        disp = iv.get("name", ik) if isinstance(iv, dict) else ik
+        if disp != ik and ik not in t.get("inputs", {}):
             miss_in.append((k, ik))
-    # nodeDefs 的 widgets 是遗留字段（仅 Qwen 三节点有）；它有的 key，
-    # translations widgets 也应覆盖（汉化插件按 widget.name 匹配）。
-    for wk in v.get("widgets", {}):
-        if wk not in t.get("widgets", {}):
+    for wk, wv in v.get("widgets", {}).items():
+        disp = wv.get("name", wk) if isinstance(wv, dict) else wk
+        if disp != wk and wk not in t.get("widgets", {}):
             miss_w.append((k, wk))
-check("translations inputs 覆盖 nodeDefs inputs", not miss_in, str(miss_in))
-check("translations widgets 覆盖 nodeDefs widgets", not miss_w, str(miss_w))
+check("translations 覆盖所有需汉化 inputs（name!=key）", not miss_in, str(miss_in))
+check("translations 覆盖所有需汉化 widgets（name!=key）", not miss_w, str(miss_w))
+
+# 规范：禁止恒等翻译（键==值）
+ident = [(k, f, kk) for k, v in tr.items() for f in ("inputs", "widgets", "outputs")
+         for kk, vv in v.get(f, {}).items() if kk == vv]
+check("无恒等翻译（键==值）", not ident, str(ident))
+
+# 规范：每节点有 description（缺失的 Qwen 三节点已从 nodeDefs 补齐）
+no_desc = [k for k, v in tr.items() if not v.get("description")]
+check("translations 全部有 description", not no_desc, str(no_desc))
 
 # ---- 三、Menus（汉化插件全局下拉替换） ----
 for key, zh in (("solid", "纯色"), ("vertical_gradient", "上下渐变"),
