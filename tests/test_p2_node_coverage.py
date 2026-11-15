@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-"""节点级回归：把静态契约覆盖的 17 个节点全部纳入检查。
+"""节点级回归：把静态契约覆盖的 19 个节点全部纳入检查。
 
 注意：PhotoKit 并入的 6 个节点在 __init__.py 里按名字动态导入，另有
 独立几何测试 tests/test_photokit_geometry.py，未纳入本文件静态契约；
-所以这里的 17 不等于包内节点总数 23。
+所以这里的 19 不等于包内节点总数 25。
 
 从两层把这个盲区堵上，且**不依赖 GPL 参考源码、真实模型、网络或 API Key**：
 
-1. 静态契约层：AST 读 16 个后端模块（其中 qwen_text_encode 注册 2 个 key，
-   所以共 17 个后端注册 key），逐个核对注册 key、RETURN_TYPES / RETURN_NAMES
-   长度、FUNCTION 指向的方法确实存在、CATEGORY。全部 17 个后端节点一个不漏。
+1. 静态契约层：AST 读 18 个后端模块（其中 qwen_text_encode 注册 2 个 key，
+   所以共 19 个后端注册 key），逐个核对注册 key、RETURN_TYPES / RETURN_NAMES
+   长度、FUNCTION 指向的方法确实存在、CATEGORY。全部 19 个后端节点一个不漏。
 2. 运行时层：对此前完全没有节点级测试的模块真导入、真调用纯逻辑与安全分支
    （含只测过 helpers 的 QG_MaskByName、只测过 runtime 的
    QG_QwenPromptOptimizer），用绝对断言而不是「看代码觉得对」。
@@ -101,8 +101,8 @@ shell = types.ModuleType("qg_pack_p2")
 shell.__path__ = [PKG]
 sys.modules["qg_pack_p2"] = shell
 
-# 16 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
-# 所以共 17 个后端注册 key）。
+# 18 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
+# 所以共 19 个后端注册 key）。
 MODULES = [
     "translate_node", "prompt_translate_node",
     "image_to_prompt_node", "prompt_optimize_node", "note_node",
@@ -110,7 +110,7 @@ MODULES = [
     "birefnet_node", "qwen_text_encode_node",
     "qwen_prompt_optimizer_node", "qg_dual_color_picker", "qg_color_convert",
     "qg_custom_color", "qg_dominant_color", "face_align_node",
-    "qg_id_photo_outfit",
+    "qg_id_photo_outfit", "qg_marriage_cloth", "mask_top_expand_node",
 ]
 
 # 此前审查点名「完全没有节点级测试」的模块，本文件对它们做真调用。
@@ -120,6 +120,7 @@ RUNTIME_MODULES = [
     "qwen_prompt_optimizer_node", "qwen_text_encode_node",
     "qg_dual_color_picker", "qg_color_convert", "qg_custom_color",
     "qg_dominant_color", "face_align_node", "qg_id_photo_outfit",
+    "qg_marriage_cloth", "mask_top_expand_node",
 ]
 
 ok = 0
@@ -174,7 +175,7 @@ for module_name in MODULES:
         all_keys.append(key)
         class_info[key] = (module_name, path, cls, tree)
 
-check("后端注册 17 个 key", len(all_keys) == 17, "实际 %d" % len(all_keys))
+check("后端注册 19 个 key", len(all_keys) == 19, "实际 %d" % len(all_keys))
 check("后端 key 无重复", len(all_keys) == len(set(all_keys)))
 check("后端 key 全部 QG_ 前缀",
       all(k.startswith("QG_") for k in all_keys))
@@ -231,7 +232,7 @@ for key, (module_name, path, cls_name, tree) in sorted(class_info.items()):
           isinstance(func, str) and func in methods, str(func))
     check("%s CATEGORY=QG 工具" % key, cat == "QG 工具", str(cat))
 
-check("17 个节点全部纳入检查", len(all_keys) == 17)
+check("19 个节点全部纳入检查", len(all_keys) == 19)
 
 # ---------------------------------------------------------------------------
 # 二、运行时：此前无节点级测试的模块

@@ -36,5 +36,11 @@
   "vertical_gradient": "上下渐变",
   "radial_gradient": "中心渐变",
   "custom_color": "自定义颜色",
-  "border_color": "边框颜色"
+  "border_color": "边框颜色",
+  "fit_pad": "等比缩放补边",
+  "stretch": "拉伸填满",
+  "original": "原尺寸",
+  "top_center": "顶行中点",
+  "bbox_center": "外接框中点",
+  "mask_center": "遮罩质心"
 }

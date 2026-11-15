@@ -104,6 +104,32 @@ cats_e, tpl_e, files_e = IPO.scan_templates(empty, force=True)
 check("兜底：空素材目录 → 「无数据」分类", cats_e == ["无数据"], cats_e)
 check("兜底：「无数据」分类模板为空", tpl_e["无数据"] == [])
 
+# ---------- 三·五、多根合并（插件内置 + 用户 models 目录） ----------
+
+multi_a = IPO.Path(tempfile.mkdtemp(prefix="qg_ipo_multi_a_"))
+multi_b = IPO.Path(tempfile.mkdtemp(prefix="qg_ipo_multi_b_"))
+(multi_a / "1. 服装_女士").mkdir(parents=True, exist_ok=True)
+(multi_b / "1. 服装_女士").mkdir(parents=True, exist_ok=True)
+(multi_b / "8. 发型_女士").mkdir(parents=True, exist_ok=True)
+make_img(multi_a / "1. 服装_女士" / "01.西装.jpg")
+make_img(multi_a / "1. 服装_女士" / "02.衬衫.jpg")
+make_img(multi_b / "1. 服装_女士" / "03.圆领.jpg")   # 同名分类补图
+make_img(multi_b / "8. 发型_女士" / "01.短发.jpg")   # 只在第二根的新分类
+_orig_roots = IPO._candidate_roots
+IPO._candidate_roots = lambda: [multi_a, multi_b]
+try:
+    cats_m, tpl_m, _f_m = IPO.scan_templates(force=True)
+    check("多根：分类合并且保序", cats_m == ["1. 服装_女士", "8. 发型_女士"], cats_m)
+    check("多根：同名分类跨根补图", len(tpl_m["1. 服装_女士"]) == 3,
+          len(tpl_m["1. 服装_女士"]))
+    check("多根：新分类可见", len(tpl_m["8. 发型_女士"]) == 1)
+    check("多根：resolve 命中第二根的分类图",
+          IPO.resolve_image("8. 发型_女士", "01.短发.jpg") is not None)
+finally:
+    IPO._candidate_roots = _orig_roots
+    shutil.rmtree(multi_a, ignore_errors=True)
+    shutil.rmtree(multi_b, ignore_errors=True)
+
 # ---------- 四、路径安全 ----------
 
 check("清洗：目录穿越拒绝", IPO._safe_part("..%2F..") is None
@@ -113,6 +139,10 @@ check("清洗：绝对路径拒绝", IPO._safe_part("/etc/passwd") is None)
 check("清洗：点开头拒绝", IPO._safe_part(".git") is None)
 check("清洗：空值拒绝", IPO._safe_part("") is None)
 check("清洗：常规中文分类名通过", IPO._safe_part("1. 服装_女士") == "1. 服装_女士")
+check("清洗：全角标点文件名通过（v2.9.1 修复）",
+      IPO._safe_part("01.西装-深灰西装，白衬衫，领带.jpg")
+      == "01.西装-深灰西装，白衬衫，领带.jpg"
+      and IPO._safe_part("05.高领（米色）.png") == "05.高领（米色）.png")
 
 check("resolve：非法分类返回 None",
       IPO.resolve_image("../x", "01.西装.jpg", root) is None)
@@ -173,7 +203,7 @@ check("i18n：translations 标题与 inputs",
       tr_entry.get("title") == "QG 证件照服装发型"
       and tr_entry.get("inputs", {}).get("style") == "风格类型"
       and tr_entry.get("inputs", {}).get("prompt_output") == "提示词")
-check("i18n：两份词表节点数一致", len(nd) == len(tr) == 23,
+check("i18n：两份词表节点数一致（随包 25 节点）", len(nd) == len(tr) == 25,
       "%d/%d" % (len(nd), len(tr)))
 
 js_path = os.path.join(PKG, "web", "qg_id_photo_outfit.js")
@@ -191,13 +221,25 @@ check("注册：__init__.py 导入块", "qg_id_photo_outfit" in init_src)
 
 readme = open(os.path.join(PKG, "README.md"), encoding="utf-8").read()
 check("README：一览表登记", "QG_IDPhotoOutfit" in readme)
-check("README：覆盖节点数改 23", "覆盖全部 23 个节点" in readme)
-check("README：概括句改 23/22", "23 个节点里 22 个" in readme)
+check("README：覆盖节点数与包内一致", "覆盖全部 25 个节点" in readme)
+check("README：概括句与包内一致", "25 个节点里 24 个" in readme)
 check("README：新章节含素材格式", "models/id_photo/" in readme
       and "id_photo_data.json" in readme)
 
 gi = open(os.path.join(PKG, ".gitignore"), encoding="utf-8").read()
-check("gitignore：素材目录排除", "models/id_photo/" in gi)
+check("gitignore：素材随包分发（无生效的 models/id_photo 排除行）",
+      not any(line.strip() == "models/id_photo/"
+              or line.strip() == "models/id_photo"
+              for line in gi.splitlines()))
+asset_dir = os.path.join(PKG, "models", "id_photo")
+check("内置素材：目录存在且分类齐全",
+      os.path.isdir(asset_dir)
+      and len([d for d in os.listdir(asset_dir)
+               if os.path.isdir(os.path.join(asset_dir, d))]) == 7)
+check("内置素材：200 张图 + 提示词 JSON",
+      len([f for f in os.listdir(os.path.join(asset_dir, "1. 服装_女士"))
+           if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]) > 0
+      and os.path.isfile(os.path.join(asset_dir, "id_photo_data.json")))
 
 shutil.rmtree(tmp, ignore_errors=True)
 shutil.rmtree(empty, ignore_errors=True)

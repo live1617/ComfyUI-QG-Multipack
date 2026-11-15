@@ -602,7 +602,7 @@
   },
   "QG_IDPhotoOutfit": {
     "title": "QG 证件照服装发型",
-    "description": "证件照服装/发型模板选择：扫描 ComfyUI/models/id_photo/ 下的分类目录，节点面板里浏览缩略图、搜索、点选模板，选中模板的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。素材全部自备（目录格式与 Goohaitools「孤海」素材兼容，拷入即用），未放素材时下拉显示「无数据」提示。来源为参照 Goohaitools「孤海-证件照服装发型」规格的独立实现（GPL-3.0，未复制上游源码），素材不随本包分发。",
+    "description": "证件照服装/发型模板选择：节点面板里浏览缩略图、搜索、点选模板，选中的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。插件内置 7 分类 200 张模板（女士/男士/女童/男童/老年服装 + 女士/男士发型，均配提示词），开箱即用；还可往 ComfyUI/models/id_photo/ 放自己的分类或补图，两边合并显示。功能规格参照 Goohaitools「孤海-证件照服装发型」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库（原样复制，见 THIRD-PARTY-NOTICES）。",
     "inputs": {
       "style": "风格类型",
       "prompt_output": "提示词",
@@ -614,6 +614,50 @@
     },
     "outputs": {
       "prompt": "提示词"
+    }
+  },
+  "QG_MarriageCloth": {
+    "title": "QG 结婚登记照服装",
+    "description": "结婚登记照服装选择：节点面板里浏览服装参考图并点选，输出选中的 IMAGE 供图生图使用（序号 0 输出纯色底图）。插件内置 81 张双人服装素材，开箱即用；还可往 ComfyUI/models/marriage_cloth/ 放自己的图，两边合并显示。功能规格参照 Goohaitools「孤海-结婚登记照服装」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库。",
+    "inputs": {
+      "image_index": "服装序号",
+      "resize_mode": "缩放方式",
+      "target_width": "目标宽",
+      "target_height": "目标高",
+      "pad_color": "底色"
+    },
+    "widgets": {
+      "image_index": "服装序号",
+      "resize_mode": "缩放方式",
+      "target_width": "目标宽",
+      "target_height": "目标高",
+      "pad_color": "底色"
+    },
+    "outputs": {
+      "image": "图像"
+    }
+  },
+  "QG_MaskTopExpand": {
+    "title": "QG 头顶遮罩扩展",
+    "description": "头顶遮罩扩展：从遮罩最高点向上补一块矩形，给外补画板/扩图节点留出发量补全的区域。支持批量遮罩逐帧处理、矩形羽化、三种中心点取法，默认与原遮罩合并（Replace 模式只保留新矩形）。功能规格参照 Goohaitools「孤海-头顶遮罩」独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "mask": "遮罩",
+      "expand_x": "水平半径",
+      "expand_y": "向上高度",
+      "center_mode": "中心取法",
+      "feather": "羽化",
+      "keep_original": "合并原遮罩"
+    },
+    "widgets": {
+      "mask": "遮罩",
+      "expand_x": "水平半径",
+      "expand_y": "向上高度",
+      "center_mode": "中心取法",
+      "feather": "羽化",
+      "keep_original": "合并原遮罩"
+    },
+    "outputs": {
+      "mask": "遮罩"
     }
   }
 }

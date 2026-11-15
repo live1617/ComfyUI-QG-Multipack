@@ -1318,7 +1318,7 @@
   },
   "QG_IDPhotoOutfit": {
     "display_name": "QG 证件照服装发型",
-    "description": "证件照服装/发型模板选择：扫描 ComfyUI/models/id_photo/ 下的分类目录，节点面板里浏览缩略图、搜索、点选模板，选中模板的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。素材全部自备（目录格式与 Goohaitools「孤海」素材兼容，拷入即用），未放素材时下拉显示「无数据」提示。来源为参照 Goohaitools「孤海-证件照服装发型」规格的独立实现（GPL-3.0，未复制上游源码），素材不随本包分发。",
+    "description": "证件照服装/发型模板选择：节点面板里浏览缩略图、搜索、点选模板，选中的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。插件内置 7 分类 200 张模板（女士/男士/女童/男童/老年服装 + 女士/男士发型，均配提示词），开箱即用；还可往 ComfyUI/models/id_photo/ 放自己的分类或补图，两边合并显示。功能规格参照 Goohaitools「孤海-证件照服装发型」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库（原样复制，见 THIRD-PARTY-NOTICES）。",
     "inputs": {
       "style": {
         "name": "风格类型",
@@ -1333,6 +1333,74 @@
       "0": {
         "name": "提示词",
         "tooltip": "STRING：当前模板提示词，原样透传给下游。"
+      }
+    }
+  },
+  "QG_MarriageCloth": {
+    "display_name": "QG 结婚登记照服装",
+    "description": "结婚登记照服装选择：节点面板里浏览服装参考图并点选，输出选中的 IMAGE 供图生图使用（序号 0 输出纯色底图）。插件内置 81 张双人服装素材，开箱即用；还可往 ComfyUI/models/marriage_cloth/ 放自己的图，两边合并显示。功能规格参照 Goohaitools「孤海-结婚登记照服装」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库。",
+    "inputs": {
+      "image_index": {
+        "name": "服装序号",
+        "tooltip": "1 到 N 选一张（N 见节点面板），0 输出纯色底图；素材增删后序号按文件名自然排序重排。"
+      },
+      "resize_mode": {
+        "name": "缩放方式",
+        "tooltip": "fit_pad 等比缩放补边（默认，不变形）/ stretch 拉伸填满（可能变形）/ original 不缩放。"
+      },
+      "target_width": {
+        "name": "目标宽",
+        "tooltip": "输出宽度（像素）；original 模式下忽略。"
+      },
+      "target_height": {
+        "name": "目标高",
+        "tooltip": "输出高度（像素）；original 模式下忽略。"
+      },
+      "pad_color": {
+        "name": "底色",
+        "tooltip": "纯色底图与 fit_pad 补边用的颜色，支持 #RRGGBB、#ABC 或颜色名。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "IMAGE：选中服装参考图（或纯色底图）。"
+      }
+    }
+  },
+  "QG_MaskTopExpand": {
+    "display_name": "QG 头顶遮罩扩展",
+    "description": "头顶遮罩扩展：从遮罩最高点向上补一块矩形，给外补画板/扩图节点留出发量补全的区域。支持批量遮罩逐帧处理、矩形羽化、三种中心点取法，默认与原遮罩合并（Replace 模式只保留新矩形）。功能规格参照 Goohaitools「孤海-头顶遮罩」独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "mask": {
+        "name": "遮罩",
+        "tooltip": "以它的最高点作为矩形的上边界锚点。"
+      },
+      "expand_x": {
+        "name": "水平半径",
+        "tooltip": "矩形宽度为 中心 x ± 该值（像素）。"
+      },
+      "expand_y": {
+        "name": "向上高度",
+        "tooltip": "矩形从最高点向上延伸的像素数。"
+      },
+      "center_mode": {
+        "name": "中心取法",
+        "tooltip": "top_center 顶行中点（默认）/ bbox_center 外接框中点 / mask_center 遮罩质心。"
+      },
+      "feather": {
+        "name": "羽化",
+        "tooltip": "矩形边缘的高斯模糊半径，0 为硬边。"
+      },
+      "keep_original": {
+        "name": "合并原遮罩",
+        "tooltip": "开启时与原遮罩取并集；关闭只输出新矩形。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "遮罩",
+        "tooltip": "MASK：扩展后的遮罩，形状与输入一致。"
       }
     }
   }

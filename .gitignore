@@ -27,6 +27,6 @@ ISSUES.md
 # ComfyUI/models/fonts 与系统字体，需要时把 ttf 丢进 models/fonts 即可。
 fonts/
 
-# 模板素材（2026-11-14 用户决定）：服装/发型模板图与提示词全部自备，
-# 节点扫 ComfyUI/models/id_photo/，不在插件目录、不进仓库。
-models/id_photo/
+# 模板素材（2026-11-15 用户改成随包分发）：插件目录 models/id_photo/
+# 内置 7 分类 200 张服装/发型模板与提示词，随插件一起提交与打包；
+# 用户自己的补充素材放 ComfyUI/models/id_photo/（在 ComfyUI 目录里，与本仓库无关）。

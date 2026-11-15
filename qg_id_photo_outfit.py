@@ -1,27 +1,33 @@
 # -*- coding: utf-8 -*-
 """QG 证件照服装发型选择节点（qg_id_photo_outfit.py）
 
-功能：从 ComfyUI/models/id_photo/ 下按分类扫描服装/发型模板素材，
-前端提供网格面板（预览 / 搜索 / 点选），把选中模板的提示词写回
-STRING 控件，后端原样透传给下游。
+功能：按分类扫描服装/发型模板素材，前端提供内嵌面板（预览 / 搜索 / 点选），
+把选中模板的提示词写回 STRING 控件，后端原样透传给下游。
 
-素材目录格式（全部自备，不随本包分发）::
+素材来源**多根合并**（都可见，同名文件先命中者优先）：
 
-    ComfyUI/models/id_photo/
+1. 插件目录自带内置素材 ``<插件目录>/models/id_photo/``（随包分发，
+   当前内置 7 个分类 200 张：女士/男士/女童/男童/老年服装 + 女士/男士发型，
+   全部配好提示词）
+2. 用户自备 ``ComfyUI/models/id_photo/``（extra_model_paths 挂载的其它
+   models 根也认）——放自己的分类或同名分类补充图片即可
+
+素材目录格式（id_photo_data.json 与分类目录同级）::
+
+    models/id_photo/
     ├── 1. 服装_女士/          ← 分类目录，名字任意
     │   ├── 01.西装.jpg        ← 模板图（jpg/jpeg/png/webp）
     │   ├── 02.衬衫.png
     │   └── ...
     ├── 2. 服装_男士/
-    ├── id_photo_data.json     ← 可选：提示词映射
+    ├── id_photo_data.json     ← 提示词映射
     │   {"prompts": {"1. 服装_女士": {"01.西装": "深灰色……"}}}
     └── ...
 
 提示词解析优先级：id_photo_data.json 的 prompts 映射 →
 文件名内嵌（「标题-提示词.扩展名」）→ 空字符串。
-目录格式与 Goohaitools「孤海-证件照服装发型」素材兼容，
-把其 image/ID_Photo 内容拷进 models/id_photo/ 即可直接使用
-（格式参照其公开行为设计，代码为本包独立实现，未复制上游源码）。
+目录格式与 Goohaitools「孤海-证件照服装发型」素材兼容（内置素材即取自
+其公开素材库的精选子集，来源与许可见 THIRD-PARTY-NOTICES.md）。
 
 注册 key：QG_IDPhotoOutfit；输出 STRING 提示词。
 """
@@ -73,12 +79,22 @@ def _candidate_roots():
 
 
 def _template_root():
-    # 多 models 根场景（如 extra_model_paths.yaml）：取第一个真正放了
-    # id_photo 目录的根；一个都没有则用第一个候选（下拉显示「无数据」）
+    # 兼容旧接口：取第一个真正放了 id_photo 目录的根；一个都没有则用第一个候选
     for root in _candidate_roots():
         if root.is_dir():
             return root
     return _candidate_roots()[0]
+
+
+def _active_roots():
+    """所有实际存在的素材根，按候选顺序（用户 models 目录优先，插件内置兜底）。
+
+    多根会**合并扫描**：插件目录自带一批内置模板（随包分发），用户还可以往
+    ComfyUI/models/id_photo/ 加自己的分类，两边同时可见；同名分类合并、
+    同名文件以先出现的根为准。
+    """
+    roots = [r for r in _candidate_roots() if r.is_dir()]
+    return roots or [_candidate_roots()[0]]
 
 
 _IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp")
@@ -111,45 +127,56 @@ def _dir_signature(root):
 
 
 def scan_templates(root=None, force=False):
-    """扫描素材目录，返回 (categories, templates, files)。
+    """扫描素材目录（多根合并），返回 (categories, templates, files)。
 
     templates: {分类: [{"title","prompt","filename","category"}, ...]}
     files:     {分类: {stem_lower: 实际文件名}}  供图片路由解析
-    扫描结果按目录签名缓存，素材增删改无需重启后端。
+    扫描结果按各根目录签名缓存，素材增删改无需重启后端。
+    root 显式指定时只扫该目录（测试/单目录场景）。
     """
-    root = Path(root) if root else _template_root()
-    sig = _dir_signature(root)
-    data_sig = (root.name, root.exists())
-    key = (str(root), sig, data_sig)
-    if not force and _SCAN_CACHE["key"] == key:
+    roots = [Path(root)] if root else _active_roots()
+    sig = tuple((str(r), _dir_signature(r), r.exists()) for r in roots)
+    if not force and _SCAN_CACHE["key"] == sig:
         return _SCAN_CACHE["categories"], _SCAN_CACHE["templates"], _SCAN_CACHE["files"]
 
     categories, templates, files = [], {}, {}
-    prompt_map = {}
-    data_json = root / _DATA_JSON
-    if data_json.is_file():
-        try:
-            loaded = json.loads(data_json.read_text(encoding="utf-8"))
-            prompt_map = loaded.get("prompts", {}) or {}
-            if not isinstance(prompt_map, dict):
+    seen_cat = set()
+    for r in roots:
+        # 每根各自的提示词映射（JSON 放各自根目录下）
+        prompt_map = {}
+        data_json = r / _DATA_JSON
+        if data_json.is_file():
+            try:
+                loaded = json.loads(data_json.read_text(encoding="utf-8"))
+                prompt_map = loaded.get("prompts", {}) or {}
+                if not isinstance(prompt_map, dict):
+                    prompt_map = {}
+            except (ValueError, OSError):
                 prompt_map = {}
-        except (ValueError, OSError):
-            prompt_map = {}
 
-    if root.is_dir():
-        for d in sorted(root.iterdir()):
+        if not r.is_dir():
+            continue
+        for d in sorted(r.iterdir()):
             if not (d.is_dir() and not d.name.startswith(".")):
                 continue
             category = d.name
-            entries, index = [], {}
             cat_prompts = prompt_map.get(category, {})
             if not isinstance(cat_prompts, dict):
                 cat_prompts = {}
+            # 同名分类跨根合并：先出现的根的条目在前，同名文件不重复
+            entries = templates.get(category)
+            if entries is None:
+                entries = []
+            index = files.setdefault(category, {})
+            existing = {e["filename"] for e in entries}
             for img in sorted(d.iterdir()):
                 if not (img.is_file() and img.suffix.lower() in _IMAGE_EXTS):
                     continue
                 stem, filename = img.stem, img.name
-                index[stem.lower()] = filename
+                if filename in existing:
+                    continue
+                existing.add(filename)
+                index.setdefault(stem.lower(), filename)
                 if stem in cat_prompts:
                     title, prompt = stem, str(cat_prompts[stem])
                 elif "-" in stem:
@@ -164,43 +191,37 @@ def scan_templates(root=None, force=False):
                     "category": category,
                 })
             if entries:
-                categories.append(category)
+                if category not in seen_cat:
+                    seen_cat.add(category)
+                    categories.append(category)
                 templates[category] = entries
-                files[category] = index
 
     if not categories:
         categories = [_EMPTY_CATEGORY]
         templates[_EMPTY_CATEGORY] = []
 
-    _SCAN_CACHE.update({"key": key, "categories": categories,
+    _SCAN_CACHE.update({"key": sig, "categories": categories,
                         "templates": templates, "files": files})
     return categories, templates, files
 
 
 def _safe_part(value):
-    """清洗路径片段：只允许中文/字母/数字/空格/点/下划线/连字符，拒绝穿越。"""
+    """清洗路径片段：拒绝穿越/反斜杠/绝对路径，只放行常见字符。
+
+    白名单含：中文与全角标点（，。、：；！？「」等，文件名里常见）、
+    字母数字下划线、空格、点、括号、连字符；半角斜杠/反斜杠/.. 一律拒绝。
+    """
     if not value or "\\" in value or "/" in value or ".." in value:
         return None
     if value.startswith(".") or value.strip() != value:
         return None
-    if not re.fullmatch(r"[\w\u4e00-\u9fff .()\[\]-]+", value):
+    if not re.fullmatch(r"[\w\u4e00-\u9fff\u3000-\u303f\uFF00-\uFFEF\u00B7 .()\[\]-]+", value):
         return None
     return value
 
 
-def resolve_image(category, filename, root=None):
-    """按分类与文件名定位模板图；返回 Path 或 None（找不到/非法都返回 None）。
-
-    兼容旧长文件名「短标题-提示词.扩展名」：按 stem 前缀回退匹配。
-    """
-    category = _safe_part(category or "")
-    filename = _safe_part(filename or "")
-    if category is None or filename is None:
-        return None
-    if not filename.lower().endswith(_IMAGE_EXTS):
-        return None
-    root = Path(root) if root else _template_root()
-    img_dir = root / category
+def _resolve_in(img_dir, category, filename):
+    """在单个分类目录内定位图片（含旧长文件名的短标题回退）。"""
     if not img_dir.is_dir():
         return None
     candidate = img_dir / filename
@@ -227,6 +248,25 @@ def resolve_image(category, filename, root=None):
     return None
 
 
+def resolve_image(category, filename, root=None):
+    """按分类与文件名定位模板图；返回 Path 或 None（找不到/非法都返回 None）。
+
+    多根场景按候选顺序（用户 models 目录 → 插件内置）查找，先命中者优先。
+    """
+    category = _safe_part(category or "")
+    filename = _safe_part(filename or "")
+    if category is None or filename is None:
+        return None
+    if not filename.lower().endswith(_IMAGE_EXTS):
+        return None
+    roots = [Path(root)] if root else _active_roots()
+    for r in roots:
+        found = _resolve_in(r / category, category, filename)
+        if found is not None:
+            return found
+    return None
+
+
 class QGIDPhotoOutfit:
     """证件照服装发型选择：前端面板选模板，后端透传提示词。"""
 
@@ -250,11 +290,11 @@ class QGIDPhotoOutfit:
     RETURN_NAMES = ("提示词",)
     FUNCTION = "execute"
     CATEGORY = "QG 工具"
-    DESCRIPTION = ("证件照服装/发型模板选择：扫描 ComfyUI/models/id_photo/ 下的分类目录，"
-                   "节点面板里浏览缩略图、搜索、点选模板，选中模板的服装/发型提示词写进"
-                   "提示词控件输出给下游（可直接接 QG_IDPhotoParams 之类）。素材全部自备"
-                   "（目录格式与 Goohaitools「孤海」素材兼容，拷入即用），未放素材时下拉"
-                   "显示「无数据」提示。")
+    DESCRIPTION = ("证件照服装/发型模板选择：节点面板里浏览缩略图、搜索、点选模板，"
+                   "选中模板的服装/发型提示词写进提示词控件输出给下游（可直接接 "
+                   "QG_IDPhotoParams 之类）。插件自带 7 个分类 200 张内置模板（女士/男士/"
+                   "女童/男童/老年服装 + 女士/男士发型，均配提示词），开箱即用；还可往 "
+                   "ComfyUI/models/id_photo/ 放自己的分类或补图，两边合并显示。")
 
     def execute(self, style, prompt_output="", unique_id=None):
         return (prompt_output or "",)

@@ -88,13 +88,35 @@ the model itself.
 
 ## Goohaitools-comfyui — functional reference (two ported items, see below)
 
+**Exception — bundled template assets for `QG_IDPhotoOutfit` (from v2.10.0):**
+the image templates under `models/id_photo/` (7 category folders, 200 jpg
+files) and their `id_photo_data.json` prompt mapping are **copied verbatim**
+from Goohaitools-comfyui's `image/ID_Photo/` directory (author-requested
+bundling of the full set). Goohaitools-comfyui is distributed under
+GPL-3.0, and so is this pack, so redistribution is license-compatible;
+the assets are unmodified copies, attribution is recorded here, and the
+upstream project (`Goohaitools-comfyui`) remains the origin of these files.
+The `QG_IDPhotoOutfit` node code itself (scanning, prompt resolution,
+HTTP routes) is this pack's own implementation and does not copy upstream
+source.
+
+**Exception — bundled template assets for `QG_MarriageCloth` (from v2.11.0):**
+the 81 garment photos under `models/marriage_cloth/` are **copied verbatim**
+from Goohaitools-comfyui's `image/marriage registration/` directory
+(author-requested bundling of the full set). Same situation as above:
+GPL-3.0 to GPL-3.0, unmodified copies, attribution recorded here, upstream
+project remains the origin. The `QG_MarriageCloth` node code (scan order,
+resize modes, path sanitising, HTTP routes) is this pack's own
+implementation and does not copy upstream source.
+
 Most nodes in this pack align their **functional spec** with nodes from
-Goohaitools-comfyui (`QG_MaskBlend`, `QG_MaskAnalysis`, `QG_MaskDetect`,
-`QG_ImageScale`, `QG_AddWatermark`, `QG_RemoveBGByMask`,
-`QG_FaceRectify`, `QG_RatioResolution`, and the `qg_note.js` front-end).
-Their behaviour was studied and then
-re-implemented independently; no source file from that project is bundled
-with this pack.
+Goohaitools-comfyui (`QG_IDPhotoCrop`, `QG_IDPhotoOutfit`,
+`QG_MarriageCloth`, `QG_MaskTopExpand`, `QG_DualColorPicker`,
+`QG_ColorConvert`, `QG_CustomColor`, `QG_DominantColor`, `QG_FaceAlign`,
+and the `qg_note.js` front-end). Their behaviour was studied and then
+re-implemented independently; each one also lists what was deliberately
+changed (see the node's module docstring and the README source table);
+no source file from that project is bundled with this pack.
 
 **Exception — `QG_IDCardSheet` (`id_card_sheet_node.py`), re-written after
 studying the Goohaitools "身份证自动扶正拼版" source (GPL-3.0):** unlike the

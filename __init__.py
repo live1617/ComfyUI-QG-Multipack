@@ -46,7 +46,7 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.8.0"
+__version__ = "2.11.0"
 
 import asyncio
 import os
@@ -335,6 +335,34 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 证件照服装发型导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 结婚登记照服装：qg_marriage_cloth.py（注册 key QG_MarriageCloth）
+try:
+    from . import qg_marriage_cloth as _marriage_cloth
+
+    NODE_CLASS_MAPPINGS.update(_marriage_cloth.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_marriage_cloth.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 结婚登记照服装导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 头顶遮罩扩展：mask_top_expand_node.py（注册 key QG_MaskTopExpand）
+try:
+    from . import mask_top_expand_node as _mask_top
+
+    NODE_CLASS_MAPPINGS.update(_mask_top.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_mask_top.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 头顶遮罩扩展导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 
