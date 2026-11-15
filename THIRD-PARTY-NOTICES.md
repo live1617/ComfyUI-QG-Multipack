@@ -113,10 +113,17 @@ Most nodes in this pack align their **functional spec** with nodes from
 Goohaitools-comfyui (`QG_IDPhotoCrop`, `QG_IDPhotoOutfit`,
 `QG_MarriageCloth`, `QG_MaskTopExpand`, `QG_DualColorPicker`,
 `QG_ColorConvert`, `QG_CustomColor`, `QG_DominantColor`, `QG_FaceAlign`,
-and the `qg_note.js` front-end). Their behaviour was studied and then
-re-implemented independently; each one also lists what was deliberately
-changed (see the node's module docstring and the README source table);
-no source file from that project is bundled with this pack.
+`QG_IDPhotoPrompt`, `QG_PhotoSheetMixed`, and the `qg_note.js` front-end).
+Their behaviour was studied and then re-implemented independently; each one
+also lists what was deliberately changed (see the node's module docstring
+and the README source table). No source file from that project is bundled
+with this pack; the only bundled upstream material is the template **image
+assets and prompt JSON** described in the exception sections above. For
+`QG_IDPhotoPrompt` specifically, the Chinese option *labels* come from the
+public spec (data, not code); the option values, prompt assembly, random
+handling and front-end hook are this pack's own. For `QG_PhotoSheetMixed`,
+the thirteen layout names and their centimetre sizes come from the public
+spec, while the layout table, geometry engine and rendering are own code.
 
 **Exception — `QG_IDCardSheet` (`id_card_sheet_node.py`), re-written after
 studying the Goohaitools "身份证自动扶正拼版" source (GPL-3.0):** unlike the

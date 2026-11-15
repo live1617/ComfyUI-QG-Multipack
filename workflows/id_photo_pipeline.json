@@ -1,0 +1,593 @@
+{
+  "id": "id_photo_pipeline",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        60,
+        560
+      ],
+      "size": [
+        300,
+        340
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "① 选一张人像照片",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "QG_IDPhotoParams",
+      "pos": [
+        60,
+        980
+      ],
+      "size": [
+        300,
+        300
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "params",
+          "type": "QG_IDPHOTO_PARAMS",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "dpi",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "② 证件照参数（尺寸 / 底色 / DPI）",
+      "properties": {
+        "Node name for S&R": "QG_IDPhotoParams"
+      },
+      "widgets_values": [
+        "1inch",
+        "blue",
+        "",
+        "darkblue",
+        "pure",
+        300,
+        3.5,
+        4.9
+      ]
+    },
+    {
+      "id": 3,
+      "type": "QG_PortraitMatte",
+      "pos": [
+        420,
+        560
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "params",
+          "type": "QG_IDPHOTO_PARAMS",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "hd",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "③ 人像抠图换底 / 构图",
+      "properties": {
+        "Node name for S&R": "QG_PortraitMatte"
+      },
+      "widgets_values": [
+        "modnet_photographic_portrait_matting",
+        true,
+        false,
+        false,
+        0.667,
+        0.06,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 4,
+      "type": "QG_IDPhotoCrop",
+      "pos": [
+        810,
+        560
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4,
+            5
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "filled",
+          "type": "BOOLEAN",
+          "links": []
+        },
+        {
+          "name": "dpi",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "guide",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "④ 裁剪对眼线（出标准尺寸）",
+      "properties": {
+        "Node name for S&R": "QG_IDPhotoCrop"
+      },
+      "widgets_values": [
+        "1inch",
+        0.0,
+        0.0,
+        "cm",
+        300,
+        0.42,
+        0.38,
+        true,
+        "center",
+        2000,
+        "border",
+        "#364254"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "QG_PhotoSheetMixed",
+      "pos": [
+        1200,
+        480
+      ],
+      "size": [
+        330,
+        320
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sheet",
+          "type": "IMAGE",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "layout_name",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "total",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "⑤ A5 混合排版（13 种版式）",
+      "properties": {
+        "Node name for S&R": "QG_PhotoSheetMixed"
+      },
+      "widgets_values": [
+        "mix_1_8_2_4",
+        300,
+        1,
+        "#000000",
+        "",
+        "<default>",
+        0,
+        true
+      ]
+    },
+    {
+      "id": 6,
+      "type": "PreviewImage",
+      "pos": [
+        1580,
+        480
+      ],
+      "size": [
+        330,
+        360
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "⑥ 混合排版结果",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "QG_PhotoSheet",
+      "pos": [
+        1200,
+        940
+      ],
+      "size": [
+        330,
+        400
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sheet",
+          "type": "IMAGE",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "columns",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "rows",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "total",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "⑤' 单尺寸铺相纸（可自定义纸张）",
+      "properties": {
+        "Node name for S&R": "QG_PhotoSheet"
+      },
+      "widgets_values": [
+        12.7,
+        8.9,
+        350,
+        0.2,
+        0.2,
+        0,
+        false,
+        true,
+        "",
+        "<default>",
+        0,
+        true,
+        0
+      ]
+    },
+    {
+      "id": 8,
+      "type": "PreviewImage",
+      "pos": [
+        1580,
+        940
+      ],
+      "size": [
+        330,
+        360
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "⑥' 单尺寸排版结果",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "QG_IDPhotoPrompt",
+      "pos": [
+        420,
+        60
+      ],
+      "size": [
+        330,
+        440
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "title": "A 生成人像用的简易提示词（可选）",
+      "properties": {
+        "Node name for S&R": "QG_IDPhotoPrompt"
+      },
+      "widgets_values": [
+        "composition_01",
+        "nationality_01",
+        "gender_01",
+        "body_shape_03",
+        "hair_color_06",
+        "random",
+        "none",
+        "random",
+        "random",
+        "random",
+        "random",
+        "background_color_01",
+        "none",
+        0
+      ]
+    },
+    {
+      "id": 10,
+      "type": "PreviewAny",
+      "pos": [
+        810,
+        60
+      ],
+      "size": [
+        330,
+        180
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "A 提示词输出（接文本编码器）",
+      "properties": {
+        "Node name for S&R": "PreviewAny"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "MarkdownNote",
+      "pos": [
+        60,
+        60
+      ],
+      "size": [
+        440,
+        230
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "使用说明",
+      "properties": {},
+      "widgets_values": [
+        "## 证件照全链路示例\n\n1. 在 **① LoadImage** 里选一张正面人像照片（示例里是占位名）。\n2. **② 参数** 选 1 寸 / 2 寸、底色、DPI，接到 **③ 抠图换底** 的可选 `params`。\n3. **④ 裁剪** 按眼线比例输出标准证件照 → 分两路排版：\n   - **⑤ 混合排版**：13 种 A5 固定版式（含 1寸8张+2寸4张 等双尺寸混排）；\n   - **⑤' 单尺寸排版**：自定义相纸 / 间距 / 裁切标记。\n4. **A 简易提示词** 是给「图生图生成人像」用的文字，接你自己的 CLIP 文本编码器即可。\n\n首次使用 ③ 会自动下载抠图 / 人脸模型，需联网；无模型时节点会降级或给出明确提示。"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "QG_IDPHOTO_PARAMS"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      4,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      5,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      7,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      9,
+      0,
+      10,
+      0,
+      "*"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

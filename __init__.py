@@ -46,7 +46,7 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.11.0"
+__version__ = "2.12.0"
 
 import asyncio
 import os
@@ -363,6 +363,34 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 头顶遮罩扩展导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 证件照简易提示词：qg_id_photo_prompt.py（注册 key QG_IDPhotoPrompt）
+try:
+    from . import qg_id_photo_prompt as _id_photo_prompt
+
+    NODE_CLASS_MAPPINGS.update(_id_photo_prompt.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_id_photo_prompt.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 证件照简易提示词导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 证件照混合排版（A5）：photo_sheet_mixed_node.py（注册 key QG_PhotoSheetMixed）
+try:
+    from . import photo_sheet_mixed_node as _photo_sheet_mixed
+
+    NODE_CLASS_MAPPINGS.update(_photo_sheet_mixed.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_photo_sheet_mixed.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 证件照混合排版导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 

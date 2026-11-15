@@ -659,5 +659,75 @@
     "outputs": {
       "mask": "遮罩"
     }
+  },
+  "QG_IDPhotoPrompt": {
+    "title": "QG 证件照简易提示词",
+    "description": "证件照简易提示词：13 个维度下拉（构图/国籍/性别/体型/发色/发型/服装颜色/服装款式/服饰佩饰/妆容/表情/背景色/其他佩饰）组合成一句中文人像提示词，可直接接文本编码器。每维都能选「无」或「随机」，seed 保证随机结果可复现；下拉存档值为英文编号、中文仅显示名，改文案不会破坏旧工作流。功能规格参照 Goohaitools「孤海-证件照简易提示词」独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "composition": "构图",
+      "nationality": "国籍",
+      "gender": "性别",
+      "body_shape": "体型",
+      "hair_color": "发色",
+      "hairstyle": "发型",
+      "clothing_color": "服装颜色",
+      "clothing_style": "服装款式",
+      "accessory": "服饰佩饰",
+      "makeup": "妆容",
+      "expression": "表情",
+      "background_color": "背景色",
+      "extra_accessory": "其他佩饰",
+      "seed": "随机种子"
+    },
+    "widgets": {
+      "composition": "构图",
+      "nationality": "国籍",
+      "gender": "性别",
+      "body_shape": "体型",
+      "hair_color": "发色",
+      "hairstyle": "发型",
+      "clothing_color": "服装颜色",
+      "clothing_style": "服装款式",
+      "accessory": "服饰佩饰",
+      "makeup": "妆容",
+      "expression": "表情",
+      "background_color": "背景色",
+      "extra_accessory": "其他佩饰",
+      "seed": "随机种子"
+    },
+    "outputs": {
+      "prompt": "提示词"
+    }
+  },
+  "QG_PhotoSheetMixed": {
+    "title": "QG 证件照混合排版（A5）",
+    "description": "证件照混合排版（A5）：13 种固定版式，含 6 种单尺寸网格与 7 种双尺寸混排（部分版式旋转照片、竖版 A5、零间距）。相纸/照片尺寸/间距为厘米，描边与文字大小为像素，DPI 决定像素。批量逐帧出图；描边画在照片内部不会挤占网格；版式放不下时等比缩到相纸内（关闭 fit_to_paper 则明确报错）。下拉存档值为英文编号、中文仅显示名。功能规格参照 Goohaitools「孤海-证件照排版（A5定制）」独立实现（GPL-3.0，未复制上游源码），13 个版式由数据表 + 统一引擎描述。",
+    "inputs": {
+      "image": "证件照图像",
+      "layout": "版式",
+      "dpi": "DPI",
+      "border_px": "描边宽度（像素）",
+      "border_color": "描边颜色",
+      "caption": "文字",
+      "font": "字体",
+      "font_size": "文字大小（像素）",
+      "fit_to_paper": "放不下时缩到相纸内"
+    },
+    "widgets": {
+      "image": "证件照图像",
+      "layout": "版式",
+      "dpi": "DPI",
+      "border_px": "描边宽度（像素）",
+      "border_color": "描边颜色",
+      "caption": "文字",
+      "font": "字体",
+      "font_size": "文字大小（像素）",
+      "fit_to_paper": "放不下时缩到相纸内"
+    },
+    "outputs": {
+      "sheet": "排版图像",
+      "layout_name": "版式名",
+      "total": "张数"
+    }
   }
 }
