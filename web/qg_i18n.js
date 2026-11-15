@@ -114,6 +114,10 @@ const LABELS = {
     },
   },
   QG_IDPhotoCrop: {
+    overflow_mode: {
+      shrink: "收缩到原图",
+      pad: "允许补边",
+    },
     alpha_mode: {
       fill: "填平透明",
       keep: "保留透明",

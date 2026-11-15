@@ -154,6 +154,121 @@ def plan_frame(face, out_w, out_h, face_ratio, eye_line, rotate):
                  (a, b, c, d, e, f))
 
 
+def frame_centred(cx, cy, w, h, tilt, out_w, out_h):
+    """A frame of the given size centred on ``(cx, cy)``.
+
+    ``plan_frame`` derives the centre from the eyes; ``shrink_into_source``
+    moves a frame afterwards and needs the same matrix rebuilt from a centre it
+    already chose. The arithmetic is the same one ``plan_frame`` uses - the crop
+    centre lands on the output centre - just written the short way.
+    """
+    cos, sin = math.cos(tilt), math.sin(tilt)
+    scale = w / float(out_w)
+    a = scale * cos
+    b = -scale * sin
+    d = scale * sin
+    e = scale * cos
+    c = cx - a * (out_w / 2.0) - b * (out_h / 2.0)
+    f = cy - d * (out_w / 2.0) - e * (out_h / 2.0)
+    return Frame(cx, cy, w, h, tilt, int(out_w), int(out_h),
+                 (a, b, c, d, e, f))
+
+
+def frame_bounds(frame):
+    """Bounding box of the (possibly turned) crop rectangle, in source px."""
+    corners = frame_corners(frame)
+    xs = [p[0] for p in corners]
+    ys = [p[1] for p in corners]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def frame_fits(frame, limit_w, limit_h, tolerance=1e-6):
+    """True when the whole crop rectangle lies inside the allowed area."""
+    x0, y0, x1, y1 = frame_bounds(frame)
+    return (x0 >= -tolerance and y0 >= -tolerance
+            and x1 <= limit_w + tolerance and y1 <= limit_h + tolerance)
+
+
+def shrink_into_source(face, out_w, out_h, face_ratio, eye_line, rotate,
+                       src_w, src_h, max_ratio=0.9, steps=24):
+    """Pull the crop back inside the source. Returns ``(frame, ratio, shrunk)``.
+
+    ``ratio`` is the face share actually used, ``shrunk`` is False when the
+    frame already fitted and nothing was touched.
+
+    This is what stops a badly matched 脸部大小 from painting a band of invented
+    colour around a portrait. ``face_ratio`` asks for a share of the output
+    width, and on a picture that is already framed tighter than that share the
+    crop grows past the source - a 429x600 portrait at 0.42 wants a 533x746
+    crop, 35% of it invented.
+
+    Raising the share instead of shrinking the frame is deliberate: the two are
+    the same crop size, but ``plan_frame`` then places the eyes back on
+    ``eye_line``. Scaling the frame about its own centre would keep the eye's
+    *absolute* position and quietly slide the eye line upwards, clipping the
+    top of the head.
+
+    Crop size falls monotonically as the share rises - which also walks the
+    frame inwards, since its top and left hang off the eyes - so a bisection
+    finds the largest frame that still fits. A portrait with the eyes almost on
+    the edge can have no such share; then the frame is scaled about its centre
+    and slid flush, which is the best that geometry allows.
+    """
+    limit_w = max(1.0, float(src_w) - 1.0)
+    limit_h = max(1.0, float(src_h) - 1.0)
+
+    frame = plan_frame(face, out_w, out_h, face_ratio, eye_line, rotate)
+    if frame_fits(frame, limit_w, limit_h):
+        return frame, float(face_ratio), False
+
+    low = float(face_ratio)
+    high = float(max(max_ratio, face_ratio))
+    best = None
+    for _ in range(steps):
+        mid = (low + high) / 2.0
+        candidate = plan_frame(face, out_w, out_h, mid, eye_line, rotate)
+        if frame_fits(candidate, limit_w, limit_h):
+            best = (candidate, mid)
+            high = mid
+        else:
+            low = mid
+    if best is not None:
+        return best[0], best[1], True
+
+    # Last resort: the eyes sit too close to an edge for any share to fit, so
+    # take the tightest allowed frame and move it flush.
+    frame = plan_frame(face, out_w, out_h, high, eye_line, rotate)
+    x0, y0, x1, y1 = frame_bounds(frame)
+    width, height = x1 - x0, y1 - y0
+    factor = 1.0
+    if width > limit_w:
+        factor = min(factor, limit_w / width)
+    if height > limit_h:
+        factor = min(factor, limit_h / height)
+    w = frame.w * factor
+    h = frame.h * factor
+    moved = frame_centred(frame.cx, frame.cy, w, h, frame.tilt,
+                          frame.out_w, frame.out_h)
+    # Turning the frame and sliding it are not independent - a rotation changes
+    # which corner sticks out - so settle in two passes rather than one.
+    for _ in range(2):
+        mx0, my0, mx1, my1 = frame_bounds(moved)
+        dx = dy = 0.0
+        if mx0 < 0.0:
+            dx = -mx0
+        elif mx1 > limit_w:
+            dx = limit_w - mx1
+        if my0 < 0.0:
+            dy = -my0
+        elif my1 > limit_h:
+            dy = limit_h - my1
+        if dx == 0.0 and dy == 0.0:
+            break
+        moved = frame_centred(moved.cx + dx, moved.cy + dy, w, h, frame.tilt,
+                              moved.out_w, moved.out_h)
+    return moved, high, True
+
+
 def frame_corners(frame):
     """The four corners of the crop rectangle, in source pixels."""
     cos, sin = math.cos(frame.tilt), math.sin(frame.tilt)
@@ -166,7 +281,82 @@ def frame_corners(frame):
     return corners
 
 
-def render(img, frame, fill_rgb, fill_alpha=255):
+def edge_colours(rgb, band=None, tolerance=60):
+    """Background colour of each edge: ``(top, bottom, left, right)``.
+
+    Sampling only the top and using that one colour everywhere is the reason a
+    filled portrait gets a band that is visibly brighter than its neighbours:
+    a studio background is not uniform, it darkens towards the corners, so the
+    top strip is the lightest part of it. Taking each edge separately means the
+    invented pixels continue the edge they touch.
+
+    Each strip however is not all background - the bottom one nearly always
+    holds a collar or a shoulder. A plain vote there answers "black suit", and
+    the invented band comes out worse than the flat colour it replaced. So the
+    top strip's median is taken as the background reference, and only pixels
+    close to it count; a strip with no background in it at all falls back to
+    that reference, which is the old behaviour.
+    """
+    if rgb is None or rgb.size == 0:
+        white = (255, 255, 255)
+        return white, white, white, white
+    height, width = rgb.shape[0], rgb.shape[1]
+    size = band if band else max(1, min(height, width) // 10)
+    size = max(1, min(size, height, width))
+    reference = border_color(rgb)
+
+    def background(strip):
+        flat = strip.reshape(-1, 3).astype(np.float32)
+        distance = np.abs(flat - np.asarray(reference, dtype=np.float32)).max(axis=1)
+        chosen = flat[distance <= tolerance]
+        if chosen.size == 0:
+            return tuple(int(c) for c in reference)
+        return tuple(int(round(float(c))) for c in chosen.mean(axis=0))
+
+    return (background(rgb[:size]),
+            background(rgb[height - size:]),
+            background(rgb[:, :size]),
+            background(rgb[:, width - size:]))
+
+
+def _needed_pads(frame, size):
+    """How much to pad each side so the crop never samples outside the source."""
+    x0, y0, x1, y1 = frame_bounds(frame)
+    width, height = size
+    left = int(math.ceil(-x0)) + 1 if x0 < 0.0 else 0
+    top = int(math.ceil(-y0)) + 1 if y0 < 0.0 else 0
+    right = int(math.ceil(x1 - width)) + 1 if x1 > width else 0
+    bottom = int(math.ceil(y1 - height)) + 1 if y1 > height else 0
+    return left, top, right, bottom
+
+
+def _pad_sides(img, pads, colours):
+    """Grow the canvas, filling each side with that side's own colour."""
+    left, top, right, bottom = pads
+    width = img.width + left + right
+    height = img.height + top + bottom
+    canvas = Image.new(img.mode, (width, height))
+    canvas.paste(img, (left, top))
+    draw = ImageDraw.Draw(canvas)
+
+    def solid(colour):
+        values = tuple(int(c) for c in colour)
+        return values + (255,) if img.mode == "RGBA" else values
+
+    if top:
+        draw.rectangle([0, 0, width - 1, top - 1], fill=solid(colours[0]))
+    if bottom:
+        draw.rectangle([0, height - bottom, width - 1, height - 1],
+                       fill=solid(colours[1]))
+    if left:
+        draw.rectangle([0, 0, left - 1, height - 1], fill=solid(colours[2]))
+    if right:
+        draw.rectangle([width - right, 0, width - 1, height - 1],
+                       fill=solid(colours[3]))
+    return canvas
+
+
+def render(img, frame, fill_rgb, fill_alpha=255, edge_fill=None):
     """One affine pass. Returns ``(crop_pil, filled_mask)``.
 
     ``filled_mask`` is float32 HxW with 1.0 where the crop had to invent pixels
@@ -176,6 +366,13 @@ def render(img, frame, fill_rgb, fill_alpha=255):
     area opaque in ``fill_rgb`` (the old, RGB-only behaviour), 0 leaves it
     transparent so a cut-out keeps its alpha through the crop. RGB images
     always ignore it.
+
+    ``edge_fill`` is the four edge colours from ``edge_colours``. When given,
+    the source is padded out to cover the whole crop first, each side in its own
+    colour, so the affine reads a continuous picture and the join is invisible.
+    A single flat ``fill_rgb`` is what produced the hard band: correct on one
+    side, visibly off on the others. Padding costs memory proportional to the
+    invented area, so an absurd request falls back to the flat colour.
 
     ``transform`` does not offer LANCZOS - and would not help if it did: it
     samples without a prefilter, so shrinking 3x in one hit aliases. When the
@@ -188,6 +385,7 @@ def render(img, frame, fill_rgb, fill_alpha=255):
     size = (frame.out_w, frame.out_h)
     affine = frame.affine
     work = img
+    origin = None
 
     # RGBA 的填充色必须是 4 元组，否则 PIL 会把补边画成全透明黑，
     # 与 fill_rgb 不符；RGB 仍用 3 元组（多给一个通道会直接报错）。
@@ -196,10 +394,22 @@ def render(img, frame, fill_rgb, fill_alpha=255):
     else:
         fillcolor = tuple(int(c) for c in fill_rgb)
 
+    if edge_fill is not None:
+        pads = _needed_pads(frame, img.size)
+        grown = ((img.width + pads[0] + pads[2])
+                 * (img.height + pads[1] + pads[3]))
+        if any(pads) and grown <= img.width * img.height * 4 + (1 << 20):
+            work = _pad_sides(img, pads, edge_fill)
+            origin = (pads[0], pads[1])
+            affine = (affine[0], affine[1], affine[2] + pads[0],
+                      affine[3], affine[4], affine[5] + pads[1])
+
     factor = int(frame.scale())
-    if factor >= 2 and img.width // factor >= 8 and img.height // factor >= 8:
-        work = img.reduce(factor)
-        affine = tuple(v / factor for v in frame.affine)
+    ratio = 1.0
+    if factor >= 2 and work.width // factor >= 8 and work.height // factor >= 8:
+        work = work.reduce(factor)
+        affine = tuple(v / factor for v in affine)
+        ratio = float(factor)
 
     crop = work.transform(size, Image.Transform.AFFINE, affine,
                           resample=Image.Resampling.BICUBIC,
@@ -208,11 +418,19 @@ def render(img, frame, fill_rgb, fill_alpha=255):
     # Which output pixels actually sampled the source. The plate is made at the
     # working resolution, not on a shrunk copy, or the filled/unfilled edge
     # gets eaten by the first resample.
-    plate = Image.new("L", work.size, 255)
+    if origin is None:
+        plate = Image.new("L", work.size, 255)
+    else:
+        plate = Image.new("L", work.size, 0)
+        inside = Image.new("L", (max(1, int(round(img.width / ratio))),
+                                 max(1, int(round(img.height / ratio)))), 255)
+        plate.paste(inside, (int(round(origin[0] / ratio)),
+                             int(round(origin[1] / ratio))))
     keep = plate.transform(size, Image.Transform.AFFINE, affine,
                            resample=Image.Resampling.NEAREST, fillcolor=0)
     filled = 1.0 - np.asarray(keep, dtype=np.float32) / 255.0
     return crop, np.clip(filled, 0.0, 1.0)
+
 
 
 def border_color(rgb):

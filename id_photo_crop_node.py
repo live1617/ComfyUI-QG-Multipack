@@ -31,8 +31,9 @@ import torch
 from PIL import Image, ImageColor
 
 from ._face_helpers import backend_status, detect
-from ._id_photo_helpers import (PRESET_ORDER, draw_guide, output_pixels,
-                                plan_frame, render, border_color)
+from ._id_photo_helpers import (PRESET_ORDER, draw_guide, edge_colours,
+                                output_pixels, plan_frame, render,
+                                shrink_into_source, border_color)
 
 GUIDE_MAX_SIDE = 1400
 
@@ -177,16 +178,19 @@ class QGIDPhotoCrop:
         "358x441 digital ID card and more), keeping the eyes level and the "
         "face at a chosen share of the width. The picture is resampled once: "
         "the crop frame is planned on the source and one affine pass produces "
-        "the result, filling anything outside the source with the background "
-        "colour or a colour sampled from the top of the picture. Outputs a "
-        "mask of the invented area, a flag saying whether anything had to be "
-        "invented, the dpi actually used, and a guide image that draws the "
-        "face box, the eye line and the crop frame on the source so the "
-        "settings can be judged by eye. Every frame of a batch is processed; "
-        "a frame with no detectable face is fitted and centred rather than "
-        "passed through at the wrong size. A transparent (RGBA) portrait is "
-        "accepted: the optional alpha_mode fills the transparency onto the "
-        "background by default, or keeps it as an RGBA result when asked."
+        "the result. A crop that would reach past the picture is pulled back "
+        "inside it by default, so the photo never gains a band of invented "
+        "colour - asking for a smaller face share than the picture already has "
+        "is the usual reason the frame grows, and honouring it literally would "
+        "shrink the face and ring it with background. Outputs a mask of the "
+        "invented area, a flag saying whether anything had to be invented, the "
+        "dpi actually used, and a guide image that draws the face box, the eye "
+        "line and the crop frame on the source so the settings can be judged "
+        "by eye. Every frame of a batch is processed; a frame with no "
+        "detectable face is fitted and centred rather than passed through at "
+        "the wrong size. A transparent (RGBA) portrait is accepted: the "
+        "optional alpha_mode fills the transparency onto the background by "
+        "default, or keeps it as an RGBA result when asked."
     )
     SEARCH_ALIASES = ["id photo", "idphoto", "id card photo", "passport photo",
                       "passport", "visa photo", "visa", "portrait crop",
@@ -268,9 +272,9 @@ class QGIDPhotoCrop:
                 "fill_mode": (["border", "custom"], {
                     "default": "border",
                     "tooltip": "Where the invented pixels take their colour "
-                               "from: 'border' samples the top of the picture "
-                               "(outliers dropped), 'custom' uses the colour "
-                               "below.",
+                               "from: 'border' samples the picture's own edges "
+                               "(one colour per side, so the join follows the "
+                               "background), 'custom' uses the colour below.",
                 }),
                 "fill_color": ("STRING", {
                     "default": "#364254",
@@ -280,6 +284,19 @@ class QGIDPhotoCrop:
                 }),
             },
             "optional": {
+                "overflow_mode": (["shrink", "pad"], {
+                    "default": "shrink",
+                    "tooltip": "What happens when 脸部大小 asks for a crop "
+                               "bigger than the picture - which is common, "
+                               "because a portrait that is already framed "
+                               "tightly needs a share larger than the number "
+                               "suggests. 'shrink' pulls the crop back inside "
+                               "the source, so nothing is invented and no band "
+                               "appears around the photo; the face then takes a "
+                               "little more of the frame than asked. 'pad' "
+                               "honours the number and invents the missing "
+                               "pixels from the picture's edge colours.",
+                }),
                 "alpha_mode": (["fill", "keep"], {
                     "default": "fill",
                     "tooltip": "What to do with a transparent input (RGBA "
@@ -312,7 +329,8 @@ class QGIDPhotoCrop:
 
     def execute(self, image, preset, custom_width, custom_height, unit, dpi,
                 face_ratio, eye_line, auto_rotate, face_pick, max_side,
-                fill_mode, fill_color, alpha_mode="fill"):
+                fill_mode, fill_color, overflow_mode="shrink",
+                alpha_mode="fill"):
         batch = image if image.dim() == 4 else image.unsqueeze(0)
 
         out_w, out_h, dpi_used = output_pixels(preset, unit, custom_width,
@@ -347,28 +365,39 @@ class QGIDPhotoCrop:
                 channels = 3
         emit_rgba = keep_alpha and channels >= 4
         custom_rgb = parse_color(fill_color, "ID Photo Crop fill_color")
+        # Shrinking is the default: a flat colour band around the photo is the
+        # single most common complaint about this node, and it is always the
+        # crop reaching past the source, never the crop being wrong.
+        shrink_mode = str(overflow_mode) == "shrink"
         crops = []
         masks = []
         guides = []
         any_filled = False
         misses = 0
+        shrunk = 0
+        ratio_used = float(face_ratio)
         notes = []
 
         for index in range(int(batch.shape[0])):
             pil = _to_pil(batch[index].cpu().numpy())
             has_alpha = pil.mode == "RGBA"
 
-            if str(fill_mode) == "custom":
-                fill_rgb = custom_rgb
-            else:
-                # Sample from a neutral RGB view: alpha carries no colour
-                # information, so flatten it before looking at border pixels.
-                fill_rgb = border_color(np.asarray(_on_color(pil, (255, 255, 255))))
-
             # Detection always reads RGB - the face helpers know nothing about
             # alpha. Flatten onto white so hair against a cut-out edge reads
             # the same as it would on the original portrait.
             source_rgb = np.asarray(_on_color(pil, (255, 255, 255)))
+
+            if str(fill_mode) == "custom":
+                fill_rgb = custom_rgb
+                edges = None
+            else:
+                # Sample from a neutral RGB view: alpha carries no colour
+                # information, so flatten it before looking at edge pixels.
+                fill_rgb = border_color(source_rgb)
+                # Only the padding path needs per-edge colours; when the crop
+                # is being kept inside the source there is nothing to paint.
+                edges = None if shrink_mode else edge_colours(source_rgb)
+
             face = self._detect_with_shrink(source_rgb, face_pick, max_side)
 
             # Render on a batch-wide consistent mode. Emitting RGBA with an
@@ -393,7 +422,16 @@ class QGIDPhotoCrop:
                     crop, filled = _fit_center(work, out_w, out_h, fill_rgb,
                                                fill_alpha)
                 else:
-                    crop, filled = render(work, frame, fill_rgb, fill_alpha)
+                    if shrink_mode:
+                        frame, used_ratio, widened = shrink_into_source(
+                            face, out_w, out_h, face_ratio, eye_line,
+                            auto_rotate, source_rgb.shape[1],
+                            source_rgb.shape[0])
+                        if widened:
+                            shrunk += 1
+                            ratio_used = used_ratio
+                    crop, filled = render(work, frame, fill_rgb, fill_alpha,
+                                          edges)
                     if not guides:
                         guides.append(self._shrink_guide(
                             draw_guide(_on_color(pil, (255, 255, 255)), face,
@@ -430,7 +468,17 @@ class QGIDPhotoCrop:
         if notes:
             print("[ID Photo Crop] %dx%d -> %dx%d @%d dpi, preset %s, %s"
                   % (source_rgb.shape[1], source_rgb.shape[0], out_w, out_h,
-                     dpi_used, preset, notes[0]))
+                     dpi_used, preset, " | ".join(notes)))
+        if shrunk:
+            print("[ID Photo Crop] %d frame(s) had a crop larger than the "
+                  "picture - the face share was raised to about %.2f "
+                  "(overflow_mode=shrink), so the photo has no invented band"
+                  % (shrunk, ratio_used))
+        if any_filled and float(masks[0].mean()) > 0.005:
+            print("[ID Photo Crop] the crop reaches past the picture and %.1f%% "
+                  "was invented from the edge colours - raise face_ratio, or "
+                  "set overflow_mode to shrink, to avoid the band around the "
+                  "photo" % (float(masks[0].mean()) * 100.0))
 
         return (crop_stack, mask_stack, any_filled, dpi_used, guide_tensor)
 
