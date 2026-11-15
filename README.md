@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.15.4** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.15.5** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -490,9 +490,16 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 **作用**：把**已有**照片裁成指定尺寸、眼睛自动摆平（不抠图）。一次仿射重采样出结果。
 
-**控件**：`preset` / `unit`（厘米 / 像素）/ `dpi` / `face_ratio`（脸宽占比）/ `eye_line`（眼线位置）/ `auto_rotate` / `face_pick`（居中 / 最大）/ `max_side` / `fill_mode`（边框色 / 自定义色）/ `fill_color`。
+**控件**：`preset` / `unit`（厘米 / 像素）/ `dpi` / `face_ratio`（脸宽占比）/ `eye_line`（眼线位置）/ `auto_rotate` / `face_pick`（居中 / 最大）/ `max_side` / `fill_mode`（边框色 / 自定义色）/ `fill_color` / `alpha_mode`（透明区域：填平透明 / 保留透明）。
 
 **输出**：`裁剪后图像` / `扩展遮罩` / `是否扩图`（布尔）/ `DPI` / `定位示意图`。
+
+**透明通道（RGBA）输入**：接抠图节点（本包 `QG_BiRefNet` 的 `background=Alpha`、`QG_PortraitMatte`）输出的四通道图像不再报错，1 / 2 / 3 / 4 通道都能吃（灰度自动扩成三通道，两通道取第一路，多于四通道取前三路）。`alpha_mode` 决定透明区怎么落：
+
+- **填平透明**（默认 `fill`）：透明区按 `fill_color`（`fill_mode=custom`）或边框采样色压成实心，输出**不透明 RGB** 证件照，下游排版 / 保存直接可用。
+- **保留透明**（`keep`）：输出 **RGBA**，透明区保持透明（补边区 alpha 也是 0），供后续自行合成任意底色。
+
+普通 RGB 图两种模式结果完全一样。`alpha_mode` 是**可选输入**，老工作流没这个键也能照常执行（按 `fill` 处理）。整批只要有一帧是 RGBA 且选了 `keep`，全部帧统一升成四通道（RGB 帧补不透明 alpha），避免 `torch.stack` 因通道数不一致失败。
 
 
 ### `QG_PhotoSheet` 照片排版

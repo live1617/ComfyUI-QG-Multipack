@@ -6,6 +6,12 @@
 *.md text eol=lf
 *.toml text eol=lf
 *.txt text eol=lf
+# VERSION 无扩展名，缺这条时 Windows 的 core.autocrlf=true 会把它 checkout
+# 成 CRLF，导致 打包备份.py 的版本号正则（$ 前不能有 \r）匹配失败。
+VERSION text eol=lf
+LICENSE text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
 *.dat binary
 *.onnx binary
 *.ttf binary

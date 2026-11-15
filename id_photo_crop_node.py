@@ -37,10 +37,63 @@ from ._id_photo_helpers import (PRESET_ORDER, draw_guide, output_pixels,
 GUIDE_MAX_SIDE = 1400
 
 
-def _to_pil(frame_rgb):
-    """float32 HWC in 0..1 -> PIL RGB."""
-    array = np.clip(np.asarray(frame_rgb, dtype=np.float32) * 255.0, 0.0, 255.0)
-    return Image.fromarray(array.astype(np.uint8), "RGB")
+def _to_pil(frame):
+    """float32 HWC in 0..1 -> PIL. Keeps alpha when the source has four channels.
+
+    ComfyUI's IMAGE is normally ``[B,H,W,3]``, but a cut-out upstream (this
+    pack's BiRefNet in Alpha mode, or QG_PortraitMatte) produces RGBA. Passing
+    a four-channel array to ``Image.fromarray(..., "RGB")`` raised
+    ``ValueError: Invalid mode for data type`` - the node simply refused a
+    transparent portrait. Channel handling follows the pack's BiRefNet rule:
+
+    * 2D / one channel -> grey copied into three channels;
+    * two channels -> first channel only (an LA image would read its alpha as
+      green and come out tinted);
+    * three -> RGB; four -> RGBA; more than four -> first three (RGB).
+    """
+    array = np.clip(np.asarray(frame, dtype=np.float32) * 255.0, 0.0, 255.0)
+    if array.ndim == 2:
+        array = array[..., None]
+    channels = array.shape[-1]
+    if channels == 1:
+        array = np.repeat(array, 3, axis=-1)
+    elif channels == 2:
+        array = np.repeat(array[..., :1], 3, axis=-1)
+    elif channels >= 5:
+        array = array[..., :3]
+    u8 = array.astype(np.uint8)
+    return Image.fromarray(u8, "RGBA" if channels == 4 else "RGB")
+
+
+def _on_color(pil, rgb):
+    """Flatten RGBA onto a solid colour; return RGB unchanged.
+
+    Used twice with different grounds: white gives a neutral picture for face
+    detection and border sampling, ``fill_rgb`` gives the opaque picture for
+    the 'fill' alpha mode so a transparent background lands on the chosen
+    colour rather than an arbitrary RGB value stored behind the alpha.
+    """
+    if pil.mode != "RGBA":
+        return pil
+    ground = Image.new("RGBA", pil.size,
+                       tuple(int(c) for c in rgb) + (255,))
+    return Image.alpha_composite(ground, pil).convert("RGB")
+
+
+def _crop_array(crop, keep_alpha, fill_rgb):
+    """A finished PIL crop -> float32 HWC array, forced to a fixed channel count.
+
+    ``torch.stack` needs every frame alike. In 'keep' mode a four-channel
+    source yields RGBA; an RGB frame in the same batch gets an opaque alpha
+    appended. In 'fill' mode an RGBA result is flattened so the stack stays
+    three-channel.
+    """
+    if keep_alpha:
+        if crop.mode != "RGBA":
+            crop = crop.convert("RGBA")
+    elif crop.mode == "RGBA":
+        crop = _on_color(crop, fill_rgb)
+    return np.asarray(crop, dtype=np.float32) / 255.0
 
 
 def _to_tensor(image):
@@ -48,20 +101,28 @@ def _to_tensor(image):
     return torch.from_numpy(array).unsqueeze(0)
 
 
-def _fit_center(img, out_w, out_h, fill_rgb):
+def _fit_center(img, out_w, out_h, fill_rgb, fill_alpha=255):
     """Detection failed: put the whole picture inside the target, centred.
 
     Handing back the original would produce a picture whose size disagrees with
     the one the node promised, and whatever is downstream built its latent on
-    that promise.
+    that promise. An RGBA source keeps its alpha: the letterbox area is
+    transparent when ``fill_alpha`` is 0, opaque in ``fill_rgb`` otherwise.
     """
     scale = min(out_w / float(img.width), out_h / float(img.height))
     width = max(1, int(round(img.width * scale)))
     height = max(1, int(round(img.height * scale)))
     resized = img.resize((width, height), Image.Resampling.LANCZOS)
-    canvas = Image.new("RGB", (out_w, out_h), tuple(int(c) for c in fill_rgb))
+    if img.mode == "RGBA":
+        canvas = Image.new("RGBA", (out_w, out_h),
+                           tuple(int(c) for c in fill_rgb) + (int(fill_alpha),))
+    else:
+        canvas = Image.new("RGB", (out_w, out_h),
+                           tuple(int(c) for c in fill_rgb))
     left = (out_w - width) // 2
     top = (out_h - height) // 2
+    # Paste without the image as its own mask: RGBA-on-RGBA already carries
+    # alpha, and passing it as mask would multiply alpha twice (0.5 -> 0.25).
     canvas.paste(resized, (left, top))
     mask = np.ones((out_h, out_w), dtype=np.float32)
     mask[top:top + height, left:left + width] = 0.0
@@ -123,7 +184,9 @@ class QGIDPhotoCrop:
         "face box, the eye line and the crop frame on the source so the "
         "settings can be judged by eye. Every frame of a batch is processed; "
         "a frame with no detectable face is fitted and centred rather than "
-        "passed through at the wrong size."
+        "passed through at the wrong size. A transparent (RGBA) portrait is "
+        "accepted: the optional alpha_mode fills the transparency onto the "
+        "background by default, or keeps it as an RGBA result when asked."
     )
     SEARCH_ALIASES = ["id photo", "idphoto", "id card photo", "passport photo",
                       "passport", "visa photo", "visa", "portrait crop",
@@ -216,13 +279,27 @@ class QGIDPhotoCrop:
                                "128,128,128, or 0.5.",
                 }),
             },
+            "optional": {
+                "alpha_mode": (["fill", "keep"], {
+                    "default": "fill",
+                    "tooltip": "What to do with a transparent input (RGBA "
+                               "from a cut-out node). 'fill' flattens the "
+                               "transparency onto the chosen background and "
+                               "outputs an opaque RGB photo - the ID-photo "
+                               "default. 'keep' preserves the alpha channel "
+                               "and outputs RGBA, so transparent areas stay "
+                               "see-through. Ordinary RGB images are "
+                               "unaffected either way.",
+                }),
+            },
         }
 
     RETURN_TYPES = ("IMAGE", "MASK", "BOOLEAN", "INT", "IMAGE")
     RETURN_NAMES = ("image", "mask", "filled", "dpi", "guide")
     FUNCTION = "execute"
     OUTPUT_TOOLTIPS = (
-        "The cropped portrait at the target size.",
+        "The cropped portrait at the target size. RGBA in 'keep' alpha mode "
+        "when the input was transparent, otherwise RGB.",
         "1 where pixels had to be invented outside the source, 0 where the "
         "source was sampled.",
         "True when any frame needed those invented pixels.",
@@ -232,12 +309,20 @@ class QGIDPhotoCrop:
 
     def execute(self, image, preset, custom_width, custom_height, unit, dpi,
                 face_ratio, eye_line, auto_rotate, face_pick, max_side,
-                fill_mode, fill_color):
+                fill_mode, fill_color, alpha_mode="fill"):
         batch = image if image.dim() == 4 else image.unsqueeze(0)
 
         out_w, out_h, dpi_used = output_pixels(preset, unit, custom_width,
                                                custom_height, dpi)
 
+        # keep only makes sense when at least one frame has alpha. A batch may
+        # mix RGB and RGBA frames, and torch.stack cannot join different channel
+        # counts, so the output mode is decided once for the whole stack: if
+        # any frame wants alpha kept, every frame is emitted as RGBA (RGB ones
+        # get an opaque alpha). Otherwise everything is flattened to RGB.
+        keep_alpha = str(alpha_mode) == "keep"
+        channels = int(batch.shape[-1]) if batch.dim() >= 4 else 3
+        emit_rgba = keep_alpha and channels >= 4
         custom_rgb = parse_color(fill_color, "ID Photo Crop fill_color")
         crops = []
         masks = []
@@ -248,19 +333,33 @@ class QGIDPhotoCrop:
 
         for index in range(int(batch.shape[0])):
             pil = _to_pil(batch[index].cpu().numpy())
-            source_rgb = np.asarray(pil)
+            has_alpha = pil.mode == "RGBA"
 
             if str(fill_mode) == "custom":
                 fill_rgb = custom_rgb
             else:
-                fill_rgb = border_color(source_rgb)
+                # Sample from a neutral RGB view: alpha carries no colour
+                # information, so flatten it before looking at border pixels.
+                fill_rgb = border_color(np.asarray(_on_color(pil, (255, 255, 255))))
 
+            # Detection always reads RGB - the face helpers know nothing about
+            # alpha. Flatten onto white so hair against a cut-out edge reads
+            # the same as it would on the original portrait.
+            source_rgb = np.asarray(_on_color(pil, (255, 255, 255)))
             face = self._detect_with_shrink(source_rgb, face_pick, max_side)
+
+            # Render on a batch-wide consistent mode. Emitting RGBA with an
+            # RGB frame simply means that frame keeps an opaque alpha - the
+            # stack then has one channel count for all frames.
+            work = (pil if has_alpha else pil.convert("RGBA")) \
+                if emit_rgba else _on_color(pil, fill_rgb)
+            fill_alpha = 0 if emit_rgba else 255
             filled = None
             frame = None
             if face is None:
                 misses += 1
-                crop, filled = _fit_center(pil, out_w, out_h, fill_rgb)
+                crop, filled = _fit_center(work, out_w, out_h, fill_rgb,
+                                           fill_alpha)
             else:
                 try:
                     frame = plan_frame(face, out_w, out_h, face_ratio,
@@ -268,16 +367,21 @@ class QGIDPhotoCrop:
                 except ValueError as exc:
                     misses += 1
                     notes.append(str(exc))
-                    crop, filled = _fit_center(pil, out_w, out_h, fill_rgb)
+                    crop, filled = _fit_center(work, out_w, out_h, fill_rgb,
+                                               fill_alpha)
                 else:
-                    crop, filled = render(pil, frame, fill_rgb)
+                    crop, filled = render(work, frame, fill_rgb, fill_alpha)
                     if not guides:
                         guides.append(self._shrink_guide(
-                            draw_guide(pil, face, frame, filled)))
+                            draw_guide(_on_color(pil, (255, 255, 255)), face,
+                                       frame, filled)))
 
             has_fill = bool((filled > 0.5).any())
             any_filled = any_filled or has_fill
-            crops.append(np.asarray(crop, dtype=np.float32) / 255.0)
+            # Normalise every frame to the same channel count before stacking.
+            # A mixed batch (one RGBA frame among RGB ones) would otherwise
+            # make torch.stack raise on inconsistent shapes.
+            crops.append(_crop_array(crop, emit_rgba, fill_rgb))
             masks.append(filled)
             if index == 0:
                 notes.append(

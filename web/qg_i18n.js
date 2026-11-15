@@ -113,6 +113,12 @@ const LABELS = {
       Color: "纯色背景",
     },
   },
+  QG_IDPhotoCrop: {
+    alpha_mode: {
+      fill: "填平透明",
+      keep: "保留透明",
+    },
+  },
 };
 
 /**

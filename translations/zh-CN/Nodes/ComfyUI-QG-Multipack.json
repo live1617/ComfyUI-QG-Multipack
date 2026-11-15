@@ -342,7 +342,8 @@
       "face_pick": "多脸时取哪张",
       "max_side": "检测降采样",
       "fill_mode": "填充模式",
-      "fill_color": "填充颜色"
+      "fill_color": "填充颜色",
+      "alpha_mode": "透明区域"
     },
     "widgets": {
       "preset": "预设尺寸",
@@ -356,7 +357,8 @@
       "face_pick": "多脸时取哪张",
       "max_side": "检测降采样",
       "fill_mode": "填充模式",
-      "fill_color": "填充颜色"
+      "fill_color": "填充颜色",
+      "alpha_mode": "透明区域"
     },
     "outputs": {
       "image": "裁剪后图像",

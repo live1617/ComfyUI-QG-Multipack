@@ -166,11 +166,16 @@ def frame_corners(frame):
     return corners
 
 
-def render(img, frame, fill_rgb):
+def render(img, frame, fill_rgb, fill_alpha=255):
     """One affine pass. Returns ``(crop_pil, filled_mask)``.
 
     ``filled_mask`` is float32 HxW with 1.0 where the crop had to invent pixels
     (outside the source) and 0.0 where real pixels came through.
+
+    ``fill_alpha`` only matters for an RGBA ``img``: 255 makes the invented
+    area opaque in ``fill_rgb`` (the old, RGB-only behaviour), 0 leaves it
+    transparent so a cut-out keeps its alpha through the crop. RGB images
+    always ignore it.
 
     ``transform`` does not offer LANCZOS - and would not help if it did: it
     samples without a prefilter, so shrinking 3x in one hit aliases. When the
@@ -184,6 +189,13 @@ def render(img, frame, fill_rgb):
     affine = frame.affine
     work = img
 
+    # RGBA 的填充色必须是 4 元组，否则 PIL 会把补边画成全透明黑，
+    # 与 fill_rgb 不符；RGB 仍用 3 元组（多给一个通道会直接报错）。
+    if img.mode == "RGBA":
+        fillcolor = tuple(int(c) for c in fill_rgb) + (int(fill_alpha),)
+    else:
+        fillcolor = tuple(int(c) for c in fill_rgb)
+
     factor = int(frame.scale())
     if factor >= 2 and img.width // factor >= 8 and img.height // factor >= 8:
         work = img.reduce(factor)
@@ -191,7 +203,7 @@ def render(img, frame, fill_rgb):
 
     crop = work.transform(size, Image.Transform.AFFINE, affine,
                           resample=Image.Resampling.BICUBIC,
-                          fillcolor=tuple(int(c) for c in fill_rgb))
+                          fillcolor=fillcolor)
 
     # Which output pixels actually sampled the source. The plate is made at the
     # working resolution, not on a shrunk copy, or the filled/unfilled edge
