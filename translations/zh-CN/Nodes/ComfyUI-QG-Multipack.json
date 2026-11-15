@@ -343,7 +343,6 @@
       "max_side": "检测降采样",
       "fill_mode": "填充模式",
       "fill_color": "填充颜色",
-      "overflow_mode": "越界处理",
       "alpha_mode": "透明区域"
     },
     "widgets": {
@@ -359,7 +358,6 @@
       "max_side": "检测降采样",
       "fill_mode": "填充模式",
       "fill_color": "填充颜色",
-      "overflow_mode": "越界处理",
       "alpha_mode": "透明区域"
     },
     "outputs": {

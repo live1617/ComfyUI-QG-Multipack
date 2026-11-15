@@ -154,119 +154,12 @@ def plan_frame(face, out_w, out_h, face_ratio, eye_line, rotate):
                  (a, b, c, d, e, f))
 
 
-def frame_centred(cx, cy, w, h, tilt, out_w, out_h):
-    """A frame of the given size centred on ``(cx, cy)``.
-
-    ``plan_frame`` derives the centre from the eyes; ``shrink_into_source``
-    moves a frame afterwards and needs the same matrix rebuilt from a centre it
-    already chose. The arithmetic is the same one ``plan_frame`` uses - the crop
-    centre lands on the output centre - just written the short way.
-    """
-    cos, sin = math.cos(tilt), math.sin(tilt)
-    scale = w / float(out_w)
-    a = scale * cos
-    b = -scale * sin
-    d = scale * sin
-    e = scale * cos
-    c = cx - a * (out_w / 2.0) - b * (out_h / 2.0)
-    f = cy - d * (out_w / 2.0) - e * (out_h / 2.0)
-    return Frame(cx, cy, w, h, tilt, int(out_w), int(out_h),
-                 (a, b, c, d, e, f))
-
-
 def frame_bounds(frame):
     """Bounding box of the (possibly turned) crop rectangle, in source px."""
     corners = frame_corners(frame)
     xs = [p[0] for p in corners]
     ys = [p[1] for p in corners]
     return min(xs), min(ys), max(xs), max(ys)
-
-
-def frame_fits(frame, limit_w, limit_h, tolerance=1e-6):
-    """True when the whole crop rectangle lies inside the allowed area."""
-    x0, y0, x1, y1 = frame_bounds(frame)
-    return (x0 >= -tolerance and y0 >= -tolerance
-            and x1 <= limit_w + tolerance and y1 <= limit_h + tolerance)
-
-
-def shrink_into_source(face, out_w, out_h, face_ratio, eye_line, rotate,
-                       src_w, src_h, max_ratio=0.9, steps=24):
-    """Pull the crop back inside the source. Returns ``(frame, ratio, shrunk)``.
-
-    ``ratio`` is the face share actually used, ``shrunk`` is False when the
-    frame already fitted and nothing was touched.
-
-    This is what stops a badly matched 脸部大小 from painting a band of invented
-    colour around a portrait. ``face_ratio`` asks for a share of the output
-    width, and on a picture that is already framed tighter than that share the
-    crop grows past the source - a 429x600 portrait at 0.42 wants a 533x746
-    crop, 35% of it invented.
-
-    Raising the share instead of shrinking the frame is deliberate: the two are
-    the same crop size, but ``plan_frame`` then places the eyes back on
-    ``eye_line``. Scaling the frame about its own centre would keep the eye's
-    *absolute* position and quietly slide the eye line upwards, clipping the
-    top of the head.
-
-    Crop size falls monotonically as the share rises - which also walks the
-    frame inwards, since its top and left hang off the eyes - so a bisection
-    finds the largest frame that still fits. A portrait with the eyes almost on
-    the edge can have no such share; then the frame is scaled about its centre
-    and slid flush, which is the best that geometry allows.
-    """
-    limit_w = max(1.0, float(src_w) - 1.0)
-    limit_h = max(1.0, float(src_h) - 1.0)
-
-    frame = plan_frame(face, out_w, out_h, face_ratio, eye_line, rotate)
-    if frame_fits(frame, limit_w, limit_h):
-        return frame, float(face_ratio), False
-
-    low = float(face_ratio)
-    high = float(max(max_ratio, face_ratio))
-    best = None
-    for _ in range(steps):
-        mid = (low + high) / 2.0
-        candidate = plan_frame(face, out_w, out_h, mid, eye_line, rotate)
-        if frame_fits(candidate, limit_w, limit_h):
-            best = (candidate, mid)
-            high = mid
-        else:
-            low = mid
-    if best is not None:
-        return best[0], best[1], True
-
-    # Last resort: the eyes sit too close to an edge for any share to fit, so
-    # take the tightest allowed frame and move it flush.
-    frame = plan_frame(face, out_w, out_h, high, eye_line, rotate)
-    x0, y0, x1, y1 = frame_bounds(frame)
-    width, height = x1 - x0, y1 - y0
-    factor = 1.0
-    if width > limit_w:
-        factor = min(factor, limit_w / width)
-    if height > limit_h:
-        factor = min(factor, limit_h / height)
-    w = frame.w * factor
-    h = frame.h * factor
-    moved = frame_centred(frame.cx, frame.cy, w, h, frame.tilt,
-                          frame.out_w, frame.out_h)
-    # Turning the frame and sliding it are not independent - a rotation changes
-    # which corner sticks out - so settle in two passes rather than one.
-    for _ in range(2):
-        mx0, my0, mx1, my1 = frame_bounds(moved)
-        dx = dy = 0.0
-        if mx0 < 0.0:
-            dx = -mx0
-        elif mx1 > limit_w:
-            dx = limit_w - mx1
-        if my0 < 0.0:
-            dy = -my0
-        elif my1 > limit_h:
-            dy = limit_h - my1
-        if dx == 0.0 and dy == 0.0:
-            break
-        moved = frame_centred(moved.cx + dx, moved.cy + dy, w, h, frame.tilt,
-                              moved.out_w, moved.out_h)
-    return moved, high, True
 
 
 def frame_corners(frame):

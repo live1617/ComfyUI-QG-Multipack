@@ -89,7 +89,6 @@ const NODES = {
             unit: { cm: "厘米", px: "像素" },
             face_pick: { center: "取居中", largest: "取最大" },
             fill_mode: { border: "边框颜色", custom: "自定义颜色" },
-            overflow_mode: { shrink: "收缩到原图", pad: "允许补边" },
         },
     },
     QG_PhotoSheet: {
