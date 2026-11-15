@@ -306,7 +306,8 @@
       "params": "参数",
       "width": "宽",
       "height": "高",
-      "dpi": "DPI"
+      "dpi": "DPI",
+      "color_text": "主色"
     }
   },
   "QG_PortraitMatte": {

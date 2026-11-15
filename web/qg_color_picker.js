@@ -24,6 +24,53 @@ const COLOR_WIDGETS = {
     QG_DualColorPicker: ["primary_color", "secondary_color"],
     QG_CustomColor: ["color1", "color2"],
     QG_FaceAlign: ["custom_fill_color"],
+    QG_IDPhotoParams: ["bg_custom"],
+    // 全包普查后补齐的 5 个纯颜色值控件。这些都是单一颜色输入（不像
+    // QG_ColorConvert 的 color 还吃 HSL / RGB 整数 / 0-1 浮点，套色板反而是限制）。
+    QG_IDPhotoCrop: ["fill_color"],
+    QG_PhotoSheetMixed: ["border_color"],
+    QG_IDCardSheet: ["bg_color"],
+    QG_MarriageCloth: ["pad_color"],
+    QG_Watermark: ["color"],
+};
+
+/**
+ * 证件照底色：与后端 _matte_pipeline.BG_NAMED 一一对应（印刷蓝 #438edb，
+ * 不是 CSS 蓝）。改后端色值时要同步这份表，否则「自定义色值」控件初始化出来
+ * 的颜色会和真正渲染的底色对不上。
+ */
+const ID_PHOTO_BG_HEX = {
+    white: "#ffffff",
+    blue: "#438edb",
+    darkblue: "#1b4b8f",
+    red: "#d93b3b",
+    gray: "#9a9a9a",
+    lightblue: "#a8c8e8",
+};
+
+/**
+ * 取色后要联动的下拉：节点类型 -> { 颜色控件: [下拉控件, 下拉值] }。
+ * 证件照参数节点光改「自定义色值」没用 —— 后端 build() 只在「背景颜色」选了
+ * custom 时才读它。所以取色时把这个下拉一并切到 custom，取色才真正生效。
+ */
+const LINKED_COMBO = {
+    QG_IDPhotoParams: { bg_custom: ["bg_color", "custom"] },
+};
+
+/** 色板标题按控件给，不再一律写死「描边颜色」（那个词只对描边控件才对）。 */
+const PANEL_TITLE = {
+    background_color: "背景颜色",
+    primary_color: "主色",
+    secondary_color: "辅色",
+    color1: "颜色 1",
+    color2: "颜色 2",
+    custom_fill_color: "自定义填充色",
+    bg_custom: "自定义背景色",
+    fill_color: "填充颜色",
+    border_color: "边框颜色",
+    bg_color: "底色",
+    pad_color: "衬底颜色",
+    color: "颜色",
 };
 
 /**
@@ -79,6 +126,19 @@ function normHex(value, fallback = FALLBACK) {
     if (/^[0-9a-fA-F]{6}$/.test(t)) return "#" + t.toLowerCase();
     if (/^[0-9a-fA-F]{8}$/.test(t)) return "#" + t.slice(0, 6).toLowerCase();
     return fallback;
+}
+
+/**
+ * 这个控件里的值是不是「能安全规范化成 #rrggbb」的写法。
+ *
+ * 后端这些颜色控件大多还接受颜色名（white / red）、RGB 三元组（128,128,128）
+ * 甚至灰度小数（0.5）。normHex 认不出这些写法会回退到默认灰 —— 那不是显示
+ * 问题，而是会把工作流里存的值直接改写成另一个颜色。所以挂钩时只规范化这里
+ * 认定为 hex 的值，其余一律原样保留，绘制时再用 normHex 降级显示色块即可。
+ */
+function isHexColor(value) {
+    const t = String(value ?? "").trim().replace(/^#/, "");
+    return /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(t);
 }
 
 /** 按背景亮度选对比色，保证色块上的勾选标记在任何底色上都看得见。 */
@@ -252,9 +312,29 @@ function withAlpha(hex, alpha) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** 值变化后统一走这条路径：callback → 变更通知 → 重绘。 */
+/** 取色后把联动下拉切到指定值（证件照：切到 custom 让自定义色值真正生效）。 */
+function applyLinkedCombo(node, widget) {
+    const spec = LINKED_COMBO[node?.type]?.[widget?.name]
+        || LINKED_COMBO[node?.comfyClass]?.[widget?.name];
+    if (!spec) return;
+    const [comboName, comboValue] = spec;
+    const combo = (node.widgets || []).find((w) => w?.name === comboName);
+    if (!combo || combo.value === comboValue) return;
+    const prev = combo.value;
+    combo.value = comboValue;
+    try {
+        combo.callback?.(comboValue, app.canvas, node, [0, 0], {});
+    } catch (e) {
+        console.warn("[QG 取色器] 联动下拉 callback 异常", e);
+    }
+    node.onWidgetChanged?.(comboName, comboValue, prev, combo);
+}
+
+/** 值变化后统一走这条路径：callback → 联动下拉 → 变更通知 → 重绘。 */
 function applyColor(node, widget, raw) {
-    const next = normHex(raw, normHex(widget.value));
+    // raw 来自色板 / HEX 输入框 / 系统取色器，都是合法色值；兜底固定用默认色，
+    // 不能拿 widget.value 当 fallback —— 它可能是 white / 0.5 这种非 hex 写法。
+    const next = normHex(raw, FALLBACK);
     const prev = widget.value;
     widget.value = next;
 
@@ -266,9 +346,23 @@ function applyColor(node, widget, raw) {
         }
         node.onWidgetChanged?.(widget.name, next, prev, widget);
         node.graph?.incrementVersion?.();
+        applyLinkedCombo(node, widget);
     }
     node.setDirtyCanvas?.(true, true);
     app.canvas?.setDirty?.(true, true);
+}
+
+/**
+ * 自定义色值初次挂钩时为空串，normHex("") 会得到默认灰 #364254 —— 画布上看着
+ * 像用户填了个灰色，其实没生效。按当前「背景颜色」下拉初始化成对应的证件照底色，
+ * 所见即所得；已是合法色值的老工作流不动。
+ */
+function seedFromCombo(node, widget) {
+    if (widget?.name !== "bg_custom") return;
+    if (String(widget.value ?? "").trim()) return;
+    const combo = (node.widgets || []).find((w) => w?.name === "bg_color");
+    const key = String(combo?.value ?? "blue").trim().toLowerCase();
+    widget.value = ID_PHOTO_BG_HEX[key] || ID_PHOTO_BG_HEX.blue;
 }
 
 /* ------------------------------------------------------------------ *
@@ -421,10 +515,10 @@ function openPicker(node, widget) {
     // reka-ui / Vue 弹层会靠这个属性判断"点外面该不该关"，标上后点击不会被它们吞掉
     el.dataset.dismissableLayer = "";
 
-    const hex0 = normHex(widget.value);
+    const title = PANEL_TITLE[widget?.name] || "选择颜色";
     el.innerHTML = `
         <div class="qgcp-head">
-            <span class="qgcp-title">描边颜色</span>
+            <span class="qgcp-title">${title}</span>
             <button class="qgcp-close" title="关闭">×</button>
         </div>
         <div class="qgcp-row">
@@ -578,8 +672,14 @@ function hookNode(node) {
         if (!widget || widget.__qgColor) continue;
         widget.__qgColor = true;
 
-        // 老工作流里可能存着 "#abc" / "364254" 这种写法，统一成标准形态
-        widget.value = normHex(widget.value);
+        // 证件照「自定义色值」空串先按当前背景色种一个值，再统一成标准形态
+        seedFromCombo(node, widget);
+        // 老工作流里可能存着 "#abc" / "364254" 这种写法，统一成标准形态。
+        // 但 white / 128,128,128 / 0.5 这类后端支持的非 hex 写法必须原样保留 ——
+        // normHex 会把它们回退成默认灰，等于悄悄改了用户存的颜色。
+        if (isHexColor(widget.value)) {
+            widget.value = normHex(widget.value);
+        }
 
         const painter = BANNER_TEXT[widget.name] ? drawBannerColorWidget : drawColorWidget;
         widget.draw = function (ctx, n, width, y, H) {

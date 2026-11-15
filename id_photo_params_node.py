@@ -14,7 +14,8 @@
 from __future__ import annotations
 
 from ._id_photo_helpers import PRESET_ORDER, output_pixels
-from ._matte_pipeline import BG_MODES, BG_NAMED
+from ._matte_pipeline import BG_MODES, BG_NAMED, resolve_color
+from .id_photo_crop_node import parse_color
 
 PARAM_TYPE = "QG_IDPHOTO_PARAMS"
 
@@ -77,13 +78,15 @@ class QGIDPhotoParams:
             },
         }
 
-    RETURN_TYPES = (PARAM_TYPE, "INT", "INT", "INT")
-    RETURN_NAMES = ("params", "width", "height", "dpi")
+    # 末尾追加 color_text：不影响既有 0-3 号槽，老工作流的连线不会错位。
+    RETURN_TYPES = (PARAM_TYPE, "INT", "INT", "INT", "STRING")
+    RETURN_NAMES = ("params", "width", "height", "dpi", "color_text")
     RETURN_TOOLTIPS = (
         "连给抠图换背景节点的 params 输入。",
         "算好的成品像素宽 —— custom 尺寸也按 dpi 换算过了。",
         "算好的成品像素高。",
         "实际用到的 dpi，像素预设会覆盖控件里的值。",
+        "主背景色的 #RRGGBB 文本（渐变时取第一色），可直接连给取色/颜色节点。",
     )
     FUNCTION = "build"
 
@@ -108,7 +111,14 @@ class QGIDPhotoParams:
             "bg_color": color,
             "bg_color_2": str(bg_color_2) if bg_color_2 in BG_NAMED else "darkblue",
         }
-        return (params, int(out_w), int(out_h), int(dpi_used))
+
+        # 颜色文本：预设名（blue）先换成 #438edb，自定义的 #abc / 裸六位 / RGB
+        # 三元组都交给 parse_color 统一成 RGB，再拼回标准 #rrggbb。和下游
+        # 抠图节点拿到的是同一个色，不会出现「输出说蓝、渲染出来是灰」。
+        rgb = parse_color(resolve_color(color), "ID Photo Params color_text")
+        color_text = "#%02x%02x%02x" % tuple(max(0, min(255, int(v))) for v in rgb[:3])
+
+        return (params, int(out_w), int(out_h), int(dpi_used), color_text)
 
 
 NODE_CLASS_MAPPINGS = {"QG_IDPhotoParams": QGIDPhotoParams}
