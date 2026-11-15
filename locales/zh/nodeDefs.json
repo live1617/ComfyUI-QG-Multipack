@@ -962,7 +962,7 @@
       },
       "font": {
         "name": "字体",
-        "tooltip": "标注用的字体。内置默认字体没有中文字形，写中文请选系统字体。"
+        "tooltip": "标注字体。下拉首项是随包的 Noto Sans SC（SIL OFL 1.1，含中文）；内置位图字体没有中文字形。"
       },
       "font_size": {
         "name": "字号",
@@ -1110,7 +1110,7 @@
       },
       "font": {
         "name": "水印字体",
-        "tooltip": "内置默认字体只有英文字形，写中文请挑系统字体。"
+        "tooltip": "默认已指向随包的 Noto Sans SC（SIL OFL 1.1，含中文字形）；内置位图字体只有英文。"
       },
       "size": {
         "name": "字号(px)",
@@ -1502,7 +1502,7 @@
       },
       "font": {
         "name": "字体",
-        "tooltip": "从 Windows/Fonts 选字体；内置默认字体没有中文字形。"
+        "tooltip": "标注字体。下拉首项是随包的 Noto Sans SC（OFL，含中文），其后是 models/fonts 与系统字体。"
       },
       "font_size": {
         "name": "文字大小（像素）",

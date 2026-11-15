@@ -36,6 +36,11 @@ from ._sheet_helpers import cm_to_px, plan_sheet, shrink_to_fit, usable_area
 
 DEFAULT_FONT = "<default>"
 
+# 随包的开放许可字体（SIL OFL 1.1，许可全文见 assets/fonts/OFL.txt）。
+# 优先级高于用户字体与系统字体：中文标注因此开箱即用，不依赖本机装了什么字体。
+BUNDLED_FONTS_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "assets", "fonts")
+
 # Named files rather than a directory walk: Windows/Fonts holds several hundred
 # entries, most of them unusable for a caption, and the dropdown would be a
 # wall of noise. These are the ones that actually have Chinese glyphs.
@@ -54,7 +59,7 @@ WINDOWS_FONTS = r"C:\Windows\Fonts"
 
 def _font_dirs():
     """Where to look for a font file, most specific first."""
-    dirs = []
+    dirs = [BUNDLED_FONTS_DIR]
     try:
         import folder_paths
         dirs.append(os.path.join(folder_paths.models_dir, "fonts"))
@@ -96,13 +101,28 @@ def resolve_font(name: str):
     return None
 
 
+def _truetype(path: str, size: int):
+    """加载 TTF，并把可变字体固定到 Regular 实例。
+
+    随包的 Noto Sans SC 是官方可变字体，默认实例为 Thin，20~40 px 的标注
+    会细到几乎看不见。静态字体没有这个轴，调用会被静默忽略。
+    """
+    face = ImageFont.truetype(path, max(1, int(size)))
+    if hasattr(face, "set_variation_by_name"):
+        try:
+            face.set_variation_by_name("Regular")
+        except (OSError, ValueError, AttributeError, TypeError):
+            pass
+    return face
+
+
 def load_font(name: str, size: int):
     """Load a font, saying so when the requested one is not there."""
     path = resolve_font(name)
     if path is None:
         return ImageFont.load_default(), "default"
     try:
-        return ImageFont.truetype(path, max(1, int(size))), name
+        return _truetype(path, size), name
     except Exception as exc:                              # noqa: BLE001
         print("[Photo Sheet] could not load font %r (%s); falling back to the "
               "built-in bitmap font, which has no Chinese glyphs" % (name, exc))
@@ -382,9 +402,10 @@ class QGPhotoSheet:
                 }),
                 "font": (font_choices(), {
                     "default": DEFAULT_FONT,
-                    "tooltip": "Typeface for the caption. The built-in "
-                               "default has no Chinese glyphs, so pick a "
-                               "system font for Chinese text.",
+                    "tooltip": "Caption typeface. The bundled OFL font "
+                               "NotoSansSC-VF.ttf is listed first and covers "
+                               "Chinese; the built-in bitmap default does not, "
+                               "so it renders Chinese as boxes.",
                 }),
                 "font_size": ("INT", {
                     "default": 0, "min": 0, "max": 200, "step": 1,

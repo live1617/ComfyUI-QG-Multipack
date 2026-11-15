@@ -196,9 +196,11 @@ check("契约：RETURN_TYPES / FUNCTION / CATEGORY",
 check("契约：注册 key 唯一", list(M.NODE_CLASS_MAPPINGS) == ["QG_PhotoSheetMixed"])
 check("契约：后端 DESCRIPTION 为英文",
       M.QGPhotoSheetMixed.DESCRIPTION.isascii())
-check("契约：字体下拉全部为系统字体文件名",
-      it["font"][0][0] == "<default>" and all(f.endswith((".ttf", ".ttc"))
-                                              for f in it["font"][0][1:]))
+check("契约：字体下拉首项是随包 OFL 字体，其余均为真实字体文件",
+      it["font"][0][0] == "<default>"
+      and it["font"][0][1] == "NotoSansSC-VF.ttf"
+      and all(f.lower().endswith((".ttf", ".otf", ".ttc"))
+              for f in it["font"][0][1:]))
 
 js = (PKG / "web/qg_photo_sheet_mixed.js").read_text(encoding="utf-8")
 js_labels = json.loads(js.split("const LABELS = ", 1)[1].split(";\n\nfunction", 1)[0])

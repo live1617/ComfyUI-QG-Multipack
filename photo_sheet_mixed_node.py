@@ -51,15 +51,65 @@ SIZES_CM = {
     "34x49": (3.4, 4.9),
 }
 
-# Windows system fonts with Chinese glyphs. The pack does not ship fonts.
-KNOWN_FONTS = (
-    "<default>", "msyh.ttc", "msyhbd.ttc", "simhei.ttf", "simsun.ttc",
-    "simkai.ttf", "simfang.ttf", "Deng.ttf",
-)
+# 随包的开放许可字体（SIL OFL 1.1）。与 photo_sheet_node.BUNDLED_FONTS_DIR
+# 指向同一目录；tests/test_bundled_fonts.py 会断言两者行为一致。
+# 这里不 import 单尺寸排版节点：本模块的对照测试用 spec_from_file_location
+# 单文件加载，包内相对导入在那个上下文里会失败。
+BUNDLED_FONTS_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "assets", "fonts")
 WINDOWS_FONTS = r"C:\Windows\Fonts"
 
 _A5_LANDSCAPE = (21.0, 14.8)
 _A5_PORTRAIT = (14.8, 21.0)
+
+
+def _font_dirs():
+    """内置 OFL 字体 > 用户 models/fonts > 系统字体。"""
+    dirs = [BUNDLED_FONTS_DIR]
+    try:
+        import folder_paths
+        dirs.append(os.path.join(folder_paths.models_dir, "fonts"))
+    except Exception:                                     # noqa: BLE001
+        pass
+    dirs.append(WINDOWS_FONTS)
+    return dirs
+
+
+def font_choices():
+    """下拉候选：只列各目录里真实存在的字体文件。"""
+    names = ["<default>"]
+    for directory in _font_dirs():
+        if not os.path.isdir(directory):
+            continue
+        try:
+            for entry in sorted(os.listdir(directory)):
+                if entry.lower().endswith((".ttf", ".otf", ".ttc")) and entry not in names:
+                    names.append(entry)
+        except OSError:
+            pass
+    return names
+
+
+def load_font(name, size):
+    """载入字体；可变字体固定到 Regular 实例，否则中文标注会细到看不见。"""
+    if name and name != "<default>":
+        for directory in _font_dirs():
+            path = os.path.join(directory, os.path.basename(name))
+            if not os.path.isfile(path):
+                continue
+            try:
+                face = ImageFont.truetype(path, max(1, int(size)))
+                if hasattr(face, "set_variation_by_name"):
+                    try:
+                        face.set_variation_by_name("Regular")
+                    except (OSError, ValueError, AttributeError, TypeError):
+                        pass
+                return face
+            except OSError:
+                pass
+        print("[QG Photo Sheet Mixed] font %r unavailable, using the "
+              "built-in default (Chinese captions may show as boxes)" % name)
+    return ImageFont.load_default()
 
 
 def _region(size, cols, rows, rotate=False):
@@ -249,20 +299,6 @@ def parse_color(value):
         return (0, 0, 0)
 
 
-def load_font(name, size):
-    """A system font with Chinese glyphs, or PIL's default with a log line."""
-    if name and name != "<default>":
-        path = os.path.join(WINDOWS_FONTS, os.path.basename(name))
-        if os.path.isfile(path):
-            try:
-                return ImageFont.truetype(path, max(1, int(size)))
-            except OSError:
-                pass
-        print("[QG Photo Sheet Mixed] font %r unavailable, using the "
-              "built-in default (Chinese captions may show as boxes)" % name)
-    return ImageFont.load_default()
-
-
 def _to_pil(frame):
     array = (frame.detach().cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
     return Image.fromarray(array[..., :3], "RGB").copy()
@@ -372,10 +408,11 @@ class QGPhotoSheetMixed:
                                "followed by the layout name. Empty means no "
                                "caption unless font_size is set.",
                 }),
-                "font": (list(KNOWN_FONTS), {
+                "font": (font_choices(), {
                     "default": "<default>",
-                    "tooltip": "Caption typeface from Windows/Fonts. The "
-                               "built-in default has no Chinese glyphs.",
+                    "tooltip": "Caption typeface. The bundled OFL font "
+                               "NotoSansSC-VF.ttf is listed first and covers "
+                               "Chinese; the built-in bitmap default does not.",
                 }),
                 "font_size": ("INT", {
                     "default": 0, "min": 0, "max": 200, "step": 1,

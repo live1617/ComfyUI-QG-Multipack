@@ -21,7 +21,8 @@ from .id_photo_crop_node import parse_color
 
 def _default_font():
     """默认挑第一个真字体：PIL 的内置位图字体没有中文字形，而水印十有八九
-    写的是中文。挑不到就退回内置的，节点照常跑。"""
+    写的是中文。字体下拉把随包的 OFL 字体（Noto Sans SC）排在最前，所以这里
+    会优先命中它，不依赖本机装没装中文字体；挑不到就退回内置位图字体。"""
     for name in font_choices():
         if name != DEFAULT_FONT:
             return name
@@ -56,7 +57,8 @@ class QGWatermark:
                 }),
                 "font": (font_choices(), {
                     "default": _default_font(),
-                    "tooltip": "要中文字形就挑系统字体；内置默认字体只有英文。",
+                    "tooltip": "默认已指向随包的 Noto Sans SC（SIL OFL 1.1，"
+                               "含中文字形）；内置位图字体只有英文字形。",
                 }),
                 "size": ("INT", {
                     "default": 48, "min": 6, "max": 600, "step": 1,

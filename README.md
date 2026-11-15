@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.12.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.13.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -26,7 +26,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_IDPhotoCrop` | QG 证件照裁剪 | 把已有照片裁成指定尺寸、眼睛摆平（不抠图） | `裁剪后图像` / `扩展遮罩` / `是否扩图` / `DPI` / `定位示意图` |
 | `QG_PhotoSheet` | QG 照片排版 | 铺满相纸、画裁切角标、放不下自动缩 | `排版图像` / `列数` / `行数` / `总张数` |
 | `QG_IDCardSheet` | QG 身份证拼版 | 拍歪的卡片找四角扶正、加圆角投影、按厘米铺到纸上 | `IMAGE` |
-| `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（内置字体缺汉字时自动换中文字体） | `IMAGE` |
+| `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（默认用随包 OFL 中文字体，中文不再成方框） | `IMAGE` |
 | `QG_DualColorPicker` | QG 双色取色器 | 一次输出模式 + 主色 + 辅色三路字符串，颜色控件点开弹出色板 | `模式` / `主色` / `辅色` |
 | `QG_ColorConvert` | QG 颜色转换 | 把 hex / RGB / HSL / 0-1 浮点等写法互转成目标格式，另出一路规范化 hex | `字符串` / `颜色控件` |
 | `QG_CustomColor` | QG 自定义颜色 | 按宽高生成纯色 / 上下渐变 / 中心渐变底图，可加灰度颗粒 | `图像` |
@@ -541,7 +541,7 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 > **来源：原创**。斜向平铺文字水印自实现。
 
-**作用**：斜向平铺文字水印，内置默认字体无汉字字形时会自动换本机第一个中文字体并打印提示。
+**作用**：斜向平铺文字水印。`font` 默认指向随包的 **Noto Sans SC**（SIL OFL 1.1，含中文字形），中文水印开箱即用，不再依赖本机装没装中文字体；手动选 `<default>` 则是 PIL 内置位图字体，只有英文字形。
 
 **控件**：`text`、`font`、`size`、`color`（`#RRGGBB` / 颜色名 / `r,g,b`）、`opacity`、`spacing`、`angle`。
 
@@ -874,7 +874,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 | `layout` | 13 种版式，值为英文 key（`mix_1_8_2_4` 等），中文名仅显示 |
 | `dpi` | 默认 300；A5 横版 21×14.8cm 在 300dpi 下是 2480×1748 px |
 | `border_px` / `border_color` | 描边画在**照片内部**，不会把网格撑大；颜色支持 `#RGB` / `#RRGGBB` / 颜色名 |
-| `caption` / `font` / `font_size` | 底部文字（默认 0 = 不印），字体取 Windows/Fonts 下带中文字形的系统字体 |
+| `caption` / `font` / `font_size` | 底部文字（默认 0 = 不印），字体下拉首项是随包的 Noto Sans SC（OFL，含中文），其后是 `models/fonts` 与系统字体 |
 | `fit_to_paper` | 版式放不下时整体等比缩小；关闭则报出「需要多少 px / 可用多少 px」 |
 
 输出 `IMAGE`（批量逐帧，一帧一张相纸）、`STRING` 版式中文名、`INT` 一张相纸上的份数。
@@ -982,7 +982,11 @@ ComfyUI 自带的对齐照常能用，这套是补充——多了统一尺寸、
 
 3. 重启 ComfyUI。
 
-> **字体**：`fonts/` 目录不随 git 仓库分发（版权原因）。`QG_PhotoSheet` / `QG_Watermark` / `QG_IDCardSheet` 的字体下拉读的是 `ComfyUI/models/fonts/` 和系统字体目录（Windows 为 `C://Windows//Fonts`），把想用的 `.ttf/.ttc` 丢进 `models/fonts/` 即可。
+> **字体（随包）**：`assets/fonts/` 内置 **Noto Sans SC**（`NotoSansSC-VF.ttf`，16.9 MB，SIL OFL 1.1，可自由再分发与商用），许可全文在同目录 `OFL.txt`；字体文件为官方原样分发、未修改。`QG_PhotoSheet` / `QG_PhotoSheetMixed` / `QG_Watermark` 的字体下拉把它排在首位，`QG_Watermark` 的默认字体也指向它，中文标注与水印开箱即用。官方文件是可变字体、默认字重为 Thin，加载时统一固定到 `Regular` 实例（不改动字体文件本身）。
+>
+> 想用自己的字体：把 `.ttf/.otf/.ttc` 放进 `ComfyUI/models/fonts/`，或直接用系统字体目录（Windows 为 `C://Windows//Fonts`），下拉会自动列出。
+>
+> **不随包的字体**：插件目录下原有的 `fonts/` 是本机自备的专有字体（苹方、华文细黑、方正超粗黑、中易楷体/黑体、Bitstream OCR-B / Swis721、Akkurat、Capture it），内嵌许可均为 All Rights Reserved，其中苹方明确写着 `Apple Inc internal use only. Do not distribute.`。该目录被 `.gitignore` 与 `打包备份.py` 双重排除，**不进仓库、不进备份包**，节点字体下拉也不读它。
 >
 > **模板素材**：`QG_IDPhotoOutfit`（证件照服装发型）与 `QG_MarriageCloth`（结婚登记照服装）的素材**随插件内置**——前者 7 分类 200 张服装/发型模板 + 提示词 JSON，后者 81 张双人服装图。还可以往 `ComfyUI/models/id_photo/` 和 `ComfyUI/models/marriage_cloth/` 放自己的图，与内置素材**合并显示**（同名以内置优先）。目录格式见各自章节说明，与 Goohaitools「孤海」素材兼容。
 
@@ -1147,11 +1151,12 @@ ComfyUI-QG-Multipack/
 ├── workflows/                  两份可直接加载的证件照示例工作流 json
 ├── models/id_photo/            内置证件照服装/发型素材（7 分类 200 张 + 提示词 JSON）
 ├── models/marriage_cloth/      内置结婚登记照服装素材（81 张）
+├── assets/fonts/               随包开放许可字体：Noto Sans SC (OFL 1.1) + OFL.txt
 ├── locales/zh/nodeDefs.json    中文界面文案与 tooltip
 ├── tests/                      纯函数单测（python -m pytest tests）
 ├── shape_predictor_5_face_landmarks.dat  人脸 5 点模型
 ├── config.example.json         config.json（在 ComfyUI/user/ComfyUI-QG-Multipack/）的空字段模板
-├── .gitignore                  排除 config.json / rules.json / 运行产物
+├── .gitignore                  排除 config.json / rules.json / 运行产物 / 商业字体 fonts/
 ├── rules.json                  规则库（运行时生成于 user 目录；插件目录可能残留旧副本）
 └── THIRD-PARTY-NOTICES.md      第三方代码与模型许可
 ```

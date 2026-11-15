@@ -277,14 +277,15 @@ is a percentage of the base-image height while image watermarks scale by
 their own size, rotation uses `expand=True` + bicubic, tiling starts at
 minus one watermark size; at angle 0 the position is computed from the text-bbox size while
 the pasted layer includes the safety margin (a 1px+ offset at large font sizes), kept
-as-is so outputs stay interchangeable. The plugin's local `fonts/` folder holds assorted
-third-party fonts and is **not distributed through the git repository**
-(omitted via `.gitignore` for font-licensing reasons). The font dropdowns
-do not read that folder anyway: `QG_PhotoSheet` / `QG_Watermark` /
-`QG_IDCardSheet` enumerate `ComfyUI/models/fonts/` and the system font
-directory (`C://Windows//Fonts` on Windows) instead. Drop your own
-.ttf/.ttc files into `models/fonts/` to use them; every font remains the
-property of its respective rights holder.
+as-is so outputs stay interchangeable. The plugin's local `fonts/` folder
+holds assorted proprietary fonts (PingFang, STXihei, Founder, ZhongYi KaiTi /
+SimHei, Bitstream OCR-B / Swis721, Akkurat, "Capture it"), whose embedded
+name records all claim All Rights Reserved; the PingFang files explicitly
+say "Apple Inc internal use only. Do not distribute.". That folder is
+excluded by `.gitignore` AND by the packaging script, and the font
+dropdowns never read it. See the Noto Sans SC entry below for the
+open-licensed font that *is* bundled; user fonts may still be dropped into
+`ComfyUI/models/fonts/`.
 
 - Reference plugin: Goohaitools-comfyui (installed locally, not redistributed)
 - License: GPL-3.0 — the same license as this pack's own `LICENSE`
@@ -418,3 +419,32 @@ source or model file is bundled with this pack.
   when the file is missing
 - Redistribution note: the model is bundled so the node works offline;
   it may also be obtained directly from dlib's official distribution.
+
+
+## Noto Sans SC — bundled font (SIL OFL 1.1)
+
+- Files: `assets/fonts/NotoSansSC-VF.ttf` (16.95 MB) and
+  `assets/fonts/OFL.txt` (the complete SIL Open Font License 1.1 text).
+- Upstream: https://github.com/notofonts/noto-cjk and
+  https://github.com/adobe-fonts/source-han-sans
+- Copyright (font nameID 0): "© 2014-2021 Adobe (http://www.adobe.com/),
+  with Reserved Font Name 'Source'." The font's nameID 13 states
+  "This Font Software is licensed under the SIL Open Font License,
+  Version 1.1" and nameID 14 points at http://scripts.sil.org/OFL.
+- Redistribution: the file is an **unmodified** copy of the official
+  variable font shipped with the OS font library. OFL 1.1 permits
+  bundling, redistribution and commercial use as long as the license text
+  accompanies the font, the font is not sold on its own, and the Reserved
+  Font Name ("Source") is not used for derivatives. This pack uses the
+  name "Noto Sans SC" and does not use the reserved name.
+- Used by: `QG_PhotoSheet`, `QG_PhotoSheetMixed` and `QG_Watermark`.
+  It is listed first in the font dropdowns and is the default font for
+  `QG_Watermark`, so Chinese captions and watermarks work out of the box
+  without relying on fonts installed on the host. Because the official
+  file is a variable font whose default instance is Thin, the loader pins
+  it to the `Regular` instance at runtime (no font file is modified).
+- Not bundled: the proprietary fonts in the plugin's local `fonts/`
+  directory. Earlier backup archives (v2.1.0–v2.12.0) accidentally
+  included them because the packaging script's exclude list did not
+  mirror `.gitignore`; the script now excludes the whole top-level
+  `fonts/` directory and asserts that no such file enters an archive.

@@ -23,9 +23,17 @@ __pycache__/
 ISSUES.md
 开发规范.md
 
-# 字体不进仓库（2026-11-14 用户决定）：版权字体，节点下拉实际扫
-# ComfyUI/models/fonts 与系统字体，需要时把 ttf 丢进 models/fonts 即可。
-fonts/
+# 顶层 fonts/ 不进仓库、不随包（2026-11-14 用户决定，2026-11-15 复核）：
+# 里面是本机自备的专有字体（苹方 / 华文细黑 / 方正超粗黑 / 中易楷体黑体 /
+# Bitstream OCR-B、Swis721 / Akkurat / Capture it），内嵌许可均为 All Rights
+# Reserved，其中苹果字体明确写 "Apple Inc internal use only. Do not distribute."。
+# 打包脚本同步按顶层目录排除，避免备份包误带商业字体。
+# 注意必须锚定顶层：裸写 fonts/ 会连 assets/fonts/ 一起忽略掉。
+/fonts/
+
+# 2026-11-15 用户要求「无版权字体也随包」：assets/fonts/ 放的是明确
+# SIL OFL 1.1 的 Noto Sans SC（NotoSansSC-VF.ttf）与 OFL.txt 许可全文，
+# 随仓库与备份包一起分发，节点字体下拉会优先读到它。
 
 # 模板素材（2026-11-15 用户改成随包分发）：插件目录 models/id_photo/
 # 内置 7 分类 200 张服装/发型模板与提示词，随插件一起提交与打包；
