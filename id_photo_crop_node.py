@@ -250,7 +250,12 @@ class QGIDPhotoCrop:
                 }),
                 "auto_rotate": ("BOOLEAN", {
                     "default": True,
-                    "label_on": "Level", "label_off": "Keep Tilt",
+                    # The toggle widget prints these two strings verbatim - the
+                    # frontend has no translation hook for label_on/label_off -
+                    # so they are written in Chinese here, unlike the node's
+                    # own description and tooltips, which go through the locale
+                    # files.
+                    "label_on": "摆平", "label_off": "保持倾斜",
                     "tooltip": "Turn the picture so the eyes are level. Off "
                                "keeps the original tilt while still cropping "
                                "to the eye midpoint.",

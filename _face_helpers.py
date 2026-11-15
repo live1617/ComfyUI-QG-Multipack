@@ -40,7 +40,7 @@ class Face:
     to nearly 180 degrees.
     """
 
-    def __init__(self, box, eye_a, eye_b, source, contour=None):
+    def __init__(self, box, eye_a, eye_b, source, contour=None, roll=None):
         self.x0, self.y0, self.x1, self.y1 = (float(v) for v in box)
         first = (float(eye_a[0]), float(eye_a[1]))
         second = (float(eye_b[0]), float(eye_b[1]))
@@ -50,6 +50,9 @@ class Face:
         self.eye_b = second
         self.source = source
         self.contour = contour
+        # Set only when the detector measured a steadier angle than the two
+        # eye centres give; None means "trust the eyes".
+        self.roll = None if roll is None else float(roll)
 
     @property
     def width(self):
@@ -70,7 +73,18 @@ class Face:
 
     @property
     def tilt(self):
-        """Eye line angle in radians, measured from the left eye to the right."""
+        """Eye line angle in radians, measured from the left eye to the right.
+
+        ``roll`` overrides the eye pair when the detector found a steadier
+        angle. An eye behind a fringe or a pair of glasses drags its whole
+        landmark cluster onto the eyelid - a third of the eye height too high -
+        and the eye line then reads as 9 degrees one way when the face is
+        really 2 degrees the other. Turning the picture by that is worse than
+        not turning it at all, so every consumer of ``tilt`` gets the vetted
+        number.
+        """
+        if self.roll is not None:
+            return self.roll
         return math.atan2(self.eye_b[1] - self.eye_a[1],
                           self.eye_b[0] - self.eye_a[0])
 
@@ -86,7 +100,7 @@ class Face:
         contour = None
         if self.contour:
             contour = [(p[0] * fx, p[1] * fy) for p in self.contour]
-        return Face(box, eye_a, eye_b, self.source, contour)
+        return Face(box, eye_a, eye_b, self.source, contour, self.roll)
 
     def __repr__(self):
         return ("Face(%s, box=%.0fx%.0f at %.0f,%.0f, tilt=%.2f deg)"
@@ -234,6 +248,97 @@ def _mean_point(points, indices):
             sum(points[i][1] for i in usable) / len(usable))
 
 
+# Symmetric landmark pairs that do not pass through the eyes, in the 478-point
+# mediapipe model: nose wings, cheekbones, jaw corners, temples. They are the
+# second opinion on how far the head is turned - an eye buried under a fringe
+# moves all of its own landmarks together, so nothing inside the eye can tell
+# that it is wrong.
+#
+# Brows and mouth corners are deliberately not in the list. A fringe covers the
+# brows as well as the eyes, so they repeat the same error; the mouth corners
+# follow the expression, and a smile lifts one side by several degrees. On a
+# 1080x1920 cosplay portrait where the eye line reads +9.5 deg, these four hard
+# structures agree on -4.0 deg, which is within a degree of the pupil pixels.
+_ROLL_PAIRS = ((129, 358),    # nose wings
+               (234, 454),    # cheekbones
+               (172, 397),    # jaw corners
+               (127, 356))    # temples
+
+# How far the eye line may disagree with the rest of the face before the eyes
+# are considered mismeasured. A genuinely tilted head carries the brows, the
+# nose and the mouth with it, so agreement is the normal case; disagreement is
+# what an occlusion looks like.
+_ROLL_AGREE = 6.0
+
+# How tightly the four pairs must agree among themselves before they are
+# allowed to overrule the eyes. A profile turns them into noise.
+_ROLL_SPREAD = math.radians(8.0)
+
+
+def _median(values):
+    ordered = sorted(values)
+    count = len(ordered)
+    if not count:
+        return None
+    middle = count // 2
+    if count % 2:
+        return ordered[middle]
+    return (ordered[middle - 1] + ordered[middle]) / 2.0
+
+
+def _pair_roll(points, ids_a, ids_b):
+    """Angle in radians from the left-hand point of a pair to the right one."""
+    first = _mean_point(points, ids_a)
+    second = _mean_point(points, ids_b)
+    if first is None or second is None:
+        return None
+    if first[0] > second[0]:
+        first, second = second, first
+    return math.atan2(second[1] - first[1], second[0] - first[0])
+
+
+def _robust_roll(eye_roll, points):
+    """Cross-check the eye line against the rest of the face.
+
+    Returns ``(roll, note)``. ``roll`` is radians, ``note`` a line for the log
+    when the eyes were overruled (empty string otherwise).
+
+    A face is symmetric, so nose wings, cheekbones, jaw corners and temples all
+    report the same tilt as the eyes on a normal picture - within a degree or
+    two. When the eye line is off by more than ``_ROLL_AGREE`` from their
+    median, the eyes are what is wrong, not the face.
+    """
+    references = []
+    for ids_a, ids_b in _ROLL_PAIRS:
+        angle = _pair_roll(points, (ids_a,), (ids_b,))
+        if angle is not None:
+            references.append(angle)
+
+    if eye_roll is None:
+        fallback = _median(references)
+        if fallback is None:
+            return None, ""
+        return fallback, "no eye line - used the face symmetry (%.1f deg)" \
+            % math.degrees(fallback)
+
+    if len(references) < 2:
+        return eye_roll, ""
+    reference = _median(references)
+    # A profile has no usable symmetry: the four pairs disagree wildly and the
+    # median is meaningless. In that case the eyes keep their say - a bad
+    # reference is worse than a suspect eye line.
+    spread = _median([abs(value - reference) for value in references])
+    if spread > _ROLL_SPREAD:
+        return eye_roll, ""
+    delta = math.degrees(eye_roll - reference)
+    if abs(delta) <= _ROLL_AGREE:
+        return eye_roll, ""
+    return reference, ("eye line reads %+.1f deg but nose/cheeks/jaw say "
+                       "%+.1f deg - the eyes are covered or misread, so the "
+                       "face symmetry is used" % (math.degrees(eye_roll),
+                                                  math.degrees(reference)))
+
+
 def _download_face_landmarker():
     """找不到 .task 时按需下载到第一个候选目录。失败返回 None（继续 Haar 回退）。"""
     candidates = _model_candidates()
@@ -294,7 +399,16 @@ def _detect_mediapipe(rgb, pick, confidence=None):
         right = _mean_point(points, sets["iris_right"]) or _mean_point(points, sets["eye_right"])
         if left is None or right is None:
             continue
-        faces.append(Face(box, left, right, "mediapipe", oval))
+        if left[0] > right[0]:
+            left, right = right, left
+        # Cross-checked against the nose, cheekbones and jaw: mediapipe is
+        # happy to place an eye that a fringe covers a third of an eye too
+        # high, and the eye line that comes out of it points the wrong way.
+        eye_roll = math.atan2(right[1] - left[1], right[0] - left[0])
+        roll, note = _robust_roll(eye_roll, points)
+        if note:
+            print("[QG-Face] %s" % note)
+        faces.append(Face(box, left, right, "mediapipe", oval, roll=roll))
 
     return _pick(faces, pick, (width / 2.0, height / 2.0))
 
