@@ -8,10 +8,12 @@
 | ``rmbg-*`` | 1024x1024 | /255 再 (x-0.5)/0.5 | logits，要按本图 min-max 拉伸 |
 | ``birefnet*`` | 1024x1024 | ImageNet 均值方差 | logits，要 sigmoid |
 
-模型文件不复制：ComfyUI 的 ``models/background_removal`` 优先，其次
-``models/matting``，最后兼容 HivisionIDPhotos 插件自带的 weights 目录。
-找不到就返回空表，节点把能用的模型列表显示为空并说明去哪里放文件 ——
-一个可选依赖不该让整个包加载失败。
+两个 modnet 权重随包放在插件 ``models/background_removal``（Apache-2.0，
+来源与校验见该目录 NOTICE.md），让节点离线也能开箱即用。发现顺序：
+ComfyUI 的 ``models/background_removal``（含 extra_model_paths 挂载）→
+``models/matting`` → 插件内置兜底 → 兼容 HivisionIDPhotos 插件自带 weights。
+用户自己放的同名权重优先，内置副本命中后不会再触发下载。
+其余两个大模型仍首次使用时按需下载；一个可选依赖不该让整个包加载失败。
 """
 
 from __future__ import annotations
@@ -47,6 +49,16 @@ def _models_root():
         return os.path.normpath(os.path.join(here, "..", "..", "..", "models"))
 
 
+def _bundled_dir():
+    """随包分发的离线兜底权重目录。
+
+    不依赖 ComfyUI 的 folder_paths：插件目录本身就知道自己在哪里，
+    纯离线环境（没有 models 目录、没有网络）也能找到这两个 modnet。
+    """
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "models", "background_removal")
+
+
 def _source_folders():
     """要扫的目录，按优先级。
 
@@ -74,7 +86,13 @@ def _source_folders():
         if path not in folders:
             folders.append(path)
 
-    # 兼容：HivisionIDPhotos 插件自带的 weights 已经有 400 MB 现成模型，
+    # 随包的离线兜底放在用户目录之后：用户自己更新过的同名权重优先，
+    # 内置副本只在用户目录没有时补上，命中后 resolve() 不会再去联网。
+    bundled = _bundled_dir()
+    if bundled not in folders:
+        folders.append(bundled)
+
+    # 兼容：HivisionIDPhotos 插件自带的 weights 已经有现成模型，
     # 不去复制一份，能读到就用。
     comfy_root = os.path.dirname(models_dir)
     folders.append(os.path.join(comfy_root, "custom_nodes",

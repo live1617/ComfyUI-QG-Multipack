@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.13.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.15.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -20,7 +20,6 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_ImageToPrompt` | 图像反推提示词 | 图片进、提示词出：规则来自设置里的规则管理器（内置 5 条：像素级描述 / Tag 标签流 / 自然语言短描述 / 图像编辑指令 / 视频动态提示词），视觉模型按「服务商/模型」选，**边推理边在节点下方出字**，batch 逐帧反推 | `提示词输出` / `提示词列表` |
 | `QG_PromptOptimize` | 提示词优化 | 提示词进、更好的提示词出：规则取「提示词优化规则」组（内置 4 条：扩写-通用 / 润色-精炼 / 扩写-细节质感 / 改写-英文），保留括号权重与 LoRA 标签，**边生成边在节点下方出字**，可接上游文本两路合并 | `提示词输出` |
 | `QG_FaceRectify` | Face Rectify | 自动把人脸转正：先按 90° 粗扫矫正横躺/倒置，再用 5 点 landmark 纠正倾斜，最后统一裁边 | `image` |
-| `QG_Note` | QG 注释 | 画布便签/标题，支持中文折行、字号对齐行距配色、可点链接、右键缩放 | 无（纯展示） |
 | `QG_IDPhotoParams` | QG 证件照参数 | 尺寸/底色/渲染/dpi 集中一路传出，供抠图与排版节点复用 | `params` / `宽` / `高` / `DPI` |
 | `QG_PortraitMatte` | QG 人像抠图换背景 | 抠图→换底→美颜→按证件照构图裁好（可选 mediapipe 人脸对齐） | `成品图` / `蒙版` / `高清图` |
 | `QG_IDPhotoCrop` | QG 证件照裁剪 | 把已有照片裁成指定尺寸、眼睛摆平（不抠图） | `裁剪后图像` / `扩展遮罩` / `是否扩图` / `DPI` / `定位示意图` |
@@ -40,46 +39,59 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 ## 示例工作流
 
-`workflows/` 下有两份可直接加载的 json（ComfyUI 菜单「工作流 → 打开」，或把文件拖进画布）：
+`workflows/` 下有三份可直接加载的 json（ComfyUI 菜单「工作流 → 打开」，或把文件拖进画布）：
 
 | 文件 | 内容 | 依赖 |
 | --- | --- | --- |
-| `id_photo_pipeline.json` | 证件照全链路：上传一张人像 → `QG_IDPhotoParams` → `QG_PortraitMatte` → `QG_IDPhotoCrop` → 两路排版（`QG_PhotoSheetMixed` 的 13 种 A5 版式 / `QG_PhotoSheet` 的自定义相纸）→ 预览；另附「简易提示词」节点供图生图使用 | 需在 ① 里自己选一张人像；首次用抠图节点会按需下载模型 |
+| `id_photo_pipeline.json` | 证件照全链路：上传一张人像 → `QG_IDPhotoParams` → `QG_PortraitMatte` → `QG_IDPhotoCrop` → 两路排版（`QG_PhotoSheetMixed` 的 13 种 A5 版式 / `QG_PhotoSheet` 的自定义相纸）→ 预览；另附「简易提示词」节点供图生图使用 | 需在 ① 里自己选一张人像；两个 modnet 权重已随包，另两个大模型首次使用时按需下载 |
 | `id_photo_templates.json` | 纯模板与提示词：`QG_IDPhotoPrompt`（13 维 + seed）、`QG_IDPhotoOutfit`（内置 200 张）、`QG_MarriageCloth`（内置 81 张）三路输出，开箱即用 | 无外部模型、无需选图 |
+| `id_photo_offline.json` | **离线开箱即用**：用随包的 `hivision_modnet` 抠图 + 随包的 OFL 中文字体打水印，另演示 `QG_MaskTopExpand` 头顶遮罩扩展（③ 的 `mask` → 扩展 → 转图 → 预览）。覆盖此前没有示例的 `QG_Watermark` / `QG_MaskTopExpand` | 只需在 ① 里换掉占位图；把 ③ 的 `face_alignment` 关掉即可**完全断网**运行 |
 
-两份都在 8177 实例里用真机前端加载验证过：节点与连线完整、无未知节点、`graphToPrompt()` 成立；画布上的「使用说明」便签写了每一步该做什么。
+三份都由 8177 真机 `/object_info` 生成控件默认值与连线类型。前两份曾用真机前端验证过 `graphToPrompt()` 成立；本轮三份又统一按 `graphToPrompt` 的规则转成 API prompt 提交给 8177，全部 `node_errors={}`、执行 `success`（全链路 2 组图 / 模板 1 组 / 离线 2 组）：节点与连线完整、无未知节点、无断链。画布上的「使用说明」便签写了每一步该做什么，也写清哪些资源已随包、哪些仍需按需下载。
 
 ## 各节点使用说明
 
 下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后两个是纯画布辅助节点，跟数据流无关，放末尾。
 
-另外还有一个**没有节点形态**的功能——拖动时的对齐参考线 + 多选排列（对齐 / 统一尺寸 / 等间距），装上就能用，不用拖节点出来。它在后面的「前端增强」一章里单独讲，本节覆盖全部 27 个节点（含并入的证件照 / 排版 / 拼版 / 水印 6 个节点）。
+另外还有一个**没有节点形态**的功能——拖动时的对齐参考线 + 多选排列（对齐 / 统一尺寸 / 等间距），装上就能用，不用拖节点出来。它在后面的「前端增强」一章里单独讲，本节覆盖全部 26 个节点（含并入的证件照 / 排版 / 拼版 / 水印 6 个节点）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
-### ⚠️ PhotoKit 模型权重（首次使用自动下载）
+### ⚠️ PhotoKit 模型权重（2 个随包，2 个按需下载）
 
-PhotoKit 的人脸对齐与抠图依赖几个**不随包分发**的模型权重。本包采用「用到时按需拉取」：
-节点第一次真正运行、且本地找不到对应权重时，自动从官方源下载到 `ComfyUI/models/`
-下的对应目录；下载过一次后本地缓存，之后直接读，不再联网。
+两个 modnet 抠图权重**已随包分发**在插件 `models/background_removal/`：离线机器装好插件
+就能直接出图，不需要联网。它们取自 HivisionIDPhotos / MODNet 官方 release，
+按 **Apache-2.0** 再分发、原样字节未修改；许可全文、来源 URL 与 SHA-256 见该目录
+`NOTICE.md`，仓库根目录 `THIRD-PARTY-NOTICES.md` 也有对应条目。
 
-| 权重文件 | 用途 | 大小 | 自动下载到 | 源 |
+其余权重仍是「用到时按需拉取」：节点第一次真正运行、且本地找不到对应权重时，
+自动从官方源下载到 `ComfyUI/models/` 下的对应目录；下载过一次后本地缓存，之后直接读。
+
+| 权重文件 | 用途 | 大小 | 分发方式 | 源 |
 | --- | --- | --- | --- | --- |
-| `face_landmarker.task` | `QG_PortraitMatte` 人脸对齐（mediapipe） | ~3.6 MB | `models/mediapipe/` | Google 官方 mediapipe 仓库 |
-| `modnet_photographic_portrait_matting.onnx` | 抠图（modnet 族） | ~24.7 MB | `models/background_removal/` | HivisionIDPhotos 官方 release |
-| `hivision_modnet.onnx` | 抠图（modnet 族，纯色换底更稳） | ~24.7 MB | `models/background_removal/` | HivisionIDPhotos 官方 release |
-| `rmbg-1.4.onnx` | 抠图（rmbg 族） | ~176 MB | `models/background_removal/` | BRIA AI / HuggingFace |
-| `birefnet-v1-lite.onnx` | 抠图（birefnet 族，精度最高） | ~224 MB | `models/background_removal/` | ZhengPeng7 BiRefNet 官方 release |
+| `modnet_photographic_portrait_matting.onnx` | 抠图（modnet 族） | ~24.7 MB | **随包**，插件 `models/background_removal/` | MODNet 官方权重，经 HivisionIDPhotos release |
+| `hivision_modnet.onnx` | 抠图（modnet 族，纯色换底更稳） | ~24.7 MB | **随包**，同上 | HivisionIDPhotos 官方 release |
+| `face_landmarker.task` | `QG_PortraitMatte` 人脸对齐（mediapipe） | ~3.6 MB | 按需下载 → `models/mediapipe/` | Google 官方 mediapipe 仓库 |
+| `rmbg-1.4.onnx` | 抠图（rmbg 族） | ~176 MB | 按需下载 → `models/background_removal/` | BRIA AI / HuggingFace |
+| `birefnet-v1-lite.onnx` | 抠图（birefnet 族，精度最高） | ~224 MB | 按需下载 → `models/background_removal/` | ZhengPeng7 BiRefNet 官方 release |
+
+发现顺序：`ComfyUI/models/background_removal`（含 `extra_model_paths.yaml` 挂载）
+→ `ComfyUI/models/matting` → **插件内置副本** → 兼容读取 HivisionIDPhotos 插件自带
+weights。**用户自己放的同名权重优先**，内置副本只在用户目录没有时兜底；
+命中内置副本后不会再触发网络下载。
 
 失败兜底：
 
 - `face_landmarker.task` 下载失败或缺失 → 自动回退到 OpenCV Haar 人脸检测（精度较差，侧脸 / 小脸不稳），节点照常出图。
-- 抠图 onnx 下载失败或缺失 → 节点报错并提示手动放置路径，不会出烂图。
+- `rmbg-1.4` / `birefnet-v1-lite` 下载失败或缺失 → 节点报错并提示手动放置路径，不会出烂图。
 - 自动下载带停滞看门狗：网络半死（连着但不来数据）超过数分钟会主动放弃并报错，不会无限卡住；可重跑或手动放置。
 
-手动放置（自动下载失败时的兜底）：把上表「自动下载到」列的文件放好即可，无需改名
-（`rmbg-1.4` / `birefnet-v1-lite` 已由本包按官方命名落盘，不要自己改名）。
-`QG_PortraitMatte` 的下拉菜单常驻显示这 4 个抠图模型名，本地没有时选中即触发下载。
+手动放置（自动下载失败时的兜底）：把上表「按需下载」的目标目录里的文件放好即可，
+无需改名。`QG_PortraitMatte` 的下拉常驻显示 4 个抠图模型名：两个 modnet 开箱即用，
+另外两个选中才触发下载。
+
+> 许可提示：`rmbg-1.4`（BRIA AI）与 `birefnet-v1-lite` 的上游授权与随包的 modnet
+> **不同**，商用前请自行核对各自仓库的条款。
 
 ### 来源：哪些是原创，哪些是搬运
 
@@ -90,7 +102,6 @@ PhotoKit 的人脸对齐与抠图依赖几个**不随包分发**的模型权重�
 | 节点 | 来源 | 上游 / 参考对象 | 逐行相似度 |
 | --- | --- | --- | --- |
 | `QG_MaskByName` | ⚠️ **部分搬运** | ComfyUI-AusBoss「Mask by Name」，MIT / ausboss | **81%**（主文件 225/279 行；helpers 73%） |
-| `QG_Note` | ✅ 原创 | — | 4% |
 | `QG_QwenTextEncode` / `QG_QwenRestore` | ⚠️ GPL 逐行移植 | 功能对齐 Goohaitools「Qwen Image 2.1 文本编码 GH」+「Restore Qwen Image 2.1 GH」（GPL-3.0） | **92.26%**（见下方小节说明：该节点深度依赖 comfy 条件注入内部行为，逐行移植是唯一能保证行为可互换的方式；本包与参考同为 GPL-3.0，已按协议要求在 NOTICES 声明来源） |
 | `QG_QwenPromptOptimizer` | ⚠️ GPL 逐行移植 | 功能对齐 Goohaitools「Qwen image 2.1 提示词优化」（`QwenImagePromptOptimizer`，GPL-3.0，后端 + llama-cpp 运行时 + 前端） | runtime **98.94%**（937/947） / 节点 **95.65%**（308/322） / 前端 **84.54%**（257/304）：提示词组装、语言锁、透明背景改写、内存管理与 LLM 采样参数直接决定模型输出与显存行为，逐行移植保证与原版可互换；差异为 qg 前缀标识、路由前缀与中文注释。217 组对照零差异，见下方小节 |
 | `QG_FaceRectify` | ✅ 原创 | 思路参考 Goohaitools「Face Rectify」 | 1% |
@@ -116,13 +127,13 @@ PhotoKit 的人脸对齐与抠图依赖几个**不随包分发**的模型权重�
 | `QG_IDPhotoPrompt` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照简易提示词」（GPL-3.0）；13 维选项中文词条取自公开规格（属数据），组装 / 随机 / 值映射自写，未复制上游代码；修掉上游 `random.seed()` 污染进程全局随机与「简单背景」重复叠加 | 0% |
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
 
-一句话概括：**27 个节点里 26 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**26 个节点里 25 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
 - **「参考了某个插件」不等于搬运**。`QG_FaceRectify`、`QG_ImageToPrompt`、`QG_PromptOptimize` 都是「先读懂它怎么做的，再自己写」，所以逐行相似度都在 10% 以下，但做的是同一个功能。README 和文件头都如实写明了参考对象。
 - **`QG_MaskByName` 是本包里唯一需要特别说明的**。它改编自 AusBoss 的 MIT 代码，节点类、`INPUT_TYPES`、`_detect`、`cut_out` 等成段保留；本包新增的是 SAM 3 权重下拉与加载缓存、权重文件头校验、四步遮罩精修、预览保存。许可证允许这么用，但**必须署名**——所以 `THIRD-PARTY-NOTICES.md` 里那份声明不是可选项。
-- **前端脚本单独算过**：7 个 js 里最高的是 `qg_note.js` 对 Goohaitools 的 `GoohaiNote.js`，逐行 5%（token 级 24%，主要是共用同一套 LiteGraph 画布 API），不是搬运；`snaplines_v7.js`（对齐参考线）逐行 1%。
+- **前端脚本单独算过**：`snaplines_v7.js`（对齐参考线）对 Goohaitools 参考实现逐行 1%，主要是共用同一套 LiteGraph 画布 API，不是搬运。
 
 ### `QG_FaceRectify` 人脸自动矫正
 
@@ -422,34 +433,6 @@ MASK(可选) ──▶ mask       latent_width ──▶│                     
 
 **注意**：和反推节点一样**不要挑视觉模型**。`glm-4.6v-flash` 这类高峰期限流 429，纯翻译用 `glm-4-flash` 或 `glm-4.5`。
 
-### `QG_Note` 画布注释
-
-> **来源：原创**。绘制、编辑、链接、缩放全在 `web/qg_note.js` 里自行实现；`note_node.py` 不过是 48 行的后端壳子（只为让节点能在菜单里搜到）。对 Goohaitools「孤海注释」的逐行相似度 5%，是共用 LiteGraph 画布 API 的自然重合。
-
-**作用**：画布上的便签 / 标题，不是数据节点。
-
-**接线**：无输入、无输出、不参与执行。想把它加进工作流只是为了让画布好看。
-
-**操作**：
-
-| 操作 | 效果 |
-| --- | --- |
-| 双击 | 进入编辑，上方出现工具条：字号、对齐、行距、文字色、背景色与透明度、圆角、描边 |
-| 直接输入 | 支持中文自动折行（按字符宽度算，不是按空格断词） |
-| 按住右键左右拖 | **等比缩放**文字与底板（字号跟着变） |
-| 拖右下角 | 只改底板尺寸（字号不变） |
-| 右键菜单 | 固定节点（固定后鼠标点击穿透到下层）、复制文本、切换配色预设 |
-
-**支持的链接写法**（会渲染成可点击的蓝色链接，Ctrl/Cmd + 点击在当前标签打开）：
-
-```
-https://example.com
-www.example.com
-[[显示文字|https://example.com]]
-```
-
-**注意**：文本、字号、配色全存在节点的 `properties` 里，**随工作流 JSON 保存**，换机器打开不会丢；但插件删了就没法渲染了（数据还在 JSON 里）。
-
 ## 提示词翻译（`QG_PromptTranslate`）
 
 工作流里「中文提示词 → 英文提示词」这条链路形状是固定的，所以单独做了一个只有四个控件的快捷节点：
@@ -497,7 +480,7 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 **接线**：`image` 进；`params` 可选（不接则退回一寸蓝底 300dpi）；`成品图` 给下游裁剪或排版。
 
-**控件**：`matting_model`（本机 4 个）、`face_alignment`（双眼转水平，超 2° 才动）、`change_bg_only` / `crop_only`（同时开会报错）、`head_height`（头发顶到下巴占画面比例，国标约 0.667）、`top_distance`、`whitening_strength`（美白，10 满）、亮度 / 对比度 / 饱和度 / 锐化。
+**控件**：`matting_model`（下拉常驻 4 个，其中 2 个 modnet 已随包）、`face_alignment`（双眼转水平，超 2° 才动）、`change_bg_only` / `crop_only`（同时开会报错）、`head_height`（头发顶到下巴占画面比例，国标约 0.667）、`top_distance`、`whitening_strength`（美白，10 满）、亮度 / 对比度 / 饱和度 / 锐化。
 
 **输出**：`成品图` / `蒙版` / `高清图`。
 
@@ -895,7 +878,6 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 | `web/qg_marriage_cloth.js` | 「QG 结婚登记照服装」的画廊面板（预览框 / 缩略图网格 / 点选写回序号与文件名） |
 | `web/qg_id_photo_prompt.js` | 「QG 证件照简易提示词」13 个下拉的中文显示（229 条映射由后端选项表生成，值仍为英文编号） |
 | `web/qg_photo_sheet_mixed.js` | 「QG 证件照混合排版（A5）」13 种版式的中文显示（值仍为英文 key） |
-| `web/qg_note.js` | 注释节点的绘制、双击编辑、链接跳转 |
 | `web/qg_translate.js` | 「设置 → QG 工具」里的翻译服务商管理面板（含百度翻译页签） |
 | `web/qg_rules.js` | 「设置 → QG 工具 → 提示词规则」里的规则管理器（四个页签、增删改、单选激活） |
 | `web/qg_stream.js` | 两件事：图像反推 / 提示词优化的实时预览画在节点下方（标题由后端 `label` 决定，所以是「反推中…」或「优化中…」）；失败原因也画在同一位置（canvas 绘制，随节点移动缩放） |
@@ -1003,7 +985,6 @@ ComfyUI 自带的对齐照常能用，这套是补充——多了统一尺寸、
 | `QG_PromptTranslate` | 百度翻译（appid + key），或上面任一 LLM 服务商 | 同上，失败原因同样画在节点下方 |
 | `QG_ImageToPrompt` | 视觉模型 API（共用服务商配置，要选**支持图像输入**的模型） | 选到纯文本模型会报错 |
 | `QG_PromptOptimize` | 对话模型 API（共用服务商配置，无需图像能力） | 没配地址/Key 时运行报错，原因同时画在节点下方 |
-| `QG_Note` | 无（纯前端虚拟节点） | — |
 | `QG_QwenPromptOptimizer` | pip：`llama-cpp-python>=0.3.48`（JamePeng fork）+ `diskcache`；`models/LLM` 下自备 Qwen Image 2.1 GGUF（T2I / I2I / mmproj 三个文件） | 缺依赖时节点能拖出来、能连线，运行报「llama-cpp-python 不可用」；节点上会自动出现「点击自动安装」按钮（需能访问 GitHub），装完要完全重启 ComfyUI |
 
 ### 容错到什么程度
@@ -1146,7 +1127,6 @@ ComfyUI-QG-Multipack/
 ├── face_rectify_node.py        QG_FaceRectify
 ├── qg_id_photo_prompt.py       QG_IDPhotoPrompt（13 维提示词，选项表是 JS/词表单一真源）
 ├── photo_sheet_mixed_node.py   QG_PhotoSheetMixed（13 版式数据表 + 统一排版引擎）
-├── note_node.py                QG_Note（只提供节点定义，内容全在前端）
 ├── web/                        前端脚本（逐个说明见「前端增强」一章）
 ├── workflows/                  两份可直接加载的证件照示例工作流 json
 ├── models/id_photo/            内置证件照服装/发型素材（7 分类 200 张 + 提示词 JSON）

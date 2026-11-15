@@ -14,7 +14,9 @@ __pycache__/
 # BiRefNet 补丁副本的兜底目录（首选目录在 models/RMBG/_qg_patched）
 .patched/
 
-# 模型与字体缓存（体积大，按需下载）
+# 大模型缓存（体积大，按需下载）。注意 *.onnx 不在此列：
+# models/background_removal/ 里两个 modnet 权重是随包分发的 Apache-2.0 资产，
+# 已在 .gitattributes 标成 binary；其余大模型仍按需下载、不进仓库。
 *.safetensors
 *.ckpt
 *.pt

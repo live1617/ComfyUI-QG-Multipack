@@ -1,0 +1,590 @@
+{
+  "id": "id_photo_offline",
+  "revision": 0,
+  "last_node_id": 11,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        60,
+        60
+      ],
+      "size": [
+        330,
+        320
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "① 选一张正面半身人像",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "QG_IDPhotoParams",
+      "pos": [
+        60,
+        430
+      ],
+      "size": [
+        330,
+        300
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "params",
+          "type": "QG_IDPHOTO_PARAMS",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "dpi",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "② 尺寸 / 底色 / DPI",
+      "properties": {
+        "Node name for S&R": "QG_IDPhotoParams"
+      },
+      "widgets_values": [
+        "1inch",
+        "blue",
+        "",
+        "darkblue",
+        "pure",
+        300,
+        3.5,
+        4.9
+      ]
+    },
+    {
+      "id": 3,
+      "type": "QG_PortraitMatte",
+      "pos": [
+        440,
+        60
+      ],
+      "size": [
+        340,
+        400
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "params",
+          "type": "QG_IDPHOTO_PARAMS",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "hd",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "③ 抠图换底（随包 hivision_modnet）",
+      "properties": {
+        "Node name for S&R": "QG_PortraitMatte"
+      },
+      "widgets_values": [
+        "hivision_modnet",
+        true,
+        false,
+        false,
+        0.667,
+        0.06,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 4,
+      "type": "QG_IDPhotoCrop",
+      "pos": [
+        830,
+        60
+      ],
+      "size": [
+        340,
+        400
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "filled",
+          "type": "BOOLEAN",
+          "links": []
+        },
+        {
+          "name": "dpi",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "guide",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "④ 按眼线比例裁标准证件照",
+      "properties": {
+        "Node name for S&R": "QG_IDPhotoCrop"
+      },
+      "widgets_values": [
+        "1inch",
+        0.0,
+        0.0,
+        "cm",
+        300,
+        0.42,
+        0.38,
+        true,
+        "center",
+        2000,
+        "border",
+        "#364254"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "QG_PhotoSheet",
+      "pos": [
+        1220,
+        60
+      ],
+      "size": [
+        340,
+        400
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sheet",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "columns",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "rows",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "total",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "⑤ 自定义相纸排版",
+      "properties": {
+        "Node name for S&R": "QG_PhotoSheet"
+      },
+      "widgets_values": [
+        12.7,
+        8.9,
+        350,
+        0.2,
+        0.2,
+        0,
+        false,
+        true,
+        "",
+        "<default>",
+        0,
+        true,
+        0
+      ]
+    },
+    {
+      "id": 6,
+      "type": "QG_Watermark",
+      "pos": [
+        1610,
+        60
+      ],
+      "size": [
+        340,
+        300
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "title": "⑥ 中文斜向水印（随包 OFL 字体）",
+      "properties": {
+        "Node name for S&R": "QG_Watermark"
+      },
+      "widgets_values": [
+        "仅供办理业务使用",
+        "NotoSansSC-VF.ttf",
+        48,
+        "#808080",
+        50,
+        150,
+        45
+      ]
+    },
+    {
+      "id": 7,
+      "type": "PreviewImage",
+      "pos": [
+        2000,
+        60
+      ],
+      "size": [
+        330,
+        360
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "⑦ 成品预览",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "QG_MaskTopExpand",
+      "pos": [
+        830,
+        520
+      ],
+      "size": [
+        340,
+        260
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "title": "⑧ 头顶遮罩扩展（留发量空间）",
+      "properties": {
+        "Node name for S&R": "QG_MaskTopExpand"
+      },
+      "widgets_values": [
+        50,
+        100,
+        "top_center",
+        0,
+        true
+      ]
+    },
+    {
+      "id": 9,
+      "type": "MaskToImage",
+      "pos": [
+        1220,
+        520
+      ],
+      "size": [
+        280,
+        120
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "title": "⑨ 遮罩转图",
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 10,
+      "type": "PreviewImage",
+      "pos": [
+        1550,
+        520
+      ],
+      "size": [
+        330,
+        360
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "⑩ 扩展后遮罩预览",
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "MarkdownNote",
+      "pos": [
+        440,
+        920
+      ],
+      "size": [
+        620,
+        300
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "使用说明",
+      "properties": {},
+      "widgets_values": [
+        "## 离线证件照 · 开箱即用（v2.14.0 起）\n\n这份工作流只依赖**随包资源**，断网也能跑完：\n\n- ③ 抠图模型 `hivision_modnet` 已随包（插件 `models/background_removal/`，Apache-2.0），无需下载。\n- ⑥ 中文水印字体 `NotoSansSC-VF.ttf` 已随包（SIL OFL 1.1），不依赖系统字体。\n- 唯一可能联网的是人脸对齐模型 `face_landmarker.task`：首次用自动下载，失败自动回退 OpenCV Haar，节点照常出图。**把 ③ 的 `face_alignment` 关掉即可完全离线**（用固定比例裁剪）。\n\n步骤：\n\n1. ① 选一张正面半身人像（`example.png` 是占位名，需替换）。\n2. ② 选尺寸 / 底色 / DPI → ③ 抠图换底 → ④ 裁剪 → ⑤ 排版 → ⑥ 中文斜向水印 → ⑦ 预览。\n3. 另一路：③ 的 `mask` → ⑧ 头顶遮罩扩展（给外补画板留发量空间）→ ⑨ 转图 → ⑩ 预览。\n\n想换更高精度的 `rmbg-1.4` / `birefnet-v1-lite`，在 ③ 里切换即可，这两个授权不同、不随包，首次使用按需下载（约 176 / 224 MB）。"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "QG_IDPHOTO_PARAMS"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      3,
+      1,
+      8,
+      0,
+      "MASK"
+    ],
+    [
+      8,
+      8,
+      0,
+      9,
+      0,
+      "MASK"
+    ],
+    [
+      9,
+      9,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

@@ -95,6 +95,15 @@ def main():
     tmp_root = tempfile.mkdtemp(prefix="qgmp_root_")
     MM._models_root = lambda: tmp_root
 
+    # 插件现在随包带了 models/background_removal 的两个 modnet 权重，
+    # discover() 会命中它们，把 [2] 的「本地无 → 触发下载」分支遮蔽掉。
+    # 下载测试必须把搜索目录也限定到临时根，才是真正隔离的环境。
+    orig_folders = MM._source_folders
+    MM._source_folders = lambda: [
+        os.path.join(tmp_root, "background_removal"),
+        os.path.join(tmp_root, "matting"),
+    ]
+
     try:
         print("\n[1] available_choices 含 4 个预置名")
         choices = MM.available_choices()
@@ -230,6 +239,7 @@ def main():
             shutil.rmtree(out8_dir, ignore_errors=True)
     finally:
         MM._models_root = orig_root
+        MM._source_folders = orig_folders
         shutil.rmtree(tmp_root, ignore_errors=True)
 
     print("\n" + ("全部通过" if FAILED == 0 else "有 %d 项失败" % FAILED))

@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-"""节点级回归：把静态契约覆盖的 21 个节点全部纳入检查。
+"""节点级回归：把静态契约覆盖的 20 个节点全部纳入检查。
 
 注意：PhotoKit 并入的 6 个节点在 __init__.py 里按名字动态导入，另有
 独立几何测试 tests/test_photokit_geometry.py，未纳入本文件静态契约；
-所以这里的 21 不等于包内节点总数 27。
+所以这里的 20 不等于包内节点总数 26。
 
 从两层把这个盲区堵上，且**不依赖 GPL 参考源码、真实模型、网络或 API Key**：
 
-1. 静态契约层：AST 读 20 个后端模块（其中 qwen_text_encode 注册 2 个 key，
-   所以共 21 个后端注册 key），逐个核对注册 key、RETURN_TYPES / RETURN_NAMES
-   长度、FUNCTION 指向的方法确实存在、CATEGORY。全部 21 个后端节点一个不漏。
+1. 静态契约层：AST 读 19 个后端模块（其中 qwen_text_encode 注册 2 个 key，
+   所以共 20 个后端注册 key），逐个核对注册 key、RETURN_TYPES / RETURN_NAMES
+   长度、FUNCTION 指向的方法确实存在、CATEGORY。全部 20 个后端节点一个不漏。
 2. 运行时层：对此前完全没有节点级测试的模块真导入、真调用纯逻辑与安全分支
    （含只测过 helpers 的 QG_MaskByName、只测过 runtime 的
    QG_QwenPromptOptimizer），用绝对断言而不是「看代码觉得对」。
@@ -101,11 +101,11 @@ shell = types.ModuleType("qg_pack_p2")
 shell.__path__ = [PKG]
 sys.modules["qg_pack_p2"] = shell
 
-# 20 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
-# 所以共 21 个后端注册 key）。
+# 19 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
+# 所以共 20 个后端注册 key）。
 MODULES = [
     "translate_node", "prompt_translate_node",
-    "image_to_prompt_node", "prompt_optimize_node", "note_node",
+    "image_to_prompt_node", "prompt_optimize_node",
     "mask_by_name_node", "face_rectify_node",
     "birefnet_node", "qwen_text_encode_node",
     "qwen_prompt_optimizer_node", "qg_dual_color_picker", "qg_color_convert",
@@ -117,7 +117,7 @@ MODULES = [
 # 此前审查点名「完全没有节点级测试」的模块，本文件对它们做真调用。
 RUNTIME_MODULES = [
     "face_rectify_node", "birefnet_node",
-    "prompt_translate_node", "note_node", "translate_node", "mask_by_name_node",
+    "prompt_translate_node", "translate_node", "mask_by_name_node",
     "qwen_prompt_optimizer_node", "qwen_text_encode_node",
     "qg_dual_color_picker", "qg_color_convert", "qg_custom_color",
     "qg_dominant_color", "face_align_node", "qg_id_photo_outfit",
@@ -152,9 +152,9 @@ def safe(name, fn, *args, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# 一、静态契约：20 个后端模块 / 21 个注册 key
+# 一、静态契约：19 个后端模块 / 20 个注册 key
 # ---------------------------------------------------------------------------
-print("== 一、静态契约（20 个模块 / 21 个 key） ==")
+print("== 一、静态契约（19 个模块 / 20 个 key） ==")
 
 all_keys = []
 class_info = {}
@@ -177,7 +177,7 @@ for module_name in MODULES:
         all_keys.append(key)
         class_info[key] = (module_name, path, cls, tree)
 
-check("后端注册 21 个 key", len(all_keys) == 21, "实际 %d" % len(all_keys))
+check("后端注册 20 个 key", len(all_keys) == 20, "实际 %d" % len(all_keys))
 check("后端 key 无重复", len(all_keys) == len(set(all_keys)))
 check("后端 key 全部 QG_ 前缀",
       all(k.startswith("QG_") for k in all_keys))
@@ -234,7 +234,7 @@ for key, (module_name, path, cls_name, tree) in sorted(class_info.items()):
           isinstance(func, str) and func in methods, str(func))
     check("%s CATEGORY=QG 工具" % key, cat == "QG 工具", str(cat))
 
-check("21 个节点全部纳入检查", len(all_keys) == 21)
+check("20 个节点全部纳入检查", len(all_keys) == 20)
 
 # ---------------------------------------------------------------------------
 # 二、运行时：此前无节点级测试的模块
@@ -341,12 +341,6 @@ if pt:
     safe("提示词翻译：IS_CHANGED 随原文变化", lambda: fp1 != fp2)
     safe("提示词翻译：IS_CHANGED 稳定",
          lambda: fp1 == pt.QGPromptTranslate.IS_CHANGED(source_text="甲"))
-
-# --- QG_Note ---------------------------------------------------------------
-nt = mod("note_node")
-if nt:
-    safe("便签：noop 返回空元组", lambda: nt.QGNote().noop() == ())
-    safe("便签：无输出端口", lambda: nt.QGNote.RETURN_TYPES == ())
 
 # --- QG_Translate ----------------------------------------------------------
 tn = mod("translate_node")

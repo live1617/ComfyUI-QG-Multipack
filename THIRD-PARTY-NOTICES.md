@@ -113,7 +113,7 @@ Most nodes in this pack align their **functional spec** with nodes from
 Goohaitools-comfyui (`QG_IDPhotoCrop`, `QG_IDPhotoOutfit`,
 `QG_MarriageCloth`, `QG_MaskTopExpand`, `QG_DualColorPicker`,
 `QG_ColorConvert`, `QG_CustomColor`, `QG_DominantColor`, `QG_FaceAlign`,
-`QG_IDPhotoPrompt`, `QG_PhotoSheetMixed`, and the `qg_note.js` front-end).
+`QG_IDPhotoPrompt`, and `QG_PhotoSheetMixed`).
 Their behaviour was studied and then re-implemented independently; each one
 also lists what was deliberately changed (see the node's module docstring
 and the README source table). No source file from that project is bundled
@@ -401,12 +401,38 @@ least 2 identical lines / effective lines of this pack's file):
 `QG_IDPhotoParams`'s size/preset table follow the parameter conventions of
 HivisionIDPhotos, the open-source ID-photo toolkit: the print-blue `#438edb`,
 red `#d93b3b`, dark-blue `#1b4b8f` palette and the 20 standard preset sizes
-are taken from its spec. The code is written independently; no HivisionIDPhotos
-source or model file is bundled with this pack.
+are taken from its spec. The code is written independently; **no HivisionIDPhotos
+source code is bundled** with this pack. Two of its official release ONNX weights
+*are* redistributed (see the dedicated entry below).
 
 - Upstream: https://github.com/Zeyi-Lin/HivisionIDPhotos
 - License: Apache-2.0
 - This entry records a *functional/spec reference*, not copied code.
+
+## MODNet / HivisionIDPhotos ONNX weights (bundled, Apache-2.0)
+
+Two matting weights are redistributed **unmodified** with this pack at
+`models/background_removal/`, so `QG_PortraitMatte` works on an offline machine:
+
+| File | Size | SHA-256 | Origin |
+| --- | --- | --- | --- |
+| `modnet_photographic_portrait_matting.onnx` | 25.9 MB | `07c308cf0fc7e6e8b2065a12ed7fc07e1de8febb7dc7839d7b7f15dd66584df9` | MODNet official weights, served by the HivisionIDPhotos release |
+| `hivision_modnet.onnx` | 25.9 MB | `7e0cb9a2a841b426dd0daf1a788ec398dab059bc039041d62b15636c0783bc56` | weight trained by the HivisionIDPhotos project, same release |
+
+- Source: `https://github.com/Zeyi-Lin/HivisionIDPhotos/releases/download/pretrained-model/`
+- Licenses: the HivisionIDPhotos README states *"This repository is licensed under
+  the Apache-2.0 License"*; ZHKKKe/MODNet (origin of the first weight) ships the
+  standard Apache-2.0 LICENSE. Neither upstream README attaches a separate
+  commercial or non-commercial restriction to these two weights. Should upstream
+  publish a model-specific notice later, that notice prevails.
+- The full Apache-2.0 text is included as
+  `models/background_removal/LICENSE-APACHE-2.0.txt`; provenance, download URLs
+  and hashes are in `models/background_removal/NOTICE.md`.
+- This pack as a whole is GPL-3.0. These ONNX files are independent data assets,
+  not linked into the pack's code; their license and attribution are retained
+  separately under this entry. Apache-2.0 is GPLv3-compatible.
+- `rmbg-1.4.onnx` (BRIA AI) and `birefnet-v1-lite.onnx` (ZhengPeng7) are **not**
+  bundled: their upstream terms differ, and they remain on-demand downloads.
 
 ## dlib — shape_predictor_5_face_landmarks.dat (bundled model)
 

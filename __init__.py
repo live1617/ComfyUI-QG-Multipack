@@ -1,9 +1,6 @@
 # QG-Multipack —— 多合一插件（旧名 0-QYH-SnapLines，界面品牌为「QG 工具」）
 #   · 前端：拖动对齐参考线 + 多选排列面板（web/snaplines_v7.js）
 #   · 前端：翻译服务商设置面板（web/qg_translate.js）
-#   · 前端：画布便签/注释节点（web/qg_note.js，注册 key QG_Note）
-#   · 后端：QG 注释节点（note_node.py，只提供 /object_info 定义，不参与执行）；
-#           若同实例已装 ComfyUI-QG-tools 则后端与前端均让位，避免双份注册。
 #   · 后端：LLM 翻译节点（translate_node.py，注册 key 仍为 QG_Translate）
 #           + 服务商配置/连通测试接口（/qg_translate/*）
 #   · 后端：提示词翻译节点（prompt_translate_node.py，注册 key
@@ -46,45 +43,14 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.13.0"
+__version__ = "2.15.0"
 
 import asyncio
-import os
 import time
 
 from . import prompt_rules as _rules_lib
 from . import translate_core as _translate_core
 
-
-def _detect_qg_tools():
-    """同实例是否还装了 ComfyUI-QG-tools。
-
-    本插件是从它 1:1 搬去 QG_Note 与 snaplines 的源，两插件同时启用会双份
-    注册同名节点 / 同名扩展。这里在后端也探测一次，命中就让位（不注册
-    QG_Note 后端定义），让 qg-tools 成为单一真源。判定依据是 custom_nodes 下
-    存在含 qg-tools 特征文件的兄弟目录（nodes/qg_note.py 或 web/snaplines 或
-    web/note），不依赖加载顺序，也不修改 qg-tools 任何文件。
-    """
-    try:
-        here = os.path.dirname(os.path.abspath(__file__))
-        custom_nodes = os.path.dirname(here)
-        for name in os.listdir(custom_nodes):
-            d = os.path.join(custom_nodes, name)
-            if not os.path.isdir(d) or os.path.abspath(d) == os.path.abspath(here):
-                continue
-            markers = (
-                os.path.join(d, "nodes", "qg_note.py"),
-                os.path.join(d, "web", "snaplines"),
-                os.path.join(d, "web", "note"),
-            )
-            if any(os.path.exists(m) for m in markers):
-                return True
-    except Exception:
-        return False
-    return False
-
-
-_QG_TOOLS_PRESENT = _detect_qg_tools()
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
@@ -145,25 +111,6 @@ except Exception:
     traceback.print_exc()
     print("[QG-Multipack] 提示词优化节点导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
-
-# QG 注释：纯展示便签，只有节点定义、没有计算，单独 try/except。
-# 若同实例已装 ComfyUI-QG-tools（它也有同名 QG_Note 节点，1:1 搬自本插件），
-# 后端让位：不注册 QG_Note 定义，避免 /object_info 里出现两份同名节点。
-if _QG_TOOLS_PRESENT:
-    print("[QG-Multipack] 检测到 ComfyUI-QG-tools 已加载，QG_Note 节点后端定义让位，"
-          "由 qg-tools 提供单一真源。")
-else:
-    try:
-        from . import note_node as _note
-
-        NODE_CLASS_MAPPINGS.update(_note.NODE_CLASS_MAPPINGS)
-        NODE_DISPLAY_NAME_MAPPINGS.update(_note.NODE_DISPLAY_NAME_MAPPINGS)
-    except Exception:
-        import traceback
-
-        traceback.print_exc()
-        print("[QG-Multipack] QG 注释节点导入失败（上面的 traceback 是原因），"
-              "其余节点不受影响。")
 
 # 文字取蒙版：单独 try/except，导入失败（如 torch 异常）不拖垮整个包
 try:
