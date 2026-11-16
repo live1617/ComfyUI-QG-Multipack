@@ -14,6 +14,7 @@
 import importlib
 import importlib.util
 import json
+import os
 import pathlib
 import sys
 import types
@@ -22,7 +23,24 @@ from PIL import Image, ImageDraw, ImageFont
 
 HERE = pathlib.Path(__file__).resolve().parent
 PKG = HERE.parent
-WORKSPACE = PKG.parent
+
+
+def find_packer():
+    """读打包脚本源码。它住在工作区、不在插件包里，布局随机器而变：
+    先认环境变量 QG_WORKSPACE，再试插件父目录（插件直接放工作区时的布局），
+    最后试本机工作区绝对路径。都找不到返回 None，调用处改判 SKIP。"""
+    cands = []
+    env = os.environ.get("QG_WORKSPACE")
+    if env:
+        cands.append(pathlib.Path(env))
+    cands.append(PKG.parent)
+    cands.append(pathlib.Path("D:/WorkBuddy/ComfyUI-QG-Multipack"))
+    for base in cands:
+        path = base / "打包备份.py"
+        if path.is_file():
+            return path.read_text(encoding="utf-8")
+    return None
+
 
 ok = 0
 fail = 0
@@ -171,7 +189,7 @@ check("渲染：Mixed 中文有真实字形（墨迹 > 位图 3 倍）",
 check("渲染：两路字体渲染结果一致", ink(ps_face) == ink(mx_face))
 
 # --------------------------------------------------------------- 打包规则
-pack_script = (WORKSPACE / "打包备份.py").read_text(encoding="utf-8")
+pack_script = find_packer()
 gitignore = (PKG / ".gitignore").read_text(encoding="utf-8")
 gitattributes = (PKG / ".gitattributes").read_text(encoding="utf-8")
 
@@ -182,27 +200,40 @@ check("打包：.gitignore 无裸 fonts/ 规则（否则会误伤 assets/fonts�
       "fonts/" not in rule_lines, rule_lines)
 check("打包：.gitignore 不排除 assets/fonts/",
       not any("assets/fonts/" in line for line in rule_lines))
-# 文本断言之外，再让 git 自己判一次，避免规则写法与实际行为不一致
+# 文本断言之外，再让 git 自己判一次，避免规则写法与实际行为不一致。
+# 前提是「这里就是仓库根」：运行时目录是插件的一份部署副本，往往被外层
+# ComfyUI 仓库的 /custom_nodes/ 规则整片忽略，那种情况下的结果没有参考价值。
 try:
     import subprocess
-    ignored = subprocess.run(
-        ["git", "check-ignore", "--quiet", "assets/fonts/NotoSansSC-VF.ttf"],
-        cwd=str(PKG), capture_output=True)
-    check("打包：git check-ignore 实测不忽略随包字体",
-          ignored.returncode == 1, "returncode=%s" % ignored.returncode)
+    top = subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                         cwd=str(PKG), capture_output=True, text=True)
+    toplevel = pathlib.Path(top.stdout.strip()) if top.stdout.strip() else None
+    if top.returncode != 0 or toplevel is None:
+        print("SKIP git 不把插件目录当仓库，跳过 check-ignore 实测")
+    elif toplevel.resolve() != PKG.resolve():
+        print("SKIP 仓库根是 %s（不是插件目录），跳过 check-ignore 实测" % toplevel)
+    else:
+        ignored = subprocess.run(
+            ["git", "check-ignore", "--quiet", "assets/fonts/NotoSansSC-VF.ttf"],
+            cwd=str(PKG), capture_output=True)
+        check("打包：git check-ignore 实测不忽略随包字体",
+              ignored.returncode == 1, "returncode=%s" % ignored.returncode)
 except OSError:
     print("SKIP git 不可用，跳过 check-ignore 实测")
 check("打包：.gitattributes 把 ttf 当二进制", "*.ttf binary" in gitattributes)
-check("打包：EXCLUDE_TOP_DIRS 含 fonts",
-      'EXCLUDE_TOP_DIRS = {"fonts"}' in pack_script)
-check("打包：collect_files 使用 EXCLUDE_TOP_DIRS",
-      "rel.parts[0] in EXCLUDE_TOP_DIRS" in pack_script)
-check("打包：make_zip 校验 fonts/ 不得入包",
-      'TOP_DIR + "/fonts/"' in pack_script)
-check("打包：REQUIRED 含随包字体",
-      '"assets/fonts/NotoSansSC-VF.ttf"' in pack_script)
-check("打包：REQUIRED 含许可全文",
-      '"assets/fonts/OFL.txt"' in pack_script)
+if pack_script is None:
+    print("SKIP 找不到 打包备份.py（打包脚本不在插件包内），跳过打包脚本相关 5 项")
+else:
+    check("打包：EXCLUDE_TOP_DIRS 含 fonts",
+          'EXCLUDE_TOP_DIRS = {"fonts"}' in pack_script)
+    check("打包：collect_files 使用 EXCLUDE_TOP_DIRS",
+          "rel.parts[0] in EXCLUDE_TOP_DIRS" in pack_script)
+    check("打包：make_zip 校验 fonts/ 不得入包",
+          'TOP_DIR + "/fonts/"' in pack_script)
+    check("打包：REQUIRED 含随包字体",
+          '"assets/fonts/NotoSansSC-VF.ttf"' in pack_script)
+    check("打包：REQUIRED 含许可全文",
+          '"assets/fonts/OFL.txt"' in pack_script)
 
 # --------------------------------------------------------------- 文档与词表
 readme = (PKG / "README.md").read_text(encoding="utf-8")

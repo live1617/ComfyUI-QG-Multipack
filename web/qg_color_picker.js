@@ -15,7 +15,9 @@
  */
 import { app } from "/scripts/app.js";
 
-const STYLE_ID = "qg-color-picker-style";
+// 本包私有标识一律带 qgmp / QG.Multipack 前缀：qg-tools 里也有一个同源取色器扩展，
+// 两者曾在同一页面上注册完全相同的名字，出问题时极难分辨是谁的钩子。别改回去。
+const STYLE_ID = "qgmp-color-picker-style";
 const FALLBACK = "#364254";
 
 /** 需要图形化的颜色控件：节点注册 key → 控件名列表。要复用到别的节点，在这里加一行即可。 */
@@ -645,8 +647,8 @@ function hookNode(node) {
     // 删掉节点 / 清空画布 / 扩展热重载时不收起来，就会留一个指向已失效
     // widget 的孤儿面板，越攒越多。onRemoved 是 LiteGraph 的删除钩子，
     // 这里只挂一次并保留原实现的返回值。
-    if (!node.__qgColorRemovedHooked) {
-        node.__qgColorRemovedHooked = true;
+    if (!node.__qgmpColorRemovedHooked) {
+        node.__qgmpColorRemovedHooked = true;
         const originalRemoved = node.onRemoved;
         node.onRemoved = function () {
             const r = originalRemoved?.apply(this, arguments);
@@ -657,10 +659,10 @@ function hookNode(node) {
 
     // 控件还没建出来时（个别版本 nodeCreated 早于 widget 创建）下一轮再补
     if (node.widgets.length === 0) {
-        if (!node.__qgColorRetry) {
-            node.__qgColorRetry = true;
+        if (!node.__qgmpColorRetry) {
+            node.__qgmpColorRetry = true;
             setTimeout(() => {
-                node.__qgColorRetry = false;
+                node.__qgmpColorRetry = false;
                 hookNode(node);
             }, 0);
         }
@@ -669,8 +671,8 @@ function hookNode(node) {
 
     for (const name of names) {
         const widget = node.widgets.find((w) => w?.name === name);
-        if (!widget || widget.__qgColor) continue;
-        widget.__qgColor = true;
+        if (!widget || widget.__qgmpColor) continue;
+        widget.__qgmpColor = true;
 
         // 证件照「自定义色值」空串先按当前背景色种一个值，再统一成标准形态
         seedFromCombo(node, widget);
@@ -702,14 +704,14 @@ function hookNode(node) {
 }
 
 app.registerExtension({
-    name: "QG.ColorPicker",
+    name: "QG.Multipack.ColorPicker",
 
     /**
      * 三路兜底，因为"什么时候挂上"在不同加载顺序下不一样：
      *   1. beforeRegisterNodeDef —— 正常启动时扩展先加载，patch 节点原型；
      *   2. nodeCreated —— 节点创建后的统一回调，覆盖粘贴/复制/子图里的节点；
      *   3. setup —— 扩展比节点定义晚加载时，把画布上已有的节点补上。
-     * 三者都用 __qgColor 去重，重复调用无副作用。
+     * 三者都用 __qgmpColor 去重，重复调用无副作用。
      */
     beforeRegisterNodeDef(nodeType, nodeData) {
         if (!COLOR_WIDGETS[nodeData?.name]) return;

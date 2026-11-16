@@ -16,6 +16,7 @@ MODNet 官方仓库 LICENSE 也是标准 Apache-2.0，两边都没有模型专�
 """
 import hashlib
 import importlib.util
+import os
 import pathlib
 import re
 import sys
@@ -24,8 +25,24 @@ import types
 
 HERE = pathlib.Path(__file__).resolve().parent
 PKG = HERE.parent
-WORKSPACE = PKG.parent
 BUNDLED = PKG / "models" / "background_removal"
+
+
+def find_packer():
+    """读打包脚本源码。它住在工作区、不在插件包里，布局随机器而变：
+    先认环境变量 QG_WORKSPACE，再试插件父目录，最后试本机工作区绝对路径。
+    都找不到返回 None，调用处改判 SKIP。"""
+    cands = []
+    env = os.environ.get("QG_WORKSPACE")
+    if env:
+        cands.append(pathlib.Path(env))
+    cands.append(PKG.parent)
+    cands.append(pathlib.Path("D:/WorkBuddy/ComfyUI-QG-Multipack"))
+    for base in cands:
+        path = base / "打包备份.py"
+        if path.is_file():
+            return path.read_text(encoding="utf-8")
+    return None
 
 NAMES = (
     "modnet_photographic_portrait_matting.onnx",
@@ -136,12 +153,15 @@ def main():
     check(".gitattributes 标 onnx 为 binary",
           "*.onnx binary" in (PKG / ".gitattributes").read_text(encoding="utf-8"))
 
-    packer = (WORKSPACE / "打包备份.py").read_text(encoding="utf-8")
-    for rel in ("models/background_removal/" + NAMES[0],
-                "models/background_removal/" + NAMES[1],
-                "models/background_removal/LICENSE-APACHE-2.0.txt",
-                "models/background_removal/NOTICE.md"):
-        check(f"打包 REQUIRED 含 {rel.split('/')[-1]}", f'"{rel}"' in packer)
+    packer = find_packer()
+    if packer is None:
+        print("SKIP 找不到 打包备份.py（打包脚本不在插件包内），跳过 REQUIRED 校验 4 项")
+    else:
+        for rel in ("models/background_removal/" + NAMES[0],
+                    "models/background_removal/" + NAMES[1],
+                    "models/background_removal/LICENSE-APACHE-2.0.txt",
+                    "models/background_removal/NOTICE.md"):
+            check(f"打包 REQUIRED 含 {rel.split('/')[-1]}", f'"{rel}"' in packer)
 
     check("授权不同的两个大模型没有混进包",
           not (BUNDLED / "rmbg-1.4.onnx").exists()
