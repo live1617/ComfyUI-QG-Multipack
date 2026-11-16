@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.15.11** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.16.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -36,6 +36,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_MaskTopExpand` | QG 头顶遮罩扩展 | 从遮罩最高点向上补矩形，给外补画板留发量空间（可羽化、可合并原遮罩） | `mask` |
 | `QG_IDPhotoPrompt` | QG 证件照简易提示词 | 13 维下拉 + seed 组合成一句中文人像提示词（随机可复现，值英文编号、中文仅显示） | `prompt` |
 | `QG_PhotoSheetMixed` | QG 证件照混合排版（A5） | 13 种 A5 固定版式，含双尺寸混排 / 旋转 / 竖版 / 零间距，批量逐帧出图 | `sheet` / `layout_name` / `total` |
+| `QG_ImageComposite` | QG 图像合成 | 把源图按坐标贴到目标画布，遮罩控制混合；负坐标与四边越界按裁切处理，批次自动补齐 | `image` |
 
 ## 示例工作流
 
@@ -51,9 +52,9 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 ## 各节点使用说明
 
-下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后两个是纯画布辅助节点，跟数据流无关，放末尾。
+下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后三个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 26 个节点（含并入的证件照 / 排版 / 拼版 / 水印 6 个节点）。
+本节覆盖全部 27 个节点（含并入的证件照 / 排版 / 拼版 / 水印 6 个节点）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -126,8 +127,9 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_MaskTopExpand` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-头顶遮罩」（GPL-3.0）；矩形计算自写，并修掉上游丢原遮罩、只处理单帧两个问题，未复制上游代码 | 0% |
 | `QG_IDPhotoPrompt` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照简易提示词」（GPL-3.0）；13 维选项中文词条取自公开规格（属数据），组装 / 随机 / 值映射自写，未复制上游代码；修掉上游 `random.seed()` 污染进程全局随机与「简单背景」重复叠加 | 0% |
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
+| `QG_ImageComposite` | ✅ 原创（参照规格） | 功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0）；坐标求交、遮罩混合、批次补齐自写，并修掉上游负坐标走负索引贴错位置、只处理右下越界、目标帧被截短三个问题，未复制上游源码 | 0% |
 
-一句话概括：**26 个节点里 25 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**27 个节点里 26 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -756,6 +758,45 @@ QG_IDPhotoCrop ──mask──▶ QG_MaskTopExpand ──mask──▶ 外补�
 - 另外顶行偶尔一个游离像素会把矩形整体拽偏，所以中心取**顶行横坐标的中位数**而不是平均值。
 
 
+### `QG_ImageComposite` 图像合成
+
+> **来源：原创（参照规格）**。功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0），代码自行实现。
+
+**作用**：把源图（角标、水印、裁下来的头像、另一张尺寸不同的图）放到目标画布的指定位置，遮罩决定哪些像素替换底图。**目标图的尺寸就是输出尺寸**，输出永远是目标大小的完整画面——不是把两张图拼成一张更大的图。
+
+```
+目标画布 ──▶ destination ┐
+源图     ──▶ source      ├──▶ QG_ImageComposite ──▶ 合成图（= 目标尺寸）
+遮罩（可选）▶ mask       ┘
+```
+
+**坐标怎么算**：
+
+```
+最终位置 = (x + offset_x, y + offset_y)
+```
+
+原点在画布左上角，x 向右、y 向下，单位是像素。`offset_x` / `offset_y` 只是叠加量：单独用时留 0；接上游动态值（逐帧坐标、滑块输出）时接到偏移上，x/y 保持基线不动，清掉偏移就回原位。
+
+| 控件 | 说明 |
+| --- | --- |
+| `x` / `y` | 源图左上角落在画布上的位置，**可为负**（负值 = 从左侧 / 上侧裁掉一部分再贴） |
+| `offset_x` / `offset_y` | 叠加到 x / y 上，便于被上游驱动 |
+| `mask` 遮罩（可选） | 与源图同尺寸：白 = 用源图、黑 = 留底图、灰 = 按比例混合。尺寸不符自动缩放到源图尺寸；单帧遮罩覆盖所有帧。不接 = 源图直接覆盖 |
+
+**和上游的三处不同**（都是实测会出错的地方）：
+
+- **负坐标不再贴错位置。** 上游用 `d[y:y+h, x:x+w]` 直接切片，x/y 为负时 Python 走负索引，本该从左侧裁掉的像素反而被贴到画布右边。这里先求「源图矩形 ∩ 画布矩形」的交集再取对应区域，四边越界统一按裁切处理。
+- **目标帧不会被悄悄丢掉。** 上游把目标强行截到源图帧数，目标帧更多时后面的帧直接消失。这里取 `max(目标帧数, 源帧数)`，短的一边重复最后一帧补齐。
+- **完全落在画布外会留一行日志**，而不是静默输出一张和底图一模一样的图（输出结果本身仍是对的）。
+
+**典型用法**：
+
+- 证件照加斜向水印：`QG_IDPhotoCrop` → `destination`，`QG_Watermark` → `source`，`x`/`y` 留 0，不接遮罩；
+- 抠好的头像贴到纯色底：纯色图 → `destination`，前景图 → `source`，遮罩 → `mask`，用 x/y 微调位置；
+- 批量贴同一张角标：`source` 只有一帧时自动广播到目标每一帧。
+
+
 ### 百度通道的几个硬限制（踩过才知道）
 
 | 限制 | 现状 | 处理方式 |
@@ -1075,6 +1116,7 @@ ComfyUI-QG-Multipack/
 ├── face_rectify_node.py        QG_FaceRectify
 ├── qg_id_photo_prompt.py       QG_IDPhotoPrompt（13 维提示词，选项表是 JS/词表单一真源）
 ├── photo_sheet_mixed_node.py   QG_PhotoSheetMixed（13 版式数据表 + 统一排版引擎）
+├── qg_image_composite.py       QG_ImageComposite（源图按坐标贴到目标画布，可选遮罩混合）
 ├── web/                        前端脚本（逐个说明见「前端增强」一章）
 ├── workflows/                  两份可直接加载的证件照示例工作流 json
 ├── models/id_photo/            内置证件照服装/发型素材（7 分类 200 张 + 提示词 JSON）
@@ -1099,7 +1141,7 @@ ComfyUI-QG-Multipack/
 | `locales/zh/nodeDefs.json` | ComfyUI 官方前端 i18n | ComfyUI 前端自动加载 | 节点 key → `display_name` / `description` / `inputs`({name,tooltip}) / `outputs`（**输出索引字符串** "0"/"1"…） |
 | `translations/zh-CN/Nodes/`、`Menus/ComfyUI-QG-Multipack.json` | ComfyUI-Global-Translation（原 AIGODLIKE 系） | 汉化插件按需加载 | 节点 key → `title` / `description` / `inputs` / `widgets` / `outputs`（**槽名/控件参数名**）；Menus 是全局下拉值映射 |
 
-- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 26 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
+- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 27 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
 - **规范约定**：`widgets` 键用源码里的真实参数名，不用界面显示名；**不写恒等翻译**（键==值的条目无意义，还会污染插件的「已翻译文本」判定）；`ui` 字段用于翻译节点内嵌 DOM 面板的英文原文——本包面板文案本身就是中文，暂不需要 `ui` 词条。分类也不用 `Categories` 词表（本包 category 已是「QG 工具」）。
 - 新增/改名节点、增删控件或输出槽时，两套词表都要同步；`tests/test_i18n_standard.py` 会校验节点数、需汉化项覆盖、无恒等翻译、description 齐全。
 

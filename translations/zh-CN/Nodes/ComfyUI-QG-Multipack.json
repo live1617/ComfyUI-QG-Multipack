@@ -706,5 +706,30 @@
       "layout_name": "版式名",
       "total": "张数"
     }
+  },
+  "QG_ImageComposite": {
+    "title": "QG 图像合成",
+    "description": "把源图按坐标贴到目标画布上，可用遮罩控制混合。X/Y 是源图左上角在画布上的像素位置，X偏移/Y偏移叠加在它们之上；负坐标与四边越界都按裁切处理，超出画布的部分直接丢掉。批次帧数取两边较大值，短的一边重复最后一帧。遮罩尺寸不符时自动缩放到源图尺寸，单帧遮罩覆盖所有帧。功能规格参照 ComfyUI_essentials 的 ImageComposite+（GPL-3.0）独立实现，未复制上游源码。",
+    "inputs": {
+      "destination": "目标",
+      "source": "源",
+      "x": "X",
+      "y": "Y",
+      "offset_x": "X偏移",
+      "offset_y": "Y偏移",
+      "mask": "遮罩"
+    },
+    "widgets": {
+      "destination": "目标",
+      "source": "源",
+      "x": "X",
+      "y": "Y",
+      "offset_x": "X偏移",
+      "offset_y": "Y偏移",
+      "mask": "遮罩"
+    },
+    "outputs": {
+      "image": "图像"
+    }
   }
 }

@@ -101,8 +101,8 @@ shell = types.ModuleType("qg_pack_p2")
 shell.__path__ = [PKG]
 sys.modules["qg_pack_p2"] = shell
 
-# 19 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
-# 所以共 20 个后端注册 key）。
+# 20 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
+# 所以共 21 个后端注册 key）。
 MODULES = [
     "translate_node", "prompt_translate_node",
     "image_to_prompt_node", "prompt_optimize_node",
@@ -111,7 +111,7 @@ MODULES = [
     "qwen_prompt_optimizer_node", "qg_dual_color_picker", "qg_color_convert",
     "qg_custom_color", "qg_dominant_color", "face_align_node",
     "qg_id_photo_outfit", "qg_marriage_cloth", "mask_top_expand_node",
-    "qg_id_photo_prompt", "photo_sheet_mixed_node",
+    "qg_id_photo_prompt", "photo_sheet_mixed_node", "qg_image_composite",
 ]
 
 # 此前审查点名「完全没有节点级测试」的模块，本文件对它们做真调用。
@@ -152,9 +152,9 @@ def safe(name, fn, *args, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# 一、静态契约：19 个后端模块 / 20 个注册 key
+# 一、静态契约：20 个后端模块 / 21 个注册 key
 # ---------------------------------------------------------------------------
-print("== 一、静态契约（19 个模块 / 20 个 key） ==")
+print("== 一、静态契约（20 个模块 / 21 个 key） ==")
 
 all_keys = []
 class_info = {}
@@ -177,7 +177,7 @@ for module_name in MODULES:
         all_keys.append(key)
         class_info[key] = (module_name, path, cls, tree)
 
-check("后端注册 20 个 key", len(all_keys) == 20, "实际 %d" % len(all_keys))
+check("后端注册 21 个 key", len(all_keys) == 21, "实际 %d" % len(all_keys))
 check("后端 key 无重复", len(all_keys) == len(set(all_keys)))
 check("后端 key 全部 QG_ 前缀",
       all(k.startswith("QG_") for k in all_keys))
@@ -234,7 +234,7 @@ for key, (module_name, path, cls_name, tree) in sorted(class_info.items()):
           isinstance(func, str) and func in methods, str(func))
     check("%s CATEGORY=QG 工具" % key, cat == "QG 工具", str(cat))
 
-check("20 个节点全部纳入检查", len(all_keys) == 20)
+check("21 个节点全部纳入检查", len(all_keys) == 21)
 
 # ---------------------------------------------------------------------------
 # 二、运行时：此前无节点级测试的模块
