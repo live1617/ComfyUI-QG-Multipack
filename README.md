@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.15.10** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.15.11** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -247,6 +247,8 @@ Load Image ──▶ image   QG_FaceRectify   image ──▶ 后面的抠图 / 
 
 **注意**：
 
+- **推理精度固定 fp32**（v2.15.11 起）。曾经在 CUDA 上自动用 fp16，BiRefNet 的中间特征会溢出 fp16 上限，整张遮罩 100% 变 NaN，而 `(nan*255).astype(uint8)` 把 NaN 悄悄变成 0 —— 结果就是**输出一整块纯色背景、看不到人**，日志里只有一行不起眼的 RuntimeWarning。fp32 下同一张图前景占比 48%，完全正常。若显存实在紧张，可设环境变量 `QG_BIRefNET_FP16=1` 再试：节点检测到 NaN 会自动降级回 fp32 重跑一次，本次进程内该模型之后不再尝试 fp16。
+- 遮罩几乎全空时会打印一条提示（前景占比 < 0.1%），告诉你输出会是整块背景色，并建议换 `general` / `portrait` 模型或把灵敏度调小。
 - 首次跑某个模型会**自动下载权重**，6.7 GB 那个仓库里挑一个也是几百 MB 起，网络差先设 `HF_ENDPOINT=https://hf-mirror.com`。
 - 同一个模型重复运行不会重新加载；**切换模型会先卸掉上一个**，显存不会叠加。
 - CPU 上极慢（`BiRefNet_lite-matting` 单张 84 秒，`BiRefNet-portrait` 近 5 分钟）。速度实测表见[这里的「速度提醒」](#速度提醒)。

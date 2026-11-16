@@ -105,6 +105,23 @@ ZHENG_PENG7_ALIAS = {
 _IMAGENET_MEAN = (0.485, 0.456, 0.406)
 _IMAGENET_STD = (0.229, 0.224, 0.225)
 
+# 推理精度：**默认 fp32**。
+#
+# 曾经在 CUDA 上无条件 model.half()「省显存提速度」，结果在这台 GTX 1650 上
+# 整张 1024x1024 的输出 100% 是 NaN（logits 全 nan，sigmoid 还是 nan），
+# (nan * 255).astype(uint8) 全变 0 → 遮罩全空 → 前景透明度全 0 → 只剩纯色
+# 背景（截图里那块纯红就是这么来的）。fp32 下同一张图前景占比 48%，完全正常。
+#
+# 这是权重本身的数值范围问题（BiRefNet 中间特征在 fp16 里溢出 65504），
+# 不是某张卡的算子 bug，所以不再默认 half。显存实在不够的用户可以设
+# QG_BIRefNET_FP16=1 再试：节点会检测 NaN 并自动降级回 fp32 重跑一次，
+# 之后本次进程内该模型不再尝试 fp16。
+_FP16_ENV = "QG_BIRefNET_FP16"
+
+
+def _want_half():
+    return os.environ.get(_FP16_ENV, "").strip().lower() in ("1", "true", "yes", "on")
+
 
 def _cache_dir(model_name=None):
     """与 ComfyUI-RMBG 共享的模型缓存目录（下载落这里）。
@@ -369,20 +386,26 @@ class _Runner:
     def __init__(self):
         self.model = None
         self.loaded_name = None
+        self.half = False
+        # 本次进程内 fp16 出过 NaN 的模型，后续一律 fp32，免得每帧白跑一遍
+        self.fp16_broken = set()
 
     def _load(self, model_name):
-        if self.loaded_name == model_name and self.model is not None:
+        half = _want_half() and model_name not in self.fp16_broken
+        if (self.loaded_name == model_name and self.model is not None
+                and self.half == half):
             return
         self.unload()
         files = _resolve_files(model_name)
-        model = self._load_birefnet(files)
+        model = self._load_birefnet(files, half)
 
         self.model = model
         self.loaded_name = model_name
+        self.half = half
         print(f"[QG-BiRefNet] 已加载 {model_name}（权重：{files['weights']}）"
-              f"到 {mm.get_torch_device()}")
+              f"到 {mm.get_torch_device()}，精度 {'fp16' if half else 'fp32'}")
 
-    def _load_birefnet(self, files):
+    def _load_birefnet(self, files, half):
         # 上游 birefnet.py 用相对导入引用配置、window-attention 的 mask 加法在
         # fp16 下 dtype 不一致。补丁写进副本，源文件保持只读（见 _patched_script）。
         script_path = _patched_script(files["script"])
@@ -402,18 +425,31 @@ class _Runner:
         model.eval()
 
         device = mm.get_torch_device()
-        if device.type == "cuda":
-            # CUDA 上 fp16 省显存提速度；CPU 上 half 又慢又容易踩算子坑
+        # fp32 才是正确结果；fp16 只在用户显式开启时尝试（见文件顶部 _want_half）
+        if device.type == "cuda" and half:
             model.half()
-            torch.set_float32_matmul_precision("high")
+        torch.set_float32_matmul_precision("high")
         return model.to(device)
 
     def predict(self, image_pil, model_name, process_res):
         """跑一次推理，返回与原图同尺寸的 0..255 前景概率 PIL L 模式遮罩。"""
         self._load(model_name)
-        return self._predict_birefnet(image_pil, process_res)
+        mask, nan_ratio = self._predict_birefnet(image_pil, process_res)
+        if nan_ratio > 0.01 and self.half:
+            print("[QG-BiRefNet] fp16 推理出现 %.1f%% NaN，输出会变成纯背景色；"
+                  "已自动降级到 fp32 重跑（本次进程内该模型不再尝试 fp16）。"
+                  % (nan_ratio * 100.0))
+            self.fp16_broken.add(model_name)
+            self.unload()
+            self._load(model_name)
+            mask, nan_ratio = self._predict_birefnet(image_pil, process_res)
+        if nan_ratio > 0.01:
+            print("[QG-BiRefNet] 警告：fp32 下仍有 %.1f%% 像素为 NaN，已按背景处理。"
+                  % (nan_ratio * 100.0))
+        return mask
 
     def _predict_birefnet(self, image_pil, process_res):
+        """返回 (遮罩 PIL, NaN 像素占比)。"""
         device = mm.get_torch_device()
 
         w, h = image_pil.size
@@ -423,15 +459,22 @@ class _Runner:
         std = np.array(_IMAGENET_STD, dtype=np.float32)
         arr = (arr - mean) / std
         tensor = torch.from_numpy(arr).permute(2, 0, 1).unsqueeze(0)
-        if device.type == "cuda":
+        if device.type == "cuda" and self.half:
             tensor = tensor.half()
         tensor = tensor.to(device)
 
         with torch.no_grad():
             preds = self.model(tensor)
             prob = preds[-1].float().sigmoid()[0, 0].cpu().numpy()
+
+        # NaN 必须先清掉再 cast：np.clip 不会拦 NaN，astype(uint8) 会把它变成 0，
+        # 于是整张遮罩静默变成"全背景"，用户只看到一块纯色。
+        nan_ratio = float(np.isnan(prob).mean())
+        if nan_ratio:
+            prob = np.nan_to_num(prob, nan=0.0, posinf=1.0, neginf=0.0)
+        prob = np.clip(prob, 0.0, 1.0)
         prob_img = Image.fromarray((prob * 255.0 + 0.5).clip(0, 255).astype(np.uint8), "L")
-        return prob_img.resize((w, h), Image.BICUBIC)
+        return prob_img.resize((w, h), Image.BICUBIC), nan_ratio
 
     def unload(self):
         if self.model is not None:
@@ -647,6 +690,15 @@ class QGBiRefNet:
                     mask = _offset_mask(mask, mask_offset)
                 if invert_output:
                     mask = Image.fromarray(255 - np.asarray(mask), "L")
+
+                # 遮罩整片为 0 时输出就是一块纯背景色，看图的人只会以为节点坏了。
+                # 这里留一条日志把「模型没判出主体」这件事说清楚（换模型 / 调灵敏度）。
+                if not invert_output:
+                    keep = float((np.asarray(mask) > 127).mean())
+                    if keep < 0.001:
+                        print("[QG-BiRefNet] 提示：遮罩几乎全空（前景占比 %.3f%%），"
+                              "输出会是整块背景色。可换 general / portrait 模型，"
+                              "或把灵敏度调小一点再试。" % (keep * 100.0))
 
                 if refine_foreground:
                     fg_rgb = _refine_foreground(rgb, mask)

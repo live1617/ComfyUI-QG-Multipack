@@ -188,6 +188,9 @@ def matte_alpha(rgb, model_path):
         pred = (pred - lo) / (hi - lo) if hi - lo > 1e-6 else np.zeros_like(pred)
     # modnet 直接输出 alpha，不做后处理
 
+    # NaN 必须先清掉再 cast：np.clip 不拦 NaN，astype(uint8) 会把它变成 0，
+    # 结果就是「遮罩静默全空 → 只剩纯色背景」（BiRefNet 那个 fp16 NaN 事故同源）。
+    pred = np.nan_to_num(pred, nan=0.0, posinf=1.0, neginf=0.0)
     pred = np.clip(pred, 0.0, 1.0)
     mask = Image.fromarray((pred * 255.0 + 0.5).astype(np.uint8), mode="L")
     mask = mask.resize((rgb.shape[1], rgb.shape[0]), Image.BILINEAR)
