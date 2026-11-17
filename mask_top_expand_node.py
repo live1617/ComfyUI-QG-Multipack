@@ -119,34 +119,29 @@ class QGMaskTopExpand:
         return {
             "required": {
                 "mask": ("MASK", {
-                    "tooltip": "Mask whose top edge anchors the new rectangle.",
+                    "tooltip": "以这张遮罩的顶边为基准，往外扩出新矩形。",
                 }),
                 "expand_x": ("INT", {
                     "default": DEFAULT_EXPAND_X, "min": 0, "max": 4096, "step": 1,
-                    "tooltip": "Half width in pixels: the rectangle spans "
-                               "center-x ± expand_x.",
+                    "tooltip": "半宽（像素）：矩形横向范围是中心点 ± 这个值。",
                 }),
                 "expand_y": ("INT", {
                     "default": DEFAULT_EXPAND_Y, "min": 0, "max": 4096, "step": 1,
-                    "tooltip": "How far above the highest mask pixel the "
-                               "rectangle reaches.",
+                    "tooltip": "矩形在遮罩最高像素之上再往上走多少。",
                 }),
                 "center_mode": (list(CENTER_MODES), {
                     "default": "top_center",
-                    "tooltip": "top_center: median x of the top row. "
-                               "bbox_center: middle of the mask box. "
-                               "mask_center: centroid.",
+                    "tooltip": "top_center：顶边那一行的中位横坐标。bbox_center：遮罩外框的"
+                               "中心。mask_center：质心。",
                 }),
                 "feather": ("INT", {
                     "default": 0, "min": 0, "max": 256, "step": 1,
-                    "tooltip": "Gaussian blur radius on the rectangle edge. "
-                               "0 keeps a hard edge.",
+                    "tooltip": "矩形边缘的高斯模糊半径。0 是硬边。",
                 }),
                 "keep_original": ("BOOLEAN", {
                     "default": True,
                     "label_on": "Merge", "label_off": "Replace",
-                    "tooltip": "Merge: union with the input mask. "
-                               "Replace: output only the new rectangle.",
+                    "tooltip": "合并：与输入遮罩取并集。替换：只输出新矩形。",
                 }),
             },
         }

@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.16.2** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.17.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -23,10 +23,14 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_IDPhotoParams` | QG 证件照参数 | 尺寸/底色/渲染/dpi 集中一路传出，供抠图与排版节点复用 | `params` / `宽` / `高` / `DPI` / `主色` |
 | `QG_PortraitMatte` | QG 人像抠图换背景 | 抠图→换底→美颜→按证件照构图裁好（可选 mediapipe 人脸对齐） | `成品图` / `蒙版` / `高清图` |
 | `QG_IDPhotoCrop` | QG 证件照裁剪 | 把已有照片裁成指定尺寸、眼睛摆平（不抠图） | `裁剪后图像` / `扩展遮罩` / `是否扩图` / `DPI` / `定位示意图` |
+| `QG_IDPhotoSizePicker` | QG 证件照尺寸选择 | 一处选好尺寸，`preset` 直接连裁剪 / 参数节点的预设下拉，另出像素宽高与 DPI | `预设` / `宽` / `高` / `DPI` |
 | `QG_PhotoSheet` | QG 照片排版 | 铺满相纸、画裁切角标、放不下自动缩 | `排版图像` / `列数` / `行数` / `总张数` |
+| `QG_MultiPhotoSheet` | QG 多人证件照拼版 | 多人的照片各占一格拼到同一张纸，统一格居中裁切、列数指定行数自动 | `拼版图像` / `行数` / `列数` / `人数` |
+| `QG_ImageBatchBuilder` | QG 图像批次组合 | 输入槽动态增减（默认 1 个，接一个加一个，上限 24），接几张合几张成 batch，省掉串一堆「合并图像」节点 | `image` / `count` |
 | `QG_IDCardSheet` | QG 身份证拼版 | 拍歪的卡片找四角扶正、加圆角投影、按厘米铺到纸上 | `IMAGE` |
 | `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（默认用随包 OFL 中文字体，中文不再成方框） | `IMAGE` |
 | `QG_DualColorPicker` | QG 双色取色器 | 一次输出模式 + 主色 + 辅色三路字符串，颜色控件点开弹出色板 | `模式` / `主色` / `辅色` |
+| `QG_ColorPicker` | QG 取色器 | 点色块选一个颜色，按 HEX / RGB / HSL 输出颜色值与字符串，可作工作流颜色起点 | `颜色控件` / `字符串` |
 | `QG_ColorConvert` | QG 颜色转换 | 把 hex / RGB / HSL / 0-1 浮点等写法互转成目标格式，另出一路规范化 hex | `字符串` / `颜色控件` |
 | `QG_CustomColor` | QG 自定义颜色 | 按宽高生成纯色 / 上下渐变 / 中心渐变底图，可加灰度颗粒 | `图像` |
 | `QG_DominantColor` | QG 主色提取 | 统计图像出现最多的颜色（降采样 + 滤黑边白边 + 容差分桶），输出大写 `#RRGGBB` | `主色 HEX` |
@@ -52,9 +56,9 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 ## 各节点使用说明
 
-下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后三个是纯画布辅助节点，跟数据流无关，放末尾。
+下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后四个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 27 个节点（含并入的证件照 / 排版 / 拼版 / 水印 6 个节点）。
+本节覆盖全部 31 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -115,9 +119,12 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_PortraitMatte` | ✅ 原创 | 美白 LUT 与参数划分参考 HivisionIDPhotos（Apache-2.0） | 0% |
 | `QG_IDPhotoCrop` | ✅ 原创 | 裁剪几何对齐孤海工具箱口径（自实现） | 1% |
 | `QG_PhotoSheet` | ✅ 原创 | 排版几何自实现 | 0% |
+| `QG_MultiPhotoSheet` | ✅ 原创 | 多人各占一格的拼版几何自实现（纯整数规划），与「一张照片复制多份」的排版节点正交 | 0% |
+| `QG_ImageBatchBuilder` | ✅ 原创 | 多输入槽汇总成 batch 的收集/对齐逻辑自实现，独立于核心 `ImageBatch` | 0% |
 | `QG_IDCardSheet` | ⚠️ GPL 参考后重写 | Goohaitools「身份证自动扶正拼版」（GPL-3.0），三处核心算法已替换 | 未逐项统计（结构/命名沿用） |
 | `QG_Watermark` | ✅ 原创 | 斜向水印自实现 | 0% |
 | `QG_DualColorPicker` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 取色器（双）」（GPL-3.0）；代码自写，前端复用本包 `qg_color_picker.js`，未复制上游源码 | 0% |
+| `QG_ColorPicker` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 取色器」（GPL-3.0）；代码自写，前端复用本包 `qg_color_picker.js`，未复制上游源码 | 0% |
 | `QG_ColorConvert` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 颜色转换」（GPL-3.0）；解析 / 转换代码自写，未复制上游源码 | 0% |
 | `QG_CustomColor` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 自定义颜色」（GPL-3.0）；渲染用 numpy 向量化重写（上游逐像素画点），未复制上游源码 | 0% |
 | `QG_DominantColor` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-主色提取 (多版本兼容)」（GPL-3.0）；统计用 numpy 向量化重写（上游 Python 逐像素循环），未复制上游源码 | 0% |
@@ -129,7 +136,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
 | `QG_ImageComposite` | ✅ 原创（参照规格） | 功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0）；坐标求交、遮罩混合、批次补齐自写，并修掉上游负坐标走负索引贴错位置、只处理右下越界、目标帧被截短三个问题，未复制上游源码 | 0% |
 
-一句话概括：**27 个节点里 26 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**31 个节点里 30 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -512,6 +519,23 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 普通 RGB 图两种模式结果完全一样。`alpha_mode` 是**可选输入**，老工作流没这个键也能照常执行（按 `fill` 处理）。整批只要有一帧是 RGBA 且选了 `keep`，全部帧统一升成四通道（RGB 帧补不透明 alpha），避免 `torch.stack` 因通道数不一致失败。
 
 
+### `QG_IDPhotoSizePicker` 证件照尺寸选择
+
+> **来源：原创**。预设表与裁剪节点同源（`_id_photo_helpers.PRESETS`），未复制第三方代码。
+
+**作用**：一处选好尺寸，`preset` 一路喂给「证件照裁剪」「证件照参数」等节点的预设下拉，另出换算好的像素宽高与 DPI 给排版 / 生成节点。改尺寸只改这一个节点。
+
+**控件**：`preset`（20 项，与裁剪节点同一份表）/ `dpi` / `custom_width` / `custom_height` / `unit`（厘米 / 像素，仅 `custom` 生效）。
+
+**输出**：`预设` / `宽` / `高` / `DPI`。
+
+**为什么第 1 路能连下拉**：这里有个绕不过去的坑 —— 输出槽写 `"STRING"` 连不上，写 `"COMBO"` **照样连不上**。后端 `validate_node_input` 拿到的输入类型是下拉的**原始选项列表**，只有输出类型是「与下游逐项相同的数组」才放行；前端再把槽类型对齐成 `"COMBO"`，两侧才对得上。所以第 1 槽写的是 `PRESET_ORDER` 本身，前端由 `web/qg_id_photo_size_picker.js` 负责对齐（改 `nodeData` 有冻结风险，用 `try/catch` 兜住）。
+
+**尺寸怎么算**：与裁剪节点共用 `_id_photo_helpers.output_pixels`，同一个预设两边算出的像素逐个相同；按像素给的预设（358×441 这类）自带 dpi，会覆盖控件里的值。
+
+**一个限制**：选 `custom` 时这根线只传 `custom` 这个字符串，具体宽高仍要在下游节点各填一次 —— 一根线传不了五个数字。
+
+
 ### `QG_PhotoSheet` 照片排版
 
 > **来源：原创**。排版几何自实现。
@@ -521,6 +545,53 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 **控件**：`paper_w/h`（厘米）、`dpi`、`margin`、`spacing`、`border`（描边像素）、`cut_marks`、`auto_orient`、`caption`、`font`、`font_size`、`auto_fit`、`photo_dpi`（**务必接上游 DPI**，否则 600dpi 像素按 350dpi 解释会被放大）。
 
 **输出**：`排版图像` / `列数` / `行数` / `总张数`。`auto_fit` 关且放不下时 `cols=rows=0`，输出一张空纸不报错。
+
+**常用尺寸预设**：节点上有一个「常用尺寸」下拉（不写进工作流存档的辅助控件），列出冲印常用纸型 5 寸 / 6 寸 / 7 寸 / 8 寸 / A5 / A4，选中即一次填好 `paper_w` / `paper_h` / `dpi`（冲印纸型 350dpi、A 系列 300dpi）；手动改了纸宽 / 纸高 / DPI 后下拉自动回到「自定义尺寸」。
+
+### `QG_MultiPhotoSheet` 多人证件照拼版
+
+> **来源：原创**。多人拼版几何自实现，纯整数规划，与「一张照片复制多份」的排版节点正交。
+
+**作用**：好几个人的证件照拼到同一张纸上打印——**每人各占一格**，而不是把同一张照片复制满纸。主环境现成的 `ImageGridComposite2x2/3x3` 要求固定 4/9 个独立输入且尺寸一致、`MTB_SaveImageGrid` 无边距控制且是保存节点，都不适合证件照打印；本节点直接从 batch 取人，列数一定、行数自动。
+
+**接线**：把每个人的证件照合成一个 batch 接到 `image`（每人一帧）——推荐用「QG 图像批次组合」：每个 LoadImage 接一个槽即可，不用自己串 ImageBatch。同一人要多张就多放几帧，按帧顺序逐格排。
+
+**控件**：
+
+| 控件 | 默认 | 说明 |
+| --- | --- | --- |
+| `paper_w` / `paper_h` | 21.0 / 29.7 | 纸张宽高，厘米（A4） |
+| `dpi` | 300 | 打印分辨率，厘米 × dpi 定像素 |
+| `cols` | 3 | 每行几人；行数 = ⌈人数 / 列数⌉ 自动，实际列数不超过人数 |
+| `margin_cm` / `spacing_cm` | 0.5 / 0.3 | 页边距与人与人间距，厘米 |
+| `fit_to_paper` | 开 | 人太多放不下时整体等比缩小（格子与间距一起缩）；关闭则明确报错 |
+| `bg_color` / `border_px` / `border_color` | 白 / 0 / 黑 | 纸张底色、每格描边（画在格内）、描边色 |
+
+**常用尺寸预设**：节点上的「常用尺寸」下拉（不写进存档的辅助控件）列出办公纸型 A4 / A5 / B5 / 信纸 / A4 横向，选中即一次填好 `paper_w` / `paper_h` / `dpi`（均 300dpi）；手动改这三个值后下拉自动回到「自定义尺寸」。`bg_color` 与 `border_color` 已接入本包通用调色盘——点控件弹色板（预设色 / 输入 HEX / 系统取色器），也可手填色值。
+
+**统一格规则**：所有格子同尺寸，宽高比取**首帧照片**的比例，居中裁切填进格子，不拉伸人脸。所以 batch 里第一张照片的宽高比决定整版格子形状——建议先把所有人的照片裁成同一规格（用「QG 证件照裁剪」）再拼。最后一行不满时居中，不留一侧大空档。
+
+**输出**：`拼版图像`（一张纸）/ `行数` / `列数` / `人数`（实际拼进去的帧数）。
+
+
+### `QG_ImageBatchBuilder` 图像批次组合
+
+> **来源：原创**。多输入槽收集与尺寸对齐逻辑自实现，不依赖核心 `ImageBatch`。
+
+**作用**：一个节点把多张照片合成 batch，专治「6 张图要串 5 个 ImageBatch」的繁琐。输入槽**动态增减**：节点刚拖出来只显示 1 个槽，给最后一个槽接上图就自动在后面加一个空槽（「接一个加一槽」），最多 24 个；断开末尾连线会收起多余空槽。节点高度会跟着实际槽数自适应——新建时收紧到内容高度，接线加槽时自动增高；从工作流加载的节点则保留你拉过的尺寸，不会被改回默认。
+
+**怎么接线**：每个 LoadImage 的输出接一个槽，从上往下依次接；槽是按编号顺序拼的，不是按连线顺序。每个槽既能接单张，也能接一个 batch（整批按顺序展开），所以「6 个单帧」和「1 个 6 帧 batch」结果一样。输出直接接「QG 多人证件照拼版」的 `image`。后端 24 个槽全可选，只接 1 张也能跑；一张都不接会在运行时明确报错。
+
+**控件说明**：唯一控件是 `resize_mode`：
+
+| 值 | 说明 |
+| --- | --- |
+| `first`（默认） | 尺寸不一致时以第 1 张为准双三次缩放对齐，通道数也对齐（RGB/RGBA 互转），与核心 `ImageBatch` 行为一致 |
+| `error` | 尺寸不同直接报错，适合规格不一时早点发现、避免悄悄缩放变形 |
+
+**输出**：`image`（合成后的单个 batch）/ `count`（实际张数）。张数输出可接下游做分支判断。
+
+**槽位不够怎么办**：24 个（自动加到上限）对应 A4 证件照 3 列 × 8 行的常见上限；更多张建议先把图片放到 `input` 的某个文件夹，用能读整批的节点导入，或分两批拼两张纸。
 
 
 ### `QG_IDCardSheet` 身份证拼版
@@ -566,6 +637,30 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 后端把颜色统一成小写 `#rrggbb`：`#rgb` 自动展开、无 `#` 前缀可吃、8 位带透明度取前 6 位、`(r, g, b)` 元组也能转；非法值回退默认色，不会把脏字符串透传给下游。
 
 **输出怎么接**：`primary_color` / `secondary_color` 两路 `STRING`，`mode` 一路是下拉类型（值为英文字符串，可直连「QG 自定义颜色」等任何下拉输入）。本节点只负责「给颜色」，不生成图像；要出纯色 / 渐变图请用下游节点按 `mode` 自行合成。
+
+### `QG_ColorPicker` 取色器
+
+> **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海 取色器」（GPL-3.0），代码自行编写，未复制上游源码。
+
+**作用**：工作流的颜色起点。拖出来点色块选色，按模式直接输出颜色值和字符串，不需要上游先喂一个色值进来。
+
+**与「QG 颜色转换」的区别**：颜色转换是中间节点，吃各种写法的色值字符串做格式互转；本节点是源头节点，自带图形化色块，直接选。
+
+**控件说明**：
+
+| 控件 | 默认 | 说明 |
+| --- | --- | --- |
+| `color`（颜色） | `#213d50` | 点整块色条打开色板（预设 24 色 / 手填 HEX / 系统取色器），也可直接手填带 `#` 的 3/6 位十六进制；非法值回退 `#213d50` |
+| `mode`（模式） | `HEX` | `HEX` 大写十六进制 / `RGB` 整数 / `HSL` 百分比；值保持英文原文，存档与 API 不变 |
+
+**输出怎么接**：
+
+| 输出 | 内容 | 接到哪里 |
+| --- | --- | --- |
+| `color_control`（颜色控件） | 小写 `#rrggbb`，3 位输入保持 3 位 | 本包任意颜色控件：右键目标控件「转换为输入」再连 |
+| `string`（字符串） | `HEX` → `#RRGGBB`；`RGB` → `r, g, b`；`HSL` → `h, s%, l%`（逗号后均带一个空格） | 提示词、文件名等文本输入 |
+
+> **与孤海的 socket 差异**：孤海第 1 路输出是它自有的 `GHCOLOR` 类型，只能接孤海系节点；本包无自定义 socket，两路都用 `STRING`，因此**不能接孤海的 `GHCOLOR` 输入**，但能接本包所有文本 / 颜色输入。字符串值与孤海逐字节一致。
 
 ### `QG_ColorConvert` 颜色转换
 
@@ -923,10 +1018,12 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 | 文件 | 作用 |
 | --- | --- |
-| `web/qg_color_picker.js` | 把字符串颜色字段变成色块 + 弹出色板（`QG_BiRefNet.background_color` 用胶囊样式；`QG_DualColorPicker` 的 `primary_color` / `secondary_color` 与 `QG_CustomColor` 的 `color1` / `color2` 用整块色块样式） |
+| `web/qg_color_picker.js` | 把字符串颜色字段变成色块 + 弹出色板（`QG_BiRefNet.background_color` 用胶囊样式；`QG_DualColorPicker` 的 `primary_color` / `secondary_color`、`QG_CustomColor` 的 `color1` / `color2`、`QG_ColorPicker` 的 `color` 用整块色条样式） |
 | `web/qg_custom_color.js` | 「QG 自定义颜色」模式下拉的中文显示（值仍为英文，与双色取色器同一套） |
 | `web/qg_dual_color_picker.js` | 「QG 双色取色器」模式下拉的中文显示（值仍为英文）；把 `mode` 输出槽类型对齐成 `COMBO`，使它可直接连下游下拉输入 |
+| `web/qg_id_photo_size_picker.js` | 「QG 证件照尺寸选择」把 `preset` 输出槽类型对齐成 `COMBO`，使它可直接连裁剪 / 参数节点的预设下拉（改 `nodeData` 用 `try/catch` 兜住冻结）；中文标签复用 `qg_photokit_zh.js` 的同一份预设文案 |
 | `web/qg_color_convert.js` | 「QG 颜色转换」格式下拉的中文显示（值保持 `#HEX` / `HEX` / `RGB` / `HSL` 原文） |
+| `qg_color_picker.py` | QG_ColorPicker（点色块选色，按 HEX / RGB / HSL 输出颜色值与字符串） |
 | `web/qg_face_align.js` | 「QG 面部对齐」填充模式下拉的中文显示（值仍为英文 `custom_color` / `border_color`） |
 | `web/qg_id_photo_outfit.js` | 「QG 证件照服装发型」的模板选择面板（网格缩略图 / 搜索 / 点选写回提示词） |
 | `web/qg_marriage_cloth.js` | 「QG 结婚登记照服装」的画廊面板（预览框 / 缩略图网格 / 点选写回序号与文件名） |
@@ -1117,6 +1214,10 @@ ComfyUI-QG-Multipack/
 ├── qg_id_photo_prompt.py       QG_IDPhotoPrompt（13 维提示词，选项表是 JS/词表单一真源）
 ├── photo_sheet_mixed_node.py   QG_PhotoSheetMixed（13 版式数据表 + 统一排版引擎）
 ├── qg_image_composite.py       QG_ImageComposite（源图按坐标贴到目标画布，可选遮罩混合）
+├── qg_id_photo_size_picker.py  QG_IDPhotoSizePicker（尺寸选择，preset 可连裁剪/参数节点的下拉）
+├── qg_color_picker.py          QG_ColorPicker（点色块选色，按 HEX/RGB/HSL 输出颜色值与字符串）
+├── qg_multi_photo_sheet.py     QG_MultiPhotoSheet（多人各占一格拼到同一张纸，统一格居中裁切）
+├── qg_image_batch_builder.py   QG_ImageBatchBuilder（动态槽：默认 1 个接一个加一个，上限 24，成 IMAGE batch）
 ├── web/                        前端脚本（逐个说明见「前端增强」一章）
 ├── workflows/                  两份可直接加载的证件照示例工作流 json
 ├── models/id_photo/            内置证件照服装/发型素材（7 分类 200 张 + 提示词 JSON）
@@ -1141,7 +1242,7 @@ ComfyUI-QG-Multipack/
 | `locales/zh/nodeDefs.json` | ComfyUI 官方前端 i18n | ComfyUI 前端自动加载 | 节点 key → `display_name` / `description` / `inputs`({name,tooltip}) / `outputs`（**输出索引字符串** "0"/"1"…） |
 | `translations/zh-CN/Nodes/`、`Menus/ComfyUI-QG-Multipack.json` | ComfyUI-Global-Translation（原 AIGODLIKE 系） | 汉化插件按需加载 | 节点 key → `title` / `description` / `inputs` / `widgets` / `outputs`（**槽名/控件参数名**）；Menus 是全局下拉值映射 |
 
-- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 27 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
+- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 31 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
 - **规范约定**：`widgets` 键用源码里的真实参数名，不用界面显示名；**不写恒等翻译**（键==值的条目无意义，还会污染插件的「已翻译文本」判定）；`ui` 字段用于翻译节点内嵌 DOM 面板的英文原文——本包面板文案本身就是中文，暂不需要 `ui` 词条。分类也不用 `Categories` 词表（本包 category 已是「QG 工具」）。
 - 新增/改名节点、增删控件或输出槽时，两套词表都要同步；`tests/test_i18n_standard.py` 会校验节点数、需汉化项覆盖、无恒等翻译、description 齐全。
 

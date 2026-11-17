@@ -267,27 +267,25 @@ class QGMarriageCloth:
                 "image_index": ("INT", {
                     "default": 1, "min": 0, "max": 999, "step": 1,
                     "display": "number",
-                    "tooltip": "1..N picks a photo in scan order, 0 outputs a "
-                               "plain colour plate. N is shown in the node panel.",
+                    "tooltip": "1..N 按扫描顺序取一张照片，0 输出纯色板。上限 N 显示在节点面板上。",
                 }),
                 "resize_mode": (list(RESIZE_MODES), {
                     "default": "fit_pad",
-                    "tooltip": "fit_pad: keep aspect ratio, pad the rest. "
-                               "stretch: fill the frame (may distort). "
-                               "original: no resize at all.",
+                    "tooltip": "fit_pad：保持比例，其余补边。stretch：拉满画框（可能变形）。ori"
+                               "ginal：完全不缩放。",
                 }),
                 "target_width": ("INT", {
                     "default": TARGET_W_DEFAULT, "min": 64, "max": 8192, "step": 8,
-                    "tooltip": "Output width in pixels (ignored by 'original').",
+                    "tooltip": "输出宽度（像素，original 模式忽略）。",
                 }),
                 "target_height": ("INT", {
                     "default": TARGET_H_DEFAULT, "min": 64, "max": 8192, "step": 8,
-                    "tooltip": "Output height in pixels (ignored by 'original').",
+                    "tooltip": "输出高度（像素，original 模式忽略）。",
                 }),
                 "pad_color": ("STRING", {
                     "default": FLAT_COLOR_DEFAULT,
-                    "tooltip": "Colour for the plain plate and for fit_pad "
-                               "borders. Takes #RRGGBB, #ABC or a colour name.",
+                    "tooltip": "纯色板和 fit_pad 补边用的颜色。支持 #RRGGBB、#ABC 或颜色名"
+                               "。",
                 }),
             },
             "hidden": {

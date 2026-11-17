@@ -153,37 +153,32 @@ class QGImageComposite:
         return {
             "required": {
                 "destination": ("IMAGE", {
-                    "tooltip": "Canvas image. Its size defines the output size.",
+                    "tooltip": "画布图像。它的尺寸决定输出尺寸。",
                 }),
                 "source": ("IMAGE", {
-                    "tooltip": "Image to paste on top of the canvas.",
+                    "tooltip": "贴到画布上的图像。",
                 }),
                 "x": ("INT", {
                     "default": 0, "min": -COORD_LIMIT, "max": COORD_LIMIT, "step": 1,
-                    "tooltip": "Left edge of the source on the canvas, in pixels. "
-                               "May be negative to crop the left side.",
+                    "tooltip": "源图左上角在画布上的横坐标（像素）。填负数就是裁掉左边。",
                 }),
                 "y": ("INT", {
                     "default": 0, "min": -COORD_LIMIT, "max": COORD_LIMIT, "step": 1,
-                    "tooltip": "Top edge of the source on the canvas, in pixels. "
-                               "May be negative to crop the top side.",
+                    "tooltip": "源图左上角在画布上的纵坐标（像素）。填负数就是裁掉上边。",
                 }),
                 "offset_x": ("INT", {
                     "default": 0, "min": -COORD_LIMIT, "max": COORD_LIMIT, "step": 1,
-                    "tooltip": "Added to x. Lets an upstream value drive the "
-                               "position without editing x itself.",
+                    "tooltip": "加到 x 上。让上游的值来调位置，不用改 x 本身。",
                 }),
                 "offset_y": ("INT", {
                     "default": 0, "min": -COORD_LIMIT, "max": COORD_LIMIT, "step": 1,
-                    "tooltip": "Added to y. Lets an upstream value drive the "
-                               "position without editing y itself.",
+                    "tooltip": "加到 y 上。让上游的值来调位置，不用改 y 本身。",
                 }),
             },
             "optional": {
                 "mask": ("MASK", {
-                    "tooltip": "Blend mask sized to the source image. White keeps "
-                               "the source, black keeps the canvas. Resized if "
-                               "the size differs; a single frame covers every frame.",
+                    "tooltip": "与源图尺寸一致的混合遮罩。白色留源图，黑色留画布。尺寸不同会缩放；单帧会应用到所"
+                               "有帧。",
                 }),
             },
         }

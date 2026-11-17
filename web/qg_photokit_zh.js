@@ -1,4 +1,4 @@
-// PhotoKit 六个节点的下拉中文 + 宽度贴合（并入 QG-Multipack）
+// PhotoKit 系列节点的下拉中文 + 宽度贴合（并入 QG-Multipack）
 // 扩展名 QG.photokit.zh；内置脚本用绝对路径 /scripts/app.js，
 // 与包内其余前端文件一致（web/ 是按原目录树挂载的，相对路径换个层级就错）。
 //
@@ -108,6 +108,15 @@ const NODES = {
         width: 320,
         widgets: {
             font: FONT_LABELS,
+        },
+    },
+    // 尺寸选择器：preset 与裁剪节点共用同一份文案，只多一个单位下拉。
+    // 选 custom 时还要填宽高，所以留 300 px 放得下"（3.5 x 4.9 厘米）"这类长标签。
+    QG_IDPhotoSizePicker: {
+        width: 300,
+        widgets: {
+            preset: ID_PHOTO_PRESETS,
+            unit: { cm: "厘米", px: "像素" },
         },
     },
 };

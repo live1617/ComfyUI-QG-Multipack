@@ -85,7 +85,8 @@ class QGTranslate:
                     {
                         "default": "",
                         "tooltip": (
-                            "已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。"
+                            "服务商接口地址，已移到系统设置，一般不用填。"
+                            "老工作流里如果还留着值，会优先生效。"
                         ),
                     },
                 ),
@@ -94,7 +95,8 @@ class QGTranslate:
                     {
                         "default": "",
                         "tooltip": (
-                            "已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。"
+                            "翻译用哪个模型，已移到系统设置，一般不用填。"
+                            "老工作流里如果还留着值，会优先生效。"
                         ),
                     },
                 ),
@@ -121,7 +123,7 @@ class QGTranslate:
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
-    OUTPUT_TOOLTIPS = ("The translated text.",)
+    OUTPUT_TOOLTIPS = ("译好的文本。",)
     FUNCTION = "execute"
 
     @classmethod

@@ -42,7 +42,7 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.16.2"
+__version__ = "2.17.0"
 
 import asyncio
 import time
@@ -351,6 +351,61 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 图像合成导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 证件照尺寸选择：qg_id_photo_size_picker.py（注册 key QG_IDPhotoSizePicker）
+try:
+    from . import qg_id_photo_size_picker as _id_photo_size_picker
+
+    NODE_CLASS_MAPPINGS.update(_id_photo_size_picker.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_id_photo_size_picker.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 证件照尺寸选择导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+# QG 取色器：纯字符串节点，无第三方依赖，单独 try/except。
+try:
+    from . import qg_color_picker as _color_picker
+
+    NODE_CLASS_MAPPINGS.update(_color_picker.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_color_picker.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 取色器导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 多人证件照拼版：qg_multi_photo_sheet.py（注册 key QG_MultiPhotoSheet）
+try:
+    from . import qg_multi_photo_sheet as _multi_photo_sheet
+
+    NODE_CLASS_MAPPINGS.update(_multi_photo_sheet.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_multi_photo_sheet.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 多人证件照拼版导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 图像批次组合：qg_image_batch_builder.py（注册 key QG_ImageBatchBuilder）
+try:
+    from . import qg_image_batch_builder as _image_batch_builder
+
+    NODE_CLASS_MAPPINGS.update(_image_batch_builder.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_image_batch_builder.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 图像批次组合导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 

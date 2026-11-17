@@ -1,0 +1,630 @@
+{
+  "id": "qgmp-multi-photo-sheet-demo",
+  "revision": 0,
+  "last_node_id": 30,
+  "last_link_id": 13,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        -1050,
+        -520
+      ],
+      "size": [
+        300,
+        360
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "qg_demo/person_1.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "pos": [
+        -1050,
+        -100
+      ],
+      "size": [
+        300,
+        360
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "qg_demo/person_2.png",
+        "image"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadImage",
+      "pos": [
+        -1050,
+        320
+      ],
+      "size": [
+        300,
+        360
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "qg_demo/person_3.png",
+        "image"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LoadImage",
+      "pos": [
+        -1050,
+        740
+      ],
+      "size": [
+        300,
+        360
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "qg_demo/person_4.png",
+        "image"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "LoadImage",
+      "pos": [
+        -1050,
+        1160
+      ],
+      "size": [
+        300,
+        360
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "qg_demo/person_5.png",
+        "image"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "LoadImage",
+      "pos": [
+        -1050,
+        1580
+      ],
+      "size": [
+        300,
+        360
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "qg_demo/person_6.png",
+        "image"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "QG_ImageBatchBuilder",
+      "pos": [
+        -620,
+        -320
+      ],
+      "size": [
+        330,
+        230
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_01",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "image_02",
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "image_03",
+          "type": "IMAGE",
+          "link": 3
+        },
+        {
+          "name": "image_04",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "image_05",
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "name": "image_06",
+          "type": "IMAGE",
+          "link": 6
+        },
+        {
+          "name": "image_07",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_08",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_09",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_10",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_11",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_12",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_13",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_14",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_15",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_16",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_17",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_18",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_19",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_20",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_21",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_22",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_23",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "name": "image_24",
+          "type": "IMAGE",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            11
+          ]
+        },
+        {
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "QG_ImageBatchBuilder"
+      },
+      "widgets_values": [
+        "first"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "QG_MultiPhotoSheet",
+      "pos": [
+        80,
+        -220
+      ],
+      "size": [
+        330,
+        560
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "sheet",
+          "type": "IMAGE",
+          "links": [
+            12,
+            13
+          ]
+        },
+        {
+          "name": "rows",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "cols",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "QG_MultiPhotoSheet"
+      },
+      "widgets_values": [
+        21.0,
+        29.7,
+        300,
+        3,
+        0.5,
+        0.3,
+        true,
+        "#FFFFFF",
+        0,
+        "#000000"
+      ]
+    },
+    {
+      "id": 21,
+      "type": "PreviewImage",
+      "pos": [
+        500,
+        -220
+      ],
+      "size": [
+        340,
+        400
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 22,
+      "type": "SaveImage",
+      "pos": [
+        500,
+        240
+      ],
+      "size": [
+        340,
+        260
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 13
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "QG_MultiPhotoSheet"
+      ]
+    },
+    {
+      "id": 30,
+      "type": "Note",
+      "pos": [
+        -1050,
+        -820
+      ],
+      "size": [
+        760,
+        240
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Note"
+      },
+      "widgets_values": [
+        "QG 图像批次组合 + 多人证件照拼版 · 示例工作流\n\n1) 6 张示例照在 input/qg_demo/，每个 LoadImage 接「图像批次组合」的一个槽，自动合成一个 batch，不用再串一堆「合并图像」。\n2) 24 个槽接几张合几张，空槽自动跳过；每个槽也能接一个 batch。\n3) batch 接拼版节点，cols=3：6 人自动排 2 行；纸张 A4 21×29.7cm、300dpi。\n4) 想换人：改 6 个 LoadImage 的图片；想加减人：增删 LoadImage 并接到空槽即可。\n5) 建议先把每人照片裁成同一规格；尺寸不一致时批次组合默认以第 1 张为准缩放，或把 resize_mode 改成 error 直接报错。"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      10,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      10,
+      1,
+      "IMAGE"
+    ],
+    [
+      3,
+      3,
+      0,
+      10,
+      2,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      10,
+      3,
+      "IMAGE"
+    ],
+    [
+      5,
+      5,
+      0,
+      10,
+      4,
+      "IMAGE"
+    ],
+    [
+      6,
+      6,
+      0,
+      10,
+      5,
+      "IMAGE"
+    ],
+    [
+      11,
+      10,
+      0,
+      20,
+      0,
+      "IMAGE"
+    ],
+    [
+      12,
+      20,
+      0,
+      21,
+      0,
+      "IMAGE"
+    ],
+    [
+      13,
+      20,
+      0,
+      22,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

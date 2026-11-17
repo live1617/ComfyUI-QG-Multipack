@@ -239,21 +239,20 @@ class QGIDPhotoPrompt:
                 default_value = NONE if default_value == "无" else RANDOM
             required[key] = (values, {
                 "default": default_value,
-                "tooltip": "%s. 'none' omits it, 'random' picks one with the "
-                           "seed. Values are stable ASCII keys; the Chinese "
-                           "labels are display-only." % key,
+                "tooltip": "%s：选 none 就不写这一项，选 random 按种子随机挑"
+                           "一个。值是固定的英文键，中文只是显示用的标签。" % key,
             })
         required["seed"] = ("INT", {
             "default": 0, "min": 0, "max": _SEED_MASK, "step": 1,
-            "tooltip": "Seed for the 'random' options. Same seed and same "
-                       "dropdowns always produce the same prompt.",
+            "tooltip": "选 random 时用的种子。同样的种子加同样的下拉选项，"
+                       "永远出同一句提示词。",
         })
         return {"required": required}
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("prompt",)
     FUNCTION = "generate"
-    OUTPUT_TOOLTIPS = ("The assembled Chinese portrait prompt.",)
+    OUTPUT_TOOLTIPS = ("拼好的中文人像提示词。",)
 
     def generate(self, seed=0, **kwargs):
         text = build_prompt(kwargs, seed)

@@ -201,49 +201,37 @@ class QGIDPhotoCrop:
         return {
             "required": {
                 "image": ("IMAGE", {
-                    "tooltip": "The portrait to crop. Every frame of a batch "
-                               "is processed separately.",
+                    "tooltip": "要裁的人像。批量输入逐帧处理。",
                 }),
                 "preset": (list(PRESET_ORDER), {
                     "default": "1inch",
-                    "tooltip": "Standard sizes. Picking one overrides the four "
-                               "size widgets below; 'custom' uses them. Sizes "
-                               "given in pixels carry their own dpi, because a "
-                               "358x441 ID photo is 350 dpi by definition.",
+                    "tooltip": "标准尺寸。选了预设就忽略下面四个尺寸控件；custom 才用它们。按像素给的预设"
+                               "自带 DPI —— 358×441 的电子证件照按定义就是 350 dpi。",
                 }),
                 "custom_width": ("FLOAT", {
                     "default": 0.0, "min": 0.0, "max": 4096.0, "step": 0.01,
-                    "tooltip": "Only used when preset is 'custom'. Centimetres "
-                               "by default; switch the unit for pixels.",
+                    "tooltip": "只在预设选 custom 时用。默认单位是厘米，切到像素就填像素。",
                 }),
                 "custom_height": ("FLOAT", {
                     "default": 0.0, "min": 0.0, "max": 4096.0, "step": 0.01,
-                    "tooltip": "Only used when preset is 'custom'.",
+                    "tooltip": "只在预设选 custom 时用。",
                 }),
                 "unit": (["cm", "px"], {
                     "default": "cm",
-                    "tooltip": "cm: pixels = cm / 2.54 * dpi. px: the numbers "
-                               "are pixels already.",
+                    "tooltip": "厘米：像素 = 厘米 / 2.54 × DPI。像素：填的就是像素。",
                 }),
                 "dpi": ("INT", {
                     "default": 300, "min": 72, "max": 2000, "step": 1,
-                    "tooltip": "How many pixels make an inch. 300 is the print "
-                               "standard; 600 gives a sharper file at twice "
-                               "the size.",
+                    "tooltip": "一英寸算多少像素。打印通用 300；600 出的文件更清晰，尺寸也翻倍。",
                 }),
                 "face_ratio": ("FLOAT", {
                     "default": 0.42, "min": 0.15, "max": 0.9, "step": 0.01,
-                    "tooltip": "How much of the crop's width the face outline "
-                               "takes. 0.42 is a standard ID photo; larger is "
-                               "a tighter head. The outline runs ear to ear, "
-                               "so it is wider than the cheeks - which is why "
-                               "the number looks low.",
+                    "tooltip": "人脸轮廓占裁剪宽的比例。0.42 是标准证件照，调大就更紧。轮廓是耳到耳、比脸颊"
+                               "宽，所以这个数看着偏小。",
                 }),
                 "eye_line": ("FLOAT", {
                     "default": 0.38, "min": 0.2, "max": 0.6, "step": 0.01,
-                    "tooltip": "Where the eye line sits, measured from the top "
-                               "of the crop. 0.38 leaves the usual headroom "
-                               "above the hair.",
+                    "tooltip": "眼睛连线在裁剪框里的位置（从顶边往下算的比例）。0.38 留出的头顶空间最标准。",
                 }),
                 "auto_rotate": ("BOOLEAN", {
                     "default": True,
@@ -253,52 +241,35 @@ class QGIDPhotoCrop:
                     # own description and tooltips, which go through the locale
                     # files.
                     "label_on": "摆平", "label_off": "保持倾斜",
-                    "tooltip": "Turn the picture so the eyes are level. Off "
-                               "keeps the original tilt while still cropping "
-                               "to the eye midpoint.",
+                    "tooltip": "把画面转到双眼水平。关掉就保持原来的倾斜，但仍按眼中心取景。",
                 }),
                 "face_pick": (["center", "largest"], {
                     "default": "center",
-                    "tooltip": "Which face when there are several: the one "
-                               "nearest the middle of the frame, or the "
-                               "largest one.",
+                    "tooltip": "画面里有多张脸时取哪张：离画面中心最近的，还是面积最大的。",
                 }),
                 "max_side": ("INT", {
                     "default": 2000, "min": 0, "max": 8192, "step": 64,
-                    "tooltip": "Shrink only for detection, so a big picture is "
-                               "quick and a small face is still found. The "
-                               "crop itself always comes from the full-"
-                               "resolution source. 0 disables the preview "
-                               "shrink.",
+                    "tooltip": "只在检测时缩小图片，大图更快、小脸也找得到。裁剪本身始终取全分辨率原图。填 0 "
+                               "关闭缩小。",
                 }),
                 "fill_mode": (["border", "custom"], {
                     "default": "border",
-                    "tooltip": "Where the invented pixels take their colour "
-                               "from: 'border' samples the picture's own edges "
-                               "(one colour per side, so the join follows the "
-                               "background), 'custom' uses the colour below.",
+                    "tooltip": "补出来的像素从哪儿取色：border 取画面自己的边缘（edge，每边一个颜色，"
+                               "接缝跟着背景走）；custom 用下面的颜色。",
                 }),
                 "fill_color": ("STRING", {
                     "default": "#364254",
-                    "tooltip": "Only used when fill_mode is 'custom'. Takes "
-                               "#RRGGBB, #ABC, a colour name such as white, "
-                               "128,128,128, or 0.5.",
+                    "tooltip": "只在填充方式选 custom 时用。支持 #RRGGBB、#ABC、white "
+                               "这类颜色名、128,128,128，或 0.5。",
                 }),
             },
             "optional": {
                 "alpha_mode": (["fill", "keep"], {
                     "default": "fill",
-                    "tooltip": "What to do with a transparent input (RGBA "
-                               "from a cut-out node). 'fill' flattens the "
-                               "transparency onto the chosen background and "
-                               "outputs an opaque RGB photo - the ID-photo "
-                               "default. 'keep' preserves the alpha channel "
-                               "and outputs RGBA, so transparent areas stay "
-                               "see-through. A four-channel image with no "
-                               "see-through pixels at all (a semi-transparent "
-                               "asset) is treated as opaque either way, so it "
-                               "does not come out dimmed. Ordinary RGB images "
-                               "are unaffected.",
+                    "tooltip": "输入带透明通道（transparent alpha，抠图节点出的 RGBA）时怎么办。fill 把透明压到选定的背景"
+                               "色上，输出不透的 RGB 照片，这是证件照的默认。keep 保留 alpha 通道并输出 "
+                               "RGBA，透明区还是透明的。四通道但完全没有透明像素（半透明素材）两种情况都按不"
+                               "透处理，不会被压暗。普通 RGB 图不受影响。",
                 }),
             },
         }
@@ -307,13 +278,11 @@ class QGIDPhotoCrop:
     RETURN_NAMES = ("image", "mask", "filled", "dpi", "guide")
     FUNCTION = "execute"
     OUTPUT_TOOLTIPS = (
-        "The cropped portrait at the target size. RGBA in 'keep' alpha mode "
-        "when the input was transparent, otherwise RGB.",
-        "1 where pixels had to be invented outside the source, 0 where the "
-        "source was sampled.",
-        "True when any frame needed those invented pixels.",
-        "The dpi actually used - a pixel preset overrides the widget.",
-        "The source with the face box, eye line and crop frame drawn on it.",
+        "裁成目标尺寸的人像。输入带透明时 keep 模式输出 RGBA，否则 RGB。",
+        "补出来的像素标 1，取自原图的标 0。",
+        "有任何一帧需要补像素时为真。",
+        "实际用到的 dpi —— 像素预设会覆盖控件值。",
+        "在原图上画好脸框、眼线和裁剪框的示意图。",
     )
 
     def execute(self, image, preset, custom_width, custom_height, unit, dpi,

@@ -34,6 +34,17 @@ const COLOR_WIDGETS = {
     QG_IDCardSheet: ["bg_color"],
     QG_MarriageCloth: ["pad_color"],
     QG_Watermark: ["color"],
+    QG_ColorPicker: ["color"],
+    // 多人证件照拼版：纸张底色 + 每格描边色（PANEL_TITLE 已有这两个控件名）。
+    QG_MultiPhotoSheet: ["bg_color", "border_color"],
+};
+
+/**
+ * 整块色条样式只给这些「节点 + 控件」组合用。BANNER_TEXT 是按控件名查的，
+ * 直接往里加 color 会把水印节点的 color 也变成色条，所以这里按节点精确限定。
+ */
+const BANNER_WIDGETS = {
+    QG_ColorPicker: ["color"],
 };
 
 /**
@@ -101,7 +112,12 @@ function wantsChinese() {
     return /^zh/i.test(document?.documentElement?.lang || "");
 }
 
-function bannerLabel(name) {
+function bannerLabel(node, name) {
+    // 节点级精确映射优先（如 QG_ColorPicker 的整块色条），再退回通用控件名表。
+    const nodeKey = node?.type || node?.comfyClass;
+    if (BANNER_WIDGETS[nodeKey]?.includes(name)) {
+        return wantsChinese() ? "颜色" : "Color";
+    }
     const pair = BANNER_TEXT[name];
     return pair ? (wantsChinese() ? pair.zh : pair.en) : "";
 }
@@ -290,7 +306,7 @@ function drawBannerColorWidget(ctx, node, widget, width, y, H) {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    const text = `${bannerLabel(widget.name)} (${hex.toUpperCase()})`;
+    const text = `${bannerLabel(node, widget.name)} (${hex.toUpperCase()})`;
     ctx.fillStyle = light ? "#141418" : "#ffffff";
     ctx.font = `600 12px ${FONT}`;
     ctx.textAlign = "center";
@@ -683,7 +699,9 @@ function hookNode(node) {
             widget.value = normHex(widget.value);
         }
 
-        const painter = BANNER_TEXT[widget.name] ? drawBannerColorWidget : drawColorWidget;
+        const nodeKey = node?.type || node?.comfyClass;
+        const asBanner = BANNER_WIDGETS[nodeKey]?.includes(name) || !!BANNER_TEXT[name];
+        const painter = asBanner ? drawBannerColorWidget : drawColorWidget;
         widget.draw = function (ctx, n, width, y, H) {
             painter(ctx, n, this, width, y, H);
         };

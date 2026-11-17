@@ -26,6 +26,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -251,9 +252,14 @@ def main():
           str(config.get("label_on")))
     check("label_off 是中文", config.get("label_off") == "保持倾斜",
           str(config.get("label_off")))
-    check("tooltip 仍是英文（走词表）",
+    # 契约变更（2026-11-17）：说明文字改为**源码中文**。
+    # 原因：本机装着第三方汉化插件，它会用自己的节点词表覆盖本包 locales，
+    # 那份词表只翻名字不翻 tooltip，于是帮助卡里工具说明退回英文。写进源码
+    # 就不会被任何词表覆盖，界面恒定中文。
+    check("tooltip 是中文（源码自带，不被第三方词表覆盖回英文）",
           isinstance(config.get("tooltip"), str)
-          and config["tooltip"].isascii(), str(config.get("tooltip"))[:40])
+          and bool(re.search(r"[\u4e00-\u9fff]", config["tooltip"])),
+          str(config.get("tooltip"))[:40])
 
     node_defs = json.loads(read("locales/zh/nodeDefs.json"))
     options = node_defs["QG_IDPhotoCrop"]["inputs"]["auto_rotate"]["options"]

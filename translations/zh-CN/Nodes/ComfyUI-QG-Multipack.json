@@ -731,5 +731,118 @@
     "outputs": {
       "image": "图像"
     }
+  },
+  "QG_IDPhotoSizePicker": {
+    "title": "QG 证件照尺寸选择",
+    "description": "只挑尺寸：选一个预设，preset 输出直接连证件照裁剪、证件照参数等节点的预设下拉，同时把换算好的像素宽高与实际 dpi 引出来，排版和生成节点可以直接接。尺寸换算与裁剪节点共用同一份表，同一个预设两边算出的像素一定相同；按像素给的预设（358x441 这类）自带 dpi，会覆盖控件里的值。",
+    "inputs": {
+      "preset": "预设尺寸",
+      "dpi": "DPI",
+      "custom_width": "自定义宽",
+      "custom_height": "自定义高",
+      "unit": "单位"
+    },
+    "widgets": {
+      "preset": "预设尺寸",
+      "dpi": "DPI",
+      "custom_width": "自定义宽",
+      "custom_height": "自定义高",
+      "unit": "单位"
+    },
+    "outputs": {
+      "preset": "预设",
+      "width": "宽",
+      "height": "高",
+      "dpi": "DPI"
+    }
+  },
+  "QG_ColorPicker": {
+    "title": "QG 取色器",
+    "description": "点色块选一个颜色，按模式输出颜色值与字符串，可直接当工作流的颜色起点。模式 HEX 输出大写 #RRGGBB，RGB 输出「r, g, b」，HSL 输出「h, s%, l%」（逗号后均带一个空格）。两路输出都是 STRING：颜色控件是小写色值，接本包任意颜色控件；字符串接提示词等文本输入。非法色值回退 #213d50。与「QG 颜色转换」的区别是本节点有图形化色块、直接选色，无需上游提供色值。",
+    "inputs": {
+      "color": "颜色",
+      "mode": "模式"
+    },
+    "widgets": {
+      "color": "颜色",
+      "mode": "模式"
+    },
+    "outputs": {
+      "color_control": "颜色控件",
+      "string": "字符串"
+    }
+  },
+  "QG_MultiPhotoSheet": {
+    "title": "QG 多人证件照拼版",
+    "description": "把好几个人的证件照拼到同一张纸上：每人一帧打包成 IMAGE 批次，统一格、居中裁切、按首帧比例不变形，指定列数行数自动算。同一人放多张就多放几帧。与「照片排版」不同，那边是一张照片复制多份，这里是每人各占一格。",
+    "inputs": {
+      "image": "人像批次",
+      "paper_w": "纸宽(厘米)",
+      "paper_h": "纸高(厘米)",
+      "dpi": "DPI",
+      "cols": "列数",
+      "margin_cm": "页边距(厘米)",
+      "spacing_cm": "间距(厘米)",
+      "fit_to_paper": "放不下时缩小",
+      "bg_color": "纸张底色",
+      "border_px": "描边宽度",
+      "border_color": "描边颜色"
+    },
+    "widgets": {
+      "paper_w": "纸宽(厘米)",
+      "paper_h": "纸高(厘米)",
+      "dpi": "DPI",
+      "cols": "列数",
+      "margin_cm": "页边距(厘米)",
+      "spacing_cm": "间距(厘米)",
+      "fit_to_paper": "放不下时缩小",
+      "bg_color": "纸张底色",
+      "border_px": "描边宽度",
+      "border_color": "描边颜色"
+    },
+    "outputs": {
+      "sheet": "拼版图像",
+      "rows": "行数",
+      "cols": "列数",
+      "count": "人数"
+    }
+  },
+  "QG_ImageBatchBuilder": {
+    "title": "QG 图像批次组合",
+    "description": "把多张图片一次合成一个 IMAGE 批次：输入槽动态增减，默认只显示 1 个，给最后一个槽接上图就自动加一个空槽（接一个加一槽），最多 24 个；空槽自动跳过，按槽位顺序拼。每个槽接单张或一个 batch 都行。尺寸不一致时默认以第 1 张为准缩放对齐，也可切换成直接报错。常用来把多人的证件照汇成一个 batch 再接拼版节点，省掉串一堆「合并图像」节点。",
+    "inputs": {
+      "image_01": "第 1～24 张",
+      "image_02": "第 2 张",
+      "image_03": "第 3 张",
+      "image_04": "第 4 张",
+      "image_05": "第 5 张",
+      "image_06": "第 6 张",
+      "image_07": "第 7 张",
+      "image_08": "第 8 张",
+      "image_09": "第 9 张",
+      "image_10": "第 10 张",
+      "image_11": "第 11 张",
+      "image_12": "第 12 张",
+      "image_13": "第 13 张",
+      "image_14": "第 14 张",
+      "image_15": "第 15 张",
+      "image_16": "第 16 张",
+      "image_17": "第 17 张",
+      "image_18": "第 18 张",
+      "image_19": "第 19 张",
+      "image_20": "第 20 张",
+      "image_21": "第 21 张",
+      "image_22": "第 22 张",
+      "image_23": "第 23 张",
+      "image_24": "第 24 张",
+      "resize_mode": "尺寸不一致时"
+    },
+    "widgets": {
+      "resize_mode": "尺寸不一致时"
+    },
+    "outputs": {
+      "image": "图像批次",
+      "count": "张数"
+    }
   }
 }

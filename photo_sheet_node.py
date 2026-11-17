@@ -347,91 +347,69 @@ class QGPhotoSheet:
         return {
             "required": {
                 "image": ("IMAGE", {
-                    "tooltip": "The photo to repeat. Every frame of a batch "
-                               "gets its own sheet; the photo is never scaled, "
-                               "only repeated.",
+                    "tooltip": "要复制的照片。批量输入每帧各出一版；照片只重复、绝不缩放。",
                 }),
                 "paper_w": ("FLOAT", {
                     "default": 12.7, "min": 1.0, "max": 100.0, "step": 0.1,
-                    "tooltip": "Paper width in centimetres. 12.7 x 8.9 is a "
-                               "5 inch sheet, 10.1 x 15.2 is 6 inch.",
+                    "tooltip": "相纸宽度（厘米）。12.7 × 8.9 是 5 寸，10.1 × 15.2 是 "
+                               "6 寸。",
                 }),
                 "paper_h": ("FLOAT", {
                     "default": 8.9, "min": 1.0, "max": 100.0, "step": 0.1,
-                    "tooltip": "Paper height in centimetres.",
+                    "tooltip": "相纸高度（厘米）。",
                 }),
                 "dpi": ("INT", {
                     "default": 350, "min": 72, "max": 1200, "step": 1,
-                    "tooltip": "Print resolution. Sets how many pixels the "
-                               "sheet is worth: 12.7 cm at 350 dpi is 1750 px.",
+                    "tooltip": "打印分辨率，决定版面有多少像素：12.7 厘米 @350 dpi 就是 1750"
+                               " 像素。",
                 }),
                 "margin": ("FLOAT", {
                     "default": 0.2, "min": 0.0, "max": 10.0, "step": 0.05,
-                    "tooltip": "Safety margin in centimetres, kept clear on "
-                               "all four sides. Printers cannot usually reach "
-                               "the last few millimetres.",
+                    "tooltip": "四边留白（厘米）。打印机一般够不到最后几毫米。",
                 }),
                 "spacing": ("FLOAT", {
                     "default": 0.2, "min": 0.0, "max": 5.0, "step": 0.05,
-                    "tooltip": "Gap between photos in centimetres. Also the "
-                               "room the cut marks are drawn in.",
+                    "tooltip": "照片之间的间距（厘米）。裁切标记也画在这条缝里。",
                 }),
                 "border": ("INT", {
                     "default": 0, "min": 0, "max": 40, "step": 1,
-                    "tooltip": "Black frame around each photo, in PIXELS. "
-                               "It makes the photo bigger, so it counts "
-                               "against how many fit.",
+                    "tooltip": "每张照片外圈的黑色边框（像素）。它会让照片变大，所以要算进「能放几张」。",
                 }),
                 "cut_marks": ("BOOLEAN", {
                     "default": False,
                     "label_on": "Cut Marks", "label_off": "No Marks",
-                    "tooltip": "Short L marks at each photo corner, drawn in "
-                               "the gutter. Needs a spacing wider than zero.",
+                    "tooltip": "每个照片角上的短 L 形裁切标记，画在缝里。间距要大于 0 才画。",
                 }),
                 "auto_orient": ("BOOLEAN", {
                     "default": True,
                     "label_on": "Auto", "label_off": "As Set",
-                    "tooltip": "Turn the paper around when that fits more "
-                               "photos. Ties keep the paper as set.",
+                    "tooltip": "纸横过来能多放时自动转。选「保持」就按设的纸向。",
                 }),
                 "caption": ("STRING", {
                     "default": "", "multiline": False,
-                    "tooltip": "Text printed under the grid. Drawn on the "
-                               "sheet, not written to disk. Empty means no "
-                               "caption.",
+                    "tooltip": "印在版面下方的文字，只画在版面上、不写进文件。留空就不印。",
                 }),
                 "font": (font_choices(), {
                     "default": DEFAULT_FONT,
-                    "tooltip": "Caption typeface. The bundled OFL font "
-                               "NotoSansSC-VF.ttf is listed first and covers "
-                               "Chinese; the built-in bitmap default does not, "
-                               "so it renders Chinese as boxes.",
+                    "tooltip": "文字字体。随包的 OFL 字体 NotoSansSC-VF.ttf 排在最前，能"
+                               "显示中文；内置点阵字体不行，中文会变成方块。",
                 }),
                 "font_size": ("INT", {
                     "default": 0, "min": 0, "max": 200, "step": 1,
-                    "tooltip": "Caption size in PIXELS. 0 disables the "
-                               "caption entirely and frees the height it "
-                               "would have taken.",
+                    "tooltip": "文字大小（像素）。0 完全关闭文字，并把它占的高度让出来。",
                 }),
                 "auto_fit": ("BOOLEAN", {
                     "default": True,
                     "label_on": "Shrink to Fit", "label_off": "Error Out",
-                    "tooltip": "Scale the photo down when it is larger than "
-                               "the sheet, instead of stopping the run. A "
-                               "2560x3413 render gets fitted to a 5 inch "
-                               "sheet this way, and the log says to what "
-                               "percentage. Off means it raises with the "
-                               "numbers instead.",
+                    "tooltip": "照片比相纸大时按比例缩小，而不是中止运行。2560×3413 的渲染就是这样装进"
+                               " 5 寸纸的，日志会写缩到百分之多少。关掉就直接报错并给出数字。",
                 }),
                 "photo_dpi": ("INT", {
                     "default": 0, "min": 0, "max": 2400, "step": 1,
-                    "tooltip": "The dpi the photo was rendered at, used to "
-                               "read its pixels as real centimetres. Leave 0 "
-                               "to place pixels as they are. A 1 inch portrait "
-                               "at 600 dpi is 591x827 px; on a 350 dpi sheet "
-                               "those pixels print as 4.3x6.0 cm unless this "
-                               "is set to 600. Wire the DPI output of the ID "
-                               "photo node in here to keep the size honest.",
+                    "tooltip": "照片渲染时的 DPI，用来把它的像素换算成真实厘米。填 0 就按像素摆。1 寸人"
+                               "像 @600 dpi 是 591×827 像素；在 350 dpi 的纸上不填 "
+                               "600，这些像素只会印成 4.3×6.0 厘米。把证件照节点的 DPI 输出接进"
+                               "来最稳。",
                 }),
             },
         }
@@ -440,10 +418,10 @@ class QGPhotoSheet:
     RETURN_NAMES = ("sheet", "columns", "rows", "total")
     FUNCTION = "execute"
     OUTPUT_TOOLTIPS = (
-        "One sheet per input frame, at the paper size times the dpi.",
-        "How many photos fit side by side.",
-        "How many rows fit.",
-        "columns x rows - the number of copies on one sheet.",
+        "每输入一帧出一版，尺寸 = 相纸尺寸 × dpi。",
+        "一行能放几张。",
+        "能放几行。",
+        "列 × 行 —— 一版上的份数。",
     )
 
     def execute(self, image, paper_w, paper_h, dpi, margin, spacing, border,

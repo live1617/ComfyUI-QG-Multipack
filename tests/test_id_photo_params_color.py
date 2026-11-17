@@ -117,7 +117,7 @@ def main():
           and "<span class=\"qgcp-title\">描边颜色</span>" not in js)
     check("applyColor 调用了联动", "applyLinkedCombo(node, widget)" in js)
 
-    print("\n[3b] 全包取色器覆盖（10 节点 / 12 控件）")
+    print("\n[3b] 全包取色器覆盖（12 节点 / 15 控件）")
     # 从 COLOR_WIDGETS 字面量里解析出注册项，与预期清单逐一核对。
     block = js.split("const COLOR_WIDGETS = {", 1)[1].split("};", 1)[0]
     import re as _re
@@ -134,10 +134,12 @@ def main():
         "QG_IDCardSheet": ["bg_color"],
         "QG_MarriageCloth": ["pad_color"],
         "QG_Watermark": ["color"],
+        "QG_ColorPicker": ["color"],
+        "QG_MultiPhotoSheet": ["bg_color", "border_color"],
     }
-    check("取色器注册 10 个节点", len(got) == 10, str(sorted(got)))
+    check("取色器注册 12 个节点", len(got) == 12, str(sorted(got)))
     check("取色器注册清单与预期完全一致", got == expect, str(got))
-    check("注册 12 个颜色控件", sum(len(v) for v in got.values()) == 12)
+    check("注册 15 个颜色控件", sum(len(v) for v in got.values()) == 15)
     check("每控件都有面板标题",
           all(c in js.split("const PANEL_TITLE = {", 1)[1].split("};", 1)[0]
               for v in expect.values() for c in v))

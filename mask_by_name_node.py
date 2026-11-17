@@ -393,9 +393,9 @@ class QGMaskByName:
     RETURN_TYPES = ("MASK", "IMAGE", "INT")
     RETURN_NAMES = ("mask", "cut_out", "found")
     OUTPUT_TOOLTIPS = (
-        "White where the thing is. One mask per picture.",
-        "The picture with everything but the thing see-through (RGBA).",
-        "How many things matched the name in the first picture.",
+        "目标所在处为白。每张图一张遮罩。",
+        "除目标外全部透明的图（RGBA）。",
+        "第一张图里命中了几处。",
     )
     FUNCTION = "execute"
 

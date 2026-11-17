@@ -377,53 +377,41 @@ class QGPhotoSheetMixed:
         return {
             "required": {
                 "image": ("IMAGE", {
-                    "tooltip": "One ID photo. Every frame of a batch gets its "
-                               "own sheet; the photo is centre-cropped to each "
-                               "region's aspect ratio.",
+                    "tooltip": "一张证件照。批量输入每帧各出一版，照片按每格的比例居中裁切。",
                 }),
                 "layout": (LAYOUT_KEYS, {
                     "default": "mix_1_8_2_4",
-                    "tooltip": "One of thirteen A5 layouts. Values are stable "
-                               "ASCII keys; Chinese names are display-only.",
+                    "tooltip": "十三种 A5 版式之一。存的是固定的英文键，中文名只用来显示。",
                 }),
                 "dpi": ("INT", {
                     "default": 300, "min": 72, "max": 3000, "step": 1,
-                    "tooltip": "Print resolution: centimetres times dpi give "
-                               "the sheet pixels. 300 dpi is standard for "
-                               "photo printing.",
+                    "tooltip": "打印分辨率：厘米 × DPI 得到版面像素。照片冲印通用 300 dpi。",
                 }),
                 "border_px": ("INT", {
                     "default": 1, "min": 0, "max": 50, "step": 1,
-                    "tooltip": "Frame around each photo, in PIXELS, drawn "
-                               "inside the photo so grid geometry is unchanged.",
+                    "tooltip": "每张照片外圈的边框，单位像素，画在照片内侧，不影响格子位置。",
                 }),
                 "border_color": ("STRING", {
                     "default": "#000000",
-                    "tooltip": "Frame colour: #RGB, #RRGGBB or a colour name. "
-                               "Invalid values fall back to black.",
+                    "tooltip": "边框颜色：支持 #RGB、#RRGGBB 或颜色名。填错按黑色处理。",
                 }),
                 "caption": ("STRING", {
                     "default": "", "multiline": False,
-                    "tooltip": "Optional text printed under the grid, "
-                               "followed by the layout name. Empty means no "
-                               "caption unless font_size is set.",
+                    "tooltip": "可选：印在版面下方的文字，后面会自动接上版式名。留空就不印，除非设了字号。",
                 }),
                 "font": (font_choices(), {
                     "default": "<default>",
-                    "tooltip": "Caption typeface. The bundled OFL font "
-                               "NotoSansSC-VF.ttf is listed first and covers "
-                               "Chinese; the built-in bitmap default does not.",
+                    "tooltip": "文字字体。随包的 OFL 字体 NotoSansSC-VF.ttf 排在最前，能"
+                               "显示中文；内置点阵字体不行。",
                 }),
                 "font_size": ("INT", {
                     "default": 0, "min": 0, "max": 200, "step": 1,
-                    "tooltip": "Caption size in PIXELS. 0 disables the caption.",
+                    "tooltip": "文字大小（像素）。0 关闭文字。",
                 }),
                 "fit_to_paper": ("BOOLEAN", {
                     "default": True,
                     "label_on": "Shrink to Fit", "label_off": "Error Out",
-                    "tooltip": "Scale the whole layout down when it does not "
-                               "fit the sheet. Off raises with the pixel "
-                               "numbers instead of clipping silently.",
+                    "tooltip": "版面放不下时整体等比缩小。关掉就直接报错并给出像素数字，而不是悄悄裁掉。",
                 }),
             },
         }
@@ -432,9 +420,9 @@ class QGPhotoSheetMixed:
     RETURN_NAMES = ("sheet", "layout_name", "total")
     FUNCTION = "execute"
     OUTPUT_TOOLTIPS = (
-        "One A5 sheet per input frame, at paper size times dpi.",
-        "Chinese name of the chosen layout (display data only).",
-        "How many photo copies are on one sheet.",
+        "每输入一帧出一张 A5 版，尺寸 = 纸型 × dpi。",
+        "所选版式的中文名（只用于显示）。",
+        "一版上的照片份数。",
     )
 
     def execute(self, image, layout, dpi, border_px, border_color,

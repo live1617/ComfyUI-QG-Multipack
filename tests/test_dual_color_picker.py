@@ -116,7 +116,7 @@ check("汉化主档 outputs 用槽名",
 check("nodeDefs mode.options 覆盖三个英文值",
       sorted(ea.get("inputs", {}).get("mode", {}).get("options", {}))
       == ["radial_gradient", "solid", "vertical_gradient"])
-check("两份词表节点数一致", len(a) == len(b) == 27, "%d/%d" % (len(a), len(b)))
+check("两份词表节点数一致", len(a) == len(b) == 31, "%d/%d" % (len(a), len(b)))
 
 print()
 print("== [5] 前端登记与规范红线 ==")
@@ -130,7 +130,8 @@ check("用绝对脚本路径 /scripts/app.js", 'from "/scripts/app.js"' in js_ne
 check("COLOR_WIDGETS 登记了新节点", "QG_DualColorPicker:" in js_pick)
 check("BANNER_TEXT 登记两个颜色控件",
       "primary_color:" in js_pick and "secondary_color:" in js_pick)
-check("hookNode 按 BANNER_TEXT 选绘制函数", "BANNER_TEXT[widget.name]" in js_pick)
+check("hookNode 按 BANNER_TEXT / BANNER_WIDGETS 选绘制函数",
+      "BANNER_WIDGETS[nodeKey]?.includes(name) || !!BANNER_TEXT[name]" in js_pick)
 for label, text in (("新前端", js_new), ("取色器", js_pick)):
     check("%s 无 .connect(/.bind( 字面量" % label,
           not re.search(r"\.connect\(|\.bind\(", text))
@@ -143,7 +144,7 @@ check("原创表有条目且标注参照规格",
       "| `QG_DualColorPicker` | ✅ 原创（参照规格）" in rd)
 check("有独立章节", "### `QG_DualColorPicker` 双色取色器" in rd)
 check("前端作用表登记新 JS", "`web/qg_dual_color_picker.js`" in rd)
-check("节点总数已更新为 27", "本节覆盖全部 27 个节点" in rd)
+check("节点总数已更新为 28", "本节覆盖全部 31 个节点" in rd)
 
 print()
 print("合计 PASS %d / FAIL %d" % (ok, fail))
