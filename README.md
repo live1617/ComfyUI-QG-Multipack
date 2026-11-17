@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.16.1** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.16.2** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -553,7 +553,7 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 **作用**：一次给出「模式 + 主色 + 辅色」三路字符串，供下游做纯色 / 渐变背景、配色、水印等用途。两个颜色控件直接画成整块色块（背景就是当前颜色），点一下弹出预设色板，也可以直接手填色值。
 
-**怎么接线**：无输入，拖出来即可用。三路输出都是 `STRING`，接到任何接受字符串颜色的控件上（在目标控件右键选「转换为输入」再连）。
+**怎么接线**：无输入，拖出来即可用。`主色` / `辅色` 两路是 `STRING`，接到任何接受字符串颜色的控件上（在目标控件右键选「转换为输入」再连）；`模式` 一路的类型是它的选项列表（前端显示为 `COMBO`），**可以直接驱动任何下拉输入**，例如本包「QG 自定义颜色」的 `模式`。
 
 **控件说明**：
 
@@ -565,7 +565,7 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 后端把颜色统一成小写 `#rrggbb`：`#rgb` 自动展开、无 `#` 前缀可吃、8 位带透明度取前 6 位、`(r, g, b)` 元组也能转；非法值回退默认色，不会把脏字符串透传给下游。
 
-**输出怎么接**：`mode` / `primary_color` / `secondary_color` 三路 `STRING`。本节点只负责「给颜色」，不生成图像；要出纯色 / 渐变图请用下游节点按 `mode` 自行合成。
+**输出怎么接**：`primary_color` / `secondary_color` 两路 `STRING`，`mode` 一路是下拉类型（值为英文字符串，可直连「QG 自定义颜色」等任何下拉输入）。本节点只负责「给颜色」，不生成图像；要出纯色 / 渐变图请用下游节点按 `mode` 自行合成。
 
 ### `QG_ColorConvert` 颜色转换
 
@@ -925,7 +925,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 | --- | --- |
 | `web/qg_color_picker.js` | 把字符串颜色字段变成色块 + 弹出色板（`QG_BiRefNet.background_color` 用胶囊样式；`QG_DualColorPicker` 的 `primary_color` / `secondary_color` 与 `QG_CustomColor` 的 `color1` / `color2` 用整块色块样式） |
 | `web/qg_custom_color.js` | 「QG 自定义颜色」模式下拉的中文显示（值仍为英文，与双色取色器同一套） |
-| `web/qg_dual_color_picker.js` | 「QG 双色取色器」模式下拉的中文显示（值仍为英文） |
+| `web/qg_dual_color_picker.js` | 「QG 双色取色器」模式下拉的中文显示（值仍为英文）；把 `mode` 输出槽类型对齐成 `COMBO`，使它可直接连下游下拉输入 |
 | `web/qg_color_convert.js` | 「QG 颜色转换」格式下拉的中文显示（值保持 `#HEX` / `HEX` / `RGB` / `HSL` 原文） |
 | `web/qg_face_align.js` | 「QG 面部对齐」填充模式下拉的中文显示（值仍为英文 `custom_color` / `border_color`） |
 | `web/qg_id_photo_outfit.js` | 「QG 证件照服装发型」的模板选择面板（网格缩略图 / 搜索 / 点选写回提示词） |

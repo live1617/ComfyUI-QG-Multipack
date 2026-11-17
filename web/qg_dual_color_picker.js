@@ -43,16 +43,44 @@ function labelMode(node) {
     }
 }
 
+/**
+ * 把 mode 输出槽的类型标成 COMBO。后端 RETURN_TYPES 第 1 槽写的是 options
+ * 列表（后端类型校验只认这个），前端 addOutputs 会原样把它当类型，导致连线
+ * 校验拿数组去比下游的 "COMBO" 字符串而不匹配。这里统一改正，使 mode 能驱动
+ * 任何 combo 输入（含 QG 自定义颜色的模式）。
+ */
+function markModeOutput(node) {
+    const outputs = node?.outputs || [];
+    const slot = outputs.find((s) => s?.name === "mode") || outputs[0];
+    if (!slot || slot.type === "COMBO") return;
+    slot.type = "COMBO";
+    slot.__qgDcpCombo = true;
+}
+
 app.registerExtension({
     name: "QG.DualColorPicker",
 
     beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData?.name !== "QG_DualColorPicker") return;
 
+        // 后端 RETURN_TYPES 第 1 槽是 options 列表（后端 combo 校验只认数组），
+        // 但前端 addOutputs 会把这个数组原样当类型用。这里优先在生成槽位之前
+        // 换成 "COMBO"，与下游 combo 输入槽的类型字符串一致，连线校验才能通过。
+        // nodeData 可能是被冻结的对象（ES module 严格模式下赋值会抛错并中断
+        // 节点注册），所以必须兜住：失败就交给下面的 markModeOutput 覆盖槽位。
+        try {
+            if (Array.isArray(nodeData.output?.[0])) {
+                nodeData.output[0] = "COMBO";
+            }
+        } catch (err) {
+            /* nodeData 冻结，退回槽位覆盖 */
+        }
+
         const onCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const r = onCreated?.apply(this, arguments);
             labelMode(this);
+            markModeOutput(this);
             return r;
         };
 
@@ -61,6 +89,7 @@ app.registerExtension({
         nodeType.prototype.onConfigure = function () {
             const r = onConfigure?.apply(this, arguments);
             labelMode(this);
+            markModeOutput(this);
             return r;
         };
     },
@@ -68,10 +97,14 @@ app.registerExtension({
     nodeCreated(node) {
         if (node?.comfyClass === "QG_DualColorPicker" || node?.type === "QG_DualColorPicker") {
             labelMode(node);
+            markModeOutput(node);
         }
     },
 
     setup() {
-        for (const node of app.graph?._nodes || []) labelMode(node);
+        for (const node of app.graph?._nodes || []) {
+            labelMode(node);
+            markModeOutput(node);
+        }
     },
 });

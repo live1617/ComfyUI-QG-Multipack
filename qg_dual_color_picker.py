@@ -57,7 +57,13 @@ class QGDualColorPicker:
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    # 🔴 第 1 槽（mode）的类型必须是 options 列表本身，不能写 "STRING" 或
+    # "COMBO"：后端 comfy_execution.validation.validate_node_input 对 combo 输入
+    # 取到的 input_type 是它的原始 options 列表，只有「received_type 与它相等」
+    # 或「received_type 是 list」才放行，写字符串一律被判 return_type_mismatch。
+    # 前端 output 槽会原样拿到这个数组，所以 web/qg_dual_color_picker.js 里把
+    # 第 1 槽的 slot.type 标成 "COMBO"，与下游 combo 输入槽对齐。
+    RETURN_TYPES = (MODE_CHOICES, "STRING", "STRING")
     RETURN_NAMES = ("mode", "primary_color", "secondary_color")
     FUNCTION = "pick"
     CATEGORY = "QG 工具"

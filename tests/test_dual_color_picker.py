@@ -49,7 +49,13 @@ check("mode 默认 solid", it["mode"][1].get("default") == "solid")
 check("主色默认 #213d50", it["primary_color"][1].get("default") == "#213d50")
 check("辅色默认 #402633", it["secondary_color"][1].get("default") == "#402633")
 check("颜色控件是 STRING", it["primary_color"][0] == "STRING" and it["secondary_color"][0] == "STRING")
-check("三个输出", cls.RETURN_TYPES == ("STRING", "STRING", "STRING"))
+# mode 输出必须是 options 列表本身：后端 validate_node_input 拿到的 combo
+# input_type 是原始列表，写 "STRING"/"COMBO" 都会判 return_type_mismatch。
+check("三个输出", cls.RETURN_TYPES[1:] == ("STRING", "STRING"))
+check("mode 输出类型是 options 列表且与 mode 输入一致",
+      isinstance(cls.RETURN_TYPES[0], list)
+      and list(cls.RETURN_TYPES[0]) == list(it["mode"][0]),
+      str(cls.RETURN_TYPES[0]))
 check("输出名对齐且英文",
       cls.RETURN_NAMES == ("mode", "primary_color", "secondary_color"))
 check("FUNCTION 指向存在的方法",
