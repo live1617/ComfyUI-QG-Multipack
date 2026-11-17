@@ -118,6 +118,16 @@ app.registerExtension({
             this._initOutfitUI();
         };
 
+        // 尺寸来自工作流的节点（加载 / 粘贴）不再套用默认大小。
+        // configure 会在 onNodeCreated 之后把存档的 size 写回来，而下面那个
+        // setTimeout 排在更后面，没有这个标记就必然把用户拉过的尺寸冲掉。
+        const origConfigure = nodeType.prototype.onConfigure;
+        nodeType.prototype.onConfigure = function (...args) {
+            const result = origConfigure?.apply(this, args);
+            this._qgSizeFromWorkflow = true;
+            return result;
+        };
+
         nodeType.prototype._initOutfitUI = async function () {
             const node = this;
             const data = await loadTemplateData();
@@ -780,16 +790,17 @@ app.registerExtension({
 
             renderGallery();
 
-            // 首次打开时固定节点大小（宽度容下 4 列网格，高度容下 3 行）
+            // 默认尺寸（宽度容下 4 列网格、高度容下 3 行）只在新建节点上贴一次；
+            // 从工作流恢复的节点保留用户拉过的大小，只按当前高度把画廊可视区算一遍。
             setTimeout(() => {
-                const { TITLE_H, SLOT_H } = getLayoutMetrics();
-                const defaultGalleryH = 3 * THUMB_H + 2 * GAP;
-                const nodeSize = node.computeSize ? node.computeSize() : [0, 0];
-                const targetW = Math.max(nodeSize[0] || 0, GALLERY_WIDTH + 40);
-                const targetH = TITLE_H + SLOT_H + getContainerFixedOverhead() + defaultGalleryH + BOTTOM_PAD;
-
-                gallery.style.maxHeight = defaultGalleryH + "px";
-                node.setSize([targetW, targetH]);
+                if (!node._qgSizeFromWorkflow) {
+                    const { TITLE_H, SLOT_H } = getLayoutMetrics();
+                    const defaultGalleryH = 3 * THUMB_H + 2 * GAP;
+                    const nodeSize = node.computeSize ? node.computeSize() : [0, 0];
+                    const targetW = Math.max(nodeSize[0] || 0, GALLERY_WIDTH + 40);
+                    const targetH = TITLE_H + SLOT_H + getContainerFixedOverhead() + defaultGalleryH + BOTTOM_PAD;
+                    node.setSize([targetW, targetH]);
+                }
                 updateGalleryHeight();
             }, 100);
         };

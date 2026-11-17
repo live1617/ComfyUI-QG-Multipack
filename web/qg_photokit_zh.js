@@ -153,6 +153,18 @@ app.registerExtension({
         const spec = NODES[nodeData?.name];
         if (!spec) return;
 
+        // 打一个「尺寸来自工作流」的标记。加载顺序是
+        // createNode()（此刻跑 onNodeCreated）→ node.configure(info)（把存档的 size 写回），
+        // 而下面的 fit() 走 setTimeout，一定排在 configure 之后。
+        // 不打标记的话，fit 会拿 computeSize() 的自然高度覆盖用户拉过的尺寸，
+        // 表现就是「调好大小 → 存盘 → 重新打开又变回默认」。
+        const priorConfigure = nodeType.prototype.onConfigure;
+        nodeType.prototype.onConfigure = function (...args) {
+            const result = priorConfigure?.apply(this, args);
+            this._qgSizeFromWorkflow = true;
+            return result;
+        };
+
         const prior = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function (...args) {
             const result = prior?.apply(this, args);
@@ -168,12 +180,14 @@ app.registerExtension({
             // Width: only ever grows. Narrower than spec clips the long option
             // names, wider is a choice the user made and is left alone.
             // Height: taken from computeSize(), so the node ends exactly where
-            // the last widget ends. A saved workflow that still carries an old
-            // hardcoded height gets shrunk here too - the tolerance keeps it
-            // from nudging a node that is already the right size.
+            // the last widget ends.
+            //
+            // 两处都只对**新建节点**生效：尺寸来自工作流（或粘贴）的节点
+            // 直接跳过，用户拉成什么样就是什么样。
             const self = this;
             const fit = () => {
                 try {
+                    if (self._qgSizeFromWorkflow) return;
                     let natural = null;
                     try {
                         // Pass the width we are about to use: a widget may lay
