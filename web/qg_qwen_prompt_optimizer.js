@@ -10,6 +10,7 @@ import { api } from "/scripts/api.js";
 
 const MAX_IMAGES = 10;
 const NODE_NAME = "QG_QwenPromptOptimizer";
+const SKILL_INPUT_NAME = "自定义skill";
 const PROMPT_HEIGHT_PROPERTY = "qg_qwen_prompt_height";
 const MIN_PROMPT_HEIGHT = 64;
 const SEED_WIDGET_NAMES = new Set(["种子值", "seed"]);
@@ -25,6 +26,37 @@ const isImageInput = (slot) => {
 
 function connected(slot) {
     return slot?.link != null;
+}
+
+// 自定义 skill 槽：后端声明在 optional 里，前端把它排到所有图像槽之后，
+// 并始终保持在最后一个位置。新前端按槽位下标解析连线，重排前先记下每条
+// 连线属于哪个槽、重排后写回 target_slot，否则连线会错位到别的输入。
+function syncSkillInput(node) {
+    if (!node.inputs?.some((input) => input.name === SKILL_INPUT_NAME)) {
+        node.addInput(SKILL_INPUT_NAME, "STRING", { shape: 7 });
+    }
+    const inputs = node.inputs;
+    const links = node.graph?.links;
+    const inputLinks = inputs.map((input) => {
+        const id = input.link;
+        return id == null ? null : (links?.get ? links.get(id) : links?.[id]);
+    });
+    const originalInputs = [...inputs];
+    const skillIndex = inputs.findIndex((input) => input.name === SKILL_INPUT_NAME);
+    const [skill] = inputs.splice(skillIndex, 1);
+    skill.label = "skill";
+    skill.localized_name = "skill";
+    const targetIndex = inputs.findLastIndex((input) => isImageInput(input)) + 1;
+    inputs.splice(targetIndex, 0, skill);
+    const movedLinks = originalInputs.flatMap((input, index) => {
+        const link = inputLinks[index];
+        const target = inputs.indexOf(input);
+        return link && link.target_slot !== target ? [{ link, target }] : [];
+    });
+    // 先整体腾空旧槽位，再写回新下标：直接覆盖会让两条占用同一 target 的
+    // 连线被拓扑存储拒绝。
+    movedLinks.forEach(({ link }, index) => { link.target_slot = inputs.length + index; });
+    movedLinks.forEach(({ link, target }) => { link.target_slot = target; });
 }
 
 function promptWidget(node) {
@@ -278,6 +310,7 @@ function sync(node) {
         slot.label = `图像 ${number + 1}`;
         number += 1;
     }
+    syncSkillInput(node);
     node.setDirtyCanvas?.(true, true);
 }
 
@@ -286,6 +319,22 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData?.name !== NODE_NAME) return;
         installQueueSeedHook();
+        // 载入工作流时核心会恢复声明里的所有图像槽、并重排 widget 输入。
+        // 按存档记录的槽名顺序还原，避免 skill 槽插队导致连线按旧下标接错。
+        const originalConfigureNode = nodeType.prototype.configure;
+        nodeType.prototype.configure = function (config) {
+            const inputNames = config?.inputs?.map((input) => input.name);
+            const result = originalConfigureNode?.apply(this, arguments);
+            if (inputNames && this.inputs) {
+                const inputs = new Map(this.inputs.map((input) => [input.name, input]));
+                this.inputs = [
+                    ...inputNames.map((name) => inputs.get(name)).filter(Boolean),
+                    ...this.inputs.filter((input) => !inputNames.includes(input.name) && !isImageInput(input)),
+                ];
+            }
+            this._qgImageScheduleSync?.();
+            return result;
+        };
         /* 包装生命周期钩子时必须把原实现的返回值传下去。ComfyUI 的其它
          * 扩展（以及节点自己）会把链式 hook 的返回值当成「是否继续 / 已处理」
          * 的依据，丢掉返回值会让后面的扩展静默失效。全包其余扩展都保留，

@@ -284,6 +284,13 @@ class QG_QwenPromptOptimizer:
             },
             "optional": {
                 **{f"图像_{index:02d}": ("IMAGE",) for index in range(1, 11)},
+                # 与上游对齐：可接一段自定义系统提示词（skill），不接则用内置系统提示词。
+                # 强制输入（forceInput）让它在画布上是输入槽而不是文本框。
+                "自定义skill": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "接一段自定义要求作为系统提示词；不接或留空就用内置提示词。"
+                               "输出格式由节点自动处理，输出语言和透明背景仍由下面的控件决定。",
+                }),
             },
             "hidden": {"unique_id": "UNIQUE_ID"},
         }
@@ -309,6 +316,7 @@ class QG_QwenPromptOptimizer:
         种子模式="固定",
         卸载模型="自动",
         unique_id=None,
+        自定义skill=None,
         **kwargs,
     ):
         if isinstance(卸载模型, bool):
@@ -332,6 +340,28 @@ class QG_QwenPromptOptimizer:
         if 透明背景 and not reverse_mode:
             prompt_input = rewrite_user_prompt_for_transparency(用户提示词, True)
 
+        # 自定义 skill：与上游同源逻辑。去掉 BOM 和首尾空白后，若与内置系统提示词
+        # 不同就整体替换，并在末尾重新声明输出契约，防止 skill 自带 contradictory
+        # 的格式要求盖过节点的 JSON 输出。图像模式才声明 ratio_follow 字段。
+        custom_system = str(自定义skill or "")
+        normalized_skill = " ".join(custom_system.lstrip("\ufeff").split())
+        if normalized_skill and normalized_skill != " ".join(base_system.split()):
+            base_system = (
+                "Optimize the image prompt using these requirements:\n\n"
+                + custom_system
+                + "\n\nNODE OUTPUT CONTRACT (overrides conflicting format instructions): "
+                'Return only JSON: {"rewritten_prompt":"complete final image prompt",'
+                '"wh_ratio":"requested width:height ratio or empty string"'
+                + (',"ratio_follow":"canvas image tag, e.g. <image1>, or empty string"'
+                   if has_images and not reverse_mode else "")
+                + "}. rewritten_prompt must be non-empty. No analysis or Markdown fences. "
+                + ("ratio_follow is the exact tag of the supplied canvas image, such as "
+                   "<image1>, whose aspect ratio should be followed when no explicit ratio "
+                   "is requested. Never fill both wh_ratio and ratio_follow; leave "
+                   "ratio_follow empty if wh_ratio is specified or no canvas image applies. "
+                   if has_images and not reverse_mode else "")
+                + "Put all requested content inside rewritten_prompt."
+            )
         system_prompt = _rewrite_language_rules(
             base_system,
             输出语言,

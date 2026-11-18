@@ -216,11 +216,18 @@ except Exception as exc:  # noqa: BLE001
 # --------------------------------------------------------------------------
 print("=== F. 前端修复静态回归 ===")
 qwen_js = js("qg_qwen_prompt_optimizer.js")
-check("5 个生命周期 hook 都接收原返回值",
-      qwen_js.count("const result = original") == 5,
+# 6 个 hook = configure / onNodeCreated / onResize / onConnectionsChange /
+# onConfigure / onExecuted。configure 是为「自定义skill」槽对齐上游新增的，
+# 载入工作流时按存档槽名还原顺序，同样必须接住并传回原实现返回值。
+check("6 个生命周期 hook 都接收原返回值",
+      qwen_js.count("const result = original") == 6,
       qwen_js.count("const result = original"))
-check("5 个 hook 都把返回值传下去", qwen_js.count("return result;") == 5,
+check("6 个 hook 都把返回值传下去", qwen_js.count("return result;") == 6,
       qwen_js.count("return result;"))
+check("skill 槽排在图像槽之后并修正连线归属",
+      "syncSkillInput(node)" in qwen_js
+      and 'const SKILL_INPUT_NAME = "自定义skill"' in qwen_js
+      and "link.target_slot = target" in qwen_js)
 picker_js = js("qg_color_picker.js")
 check("取色器浮层在节点删除时收起",
       "onRemoved" in picker_js and "panelOwner?.node === this" in picker_js)
