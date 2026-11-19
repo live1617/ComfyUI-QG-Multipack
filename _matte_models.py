@@ -14,6 +14,11 @@ ComfyUI 的 ``models/background_removal``（含 extra_model_paths 挂载）→
 ``models/matting`` → 插件内置兜底 → 兼容 HivisionIDPhotos 插件自带 weights。
 用户自己放的同名权重优先，内置副本命中后不会再触发下载。
 其余两个大模型仍首次使用时按需下载；一个可选依赖不该让整个包加载失败。
+
+``rmbg-1.4`` 是例外：官方完整权重（model.pth + onnx）通常按仓库结构放在
+``models/background_removal/RMBG-1.4/`` 子目录，``discover()`` 只扫根目录
+读不到它，故 :func:`resolve` 对该模型优先查这个子目录，下载落点也一致。
+根目录散落的 rmbg-1.4.onnx 仍作兼容读取，不删不搬。
 """
 
 from __future__ import annotations
@@ -41,6 +46,11 @@ _FOLDERS = (
     ("background_removal", "ComfyUI/models/background_removal"),
     ("matting", "ComfyUI/models/matting"),
 )
+
+# rmbg-1.4 官方完整权重（model.pth + onnx）按仓库结构放在这个子目录里；
+# discover() 只扫根目录读不到，故 resolve() 对它单独走前置分支。
+RMBG14_SUBDIR = "RMBG-1.4"
+_RMBG14_FILE = "rmbg-1.4.onnx"
 
 # 会话是懒加载的，加载一次 birefnet 要 8.7 秒，不能每帧重建。
 _SESSIONS = {}
@@ -110,6 +120,29 @@ def discover():
             if key not in found:
                 found[key] = os.path.join(folder, name)
     return found
+
+
+def _rmbg14_dirs():
+    """rmbg-1.4 专用子目录候选（挂载优先、本机主库兜底，去重保序）。
+
+    官方完整权重按仓库结构放在 ``background_removal/RMBG-1.4/`` 下，
+    ``discover()`` 只扫根目录读不到这里，单独列出来供 :func:`resolve` 前置查找。
+    """
+    dirs = []
+    for root in _QP.category_roots("background_removal", root=_models_root()):
+        d = os.path.join(str(root), RMBG14_SUBDIR)
+        if d not in dirs:
+            dirs.append(d)
+    return dirs
+
+
+def _rmbg14_local():
+    """在 ``RMBG-1.4/`` 子目录里找 onnx，命中返回绝对路径，否则 None。"""
+    for d in _rmbg14_dirs():
+        cand = os.path.join(d, _RMBG14_FILE)
+        if os.path.isfile(cand):
+            return cand
+    return None
 
 
 def family_of(path):
@@ -262,12 +295,18 @@ def _parse_size_hint(text):
 
 
 def _resolve_preset(name):
-    """预置模型：本地已有且体积达标就返回，否则下载到 models/background_removal/ 后返回。"""
+    """预置模型：本地已有且体积达标就返回，否则下载后返回。
+
+    rmbg-1.4 按官方仓库结构落到 ``background_removal/RMBG-1.4/`` 子目录，
+    与 :func:`resolve` 的读取口径一致；其余模型仍落 ``background_removal/`` 根。
+    """
     info = PRESET_MODELS.get(name)
     if info is None:
         return None
-    dest = os.path.join(_QP.primary_root("background_removal", root=_models_root()),
-                        info["save_as"])
+    root = _QP.primary_root("background_removal", root=_models_root())
+    if name == "rmbg-1.4":
+        root = os.path.join(root, RMBG14_SUBDIR)
+    dest = os.path.join(root, info["save_as"])
     min_bytes = _parse_size_hint(info.get("size_hint"))
     if os.path.exists(dest) and (min_bytes is None or os.path.getsize(dest) >= min_bytes):
         return dest
@@ -284,7 +323,15 @@ def _resolve_preset(name):
 
 
 def resolve(name):
-    """本地 discover 命中就用本地；否则若是预置模型就按需下载。"""
+    """本地命中就用本地；否则若是预置模型就按需下载。
+
+    rmbg-1.4 的官方完整权重在 ``RMBG-1.4/`` 子目录，优先查那里；根目录
+    散落的旧 onnx 由 ``discover()`` 兜底兼容，不删不搬。
+    """
+    if name == "rmbg-1.4":
+        sub = _rmbg14_local()
+        if sub:
+            return sub
     local = discover().get(name)
     if local:
         return local

@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.18.2** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.18.3** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -78,7 +78,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `modnet_photographic_portrait_matting.onnx` | 抠图（modnet 族） | ~24.7 MB | **随包**，插件 `models/background_removal/` | MODNet 官方权重，经 HivisionIDPhotos release |
 | `hivision_modnet.onnx` | 抠图（modnet 族，纯色换底更稳） | ~24.7 MB | **随包**，同上 | HivisionIDPhotos 官方 release |
 | `face_landmarker.task` | `QG_PortraitMatte` 人脸对齐（mediapipe） | ~3.6 MB | 按需下载 → `models/mediapipe/` | Google 官方 mediapipe 仓库 |
-| `rmbg-1.4.onnx` | 抠图（rmbg 族） | ~176 MB | 按需下载 → `models/background_removal/` | BRIA AI / HuggingFace |
+| `rmbg-1.4.onnx` | 抠图（rmbg 族） | ~176 MB | 按需下载 → `models/background_removal/RMBG-1.4/`（官方完整权重目录；根目录旧文件仍兼容读取） | BRIA AI / HuggingFace |
 | `birefnet-v1-lite.onnx` | 抠图（birefnet 族，精度最高） | ~224 MB | 按需下载 → `models/background_removal/` | ZhengPeng7 BiRefNet 官方 release |
 
 发现顺序：`ComfyUI/models/background_removal`（含 `extra_model_paths.yaml` 挂载）
@@ -1118,7 +1118,8 @@ v2.19 起本包所有抠图模型统一收敛到 ComfyUI 的 `models/background_
 ├── RMBG-2.0/     ← RMBG-2.0 单独一个目录（subdir）
 ├── vitmatte-small-composition-1k/  ← 细节精修小模型
 ├── vitmatte-base-composition-1k/   ← 细节精修大模型
-├── rmbg-1.4.onnx / birefnet-v1-lite.onnx  ← 人像抠图换背景按需下载
+├── RMBG-1.4/      ← rmbg-1.4 官方完整权重（rmbg-1.4.onnx + model.pth），优先从这里读
+├── rmbg-1.4.onnx / birefnet-v1-lite.onnx  ← 根目录旧 rmbg-1.4.onnx 仍兼容读取；birefnet-v1-lite 按需下载在根目录
 └── modnet_*.onnx  ← 随包副本（也在插件 models/background_removal/）
 ```
 
