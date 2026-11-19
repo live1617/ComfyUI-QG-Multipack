@@ -1829,5 +1829,73 @@
         "tooltip": "实际合进去的张数。"
       }
     }
+  },
+  "QG_RemoveBackgroundV2": {
+    "display_name": "QG 移除背景 V2 · 细节精修",
+    "description": "移除背景并重做边缘细节：先用本包 BiRefNet 做粗分割，再按所选细节方法精修边缘。VITMatte 系列用 hustvl 模型按 trimap 出发丝级 alpha（首次需联网下载，VITMatte(local) 只用本地缓存）；vitmatte-base-composition-1k 用更大的 base 模型；PyMatting 用闭合形式抠图，需 pymatting + pyamg；GuidedFilter 用 opencv 引导滤波，速度最快。腐蚀/膨胀控制 trimap 待处理边缘宽度，黑点和白点拉伸 alpha 范围；关掉「处理细节」就只出粗分割结果。输出 RGBA 图像与单通道遮罩。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要移除背景的图像。批次逐帧处理，输出与输入同尺寸。"
+      },
+      "detail_method": {
+        "name": "细节方法",
+        "tooltip": "边缘细节精修方法。VITMatte 系列最细，需首次下载模型；PyMatting 需 pymatting+pyamg；GuidedFilter 最快，靠 opencv 保持边缘。",
+        "options": {
+          "VITMatte": "ViTMatte 小模型（在线，边缘最细）",
+          "VITMatte(local)": "ViTMatte 小模型（仅本地缓存）",
+          "vitmatte-base-composition-1k": "ViTMatte base 大模型（在线）",
+          "PyMatting": "闭合形式抠图（需 pyamg）",
+          "GuidedFilter": "引导滤波（最快，需 opencv）"
+        }
+      },
+      "detail_erode": {
+        "name": "腐蚀核",
+        "tooltip": "trimap 腐蚀核尺寸。值越大，确定前景区越收缩、待处理边缘越宽。"
+      },
+      "detail_dilate": {
+        "name": "膨胀核",
+        "tooltip": "trimap 膨胀核尺寸。值越大，待处理边缘越宽，细节保留越多。"
+      },
+      "black_point": {
+        "name": "黑点",
+        "tooltip": "黑点。低于该透明度判为全透明，可信度过滤用。"
+      },
+      "white_point": {
+        "name": "白点",
+        "tooltip": "白点。高于该透明度判为不透明，与黑点一起拉伸 alpha 范围。"
+      },
+      "process_detail": {
+        "name": "处理细节",
+        "tooltip": "关闭时直接输出粗分割遮罩，不做任何细节精修，也不需要额外依赖。"
+      },
+      "device": {
+        "name": "设备",
+        "tooltip": "ViTMatte 推理设备。auto 跟随 ComfyUI 当前设备；选 cuda 但不可用时自动回退 CPU。",
+        "options": {
+          "auto": "自动（跟随 ComfyUI）",
+          "cuda": "CUDA 显卡",
+          "cpu": "CPU"
+        }
+      },
+      "max_megapixels": {
+        "name": "最大像素（百万）",
+        "tooltip": "ViTMatte 推理时的最大像素数（百万像素）。超出会按比例缩小再处理，完成后放大回原尺寸。"
+      },
+      "model": {
+        "name": "粗分割模型",
+        "tooltip": "粗分割的 BiRefNet 变体。默认 general；portrait 是人像专用。也可用环境变量 QG_REMOVEBG_MODEL 覆盖。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "去掉背景后的 RGBA 图像；alpha 来自精修后的遮罩，原图颜色保持不变。"
+      },
+      "1": {
+        "name": "遮罩",
+        "tooltip": "单通道遮罩，白色为前景、黑色为背景，灰色是半透明边缘。"
+      }
+    }
   }
 }

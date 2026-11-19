@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.17.1** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.18.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -27,6 +27,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_PhotoSheet` | QG 照片排版 | 铺满相纸、画裁切角标、放不下自动缩 | `排版图像` / `列数` / `行数` / `总张数` |
 | `QG_MultiPhotoSheet` | QG 多人证件照拼版 | 多人的照片各占一格拼到同一张纸，统一格居中裁切、列数指定行数自动 | `拼版图像` / `行数` / `列数` / `人数` |
 | `QG_ImageBatchBuilder` | QG 图像批次组合 | 输入槽动态增减（默认 1 个，接一个加一个，上限 24），接几张合几张成 batch，省掉串一堆「合并图像」节点 | `image` / `count` |
+| `QG_RemoveBackgroundV2` | QG 移除背景 V2 · 细节精修 | 本包 BiRefNet 粗分割 + 五种边缘精修（VITMatte / VITMatte(local) / base / PyMatting / GuidedFilter），腐蚀膨胀控制 trimap、黑白点拉伸 alpha，输出透明 RGBA 与遮罩 | `IMAGE` / `MASK` |
 | `QG_IDCardSheet` | QG 身份证拼版 | 拍歪的卡片找四角扶正、加圆角投影、按厘米铺到纸上 | `IMAGE` |
 | `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（默认用随包 OFL 中文字体，中文不再成方框） | `IMAGE` |
 | `QG_DualColorPicker` | QG 双色取色器 | 一次输出模式 + 主色 + 辅色三路字符串，颜色控件点开弹出色板 | `模式` / `主色` / `辅色` |
@@ -58,7 +59,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后四个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 31 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
+本节覆盖全部 32 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -121,6 +122,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_PhotoSheet` | ✅ 原创 | 排版几何自实现 | 0% |
 | `QG_MultiPhotoSheet` | ✅ 原创 | 多人各占一格的拼版几何自实现（纯整数规划），与「一张照片复制多份」的排版节点正交 | 0% |
 | `QG_ImageBatchBuilder` | ✅ 原创 | 多输入槽汇总成 batch 的收集/对齐逻辑自实现，独立于核心 `ImageBatch` | 0% |
+| `QG_RemoveBackgroundV2` | ✅ 原创（参照规格） | 功能规格参考 LayerStyle「RmBgUltra V2」；粗分割复用本包 BiRefNet，trimap / ViTMatte 推理 / PyMatting / 引导滤波全部独立实现，未复制上游源码 | 0% |
 | `QG_IDCardSheet` | ⚠️ GPL 参考后重写 | Goohaitools「身份证自动扶正拼版」（GPL-3.0），三处核心算法已替换 | 未逐项统计（结构/命名沿用） |
 | `QG_Watermark` | ✅ 原创 | 斜向水印自实现 | 0% |
 | `QG_DualColorPicker` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 取色器（双）」（GPL-3.0）；代码自写，前端复用本包 `qg_color_picker.js`，未复制上游源码 | 0% |
@@ -136,7 +138,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
 | `QG_ImageComposite` | ✅ 原创（参照规格） | 功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0）；坐标求交、遮罩混合、批次补齐自写，并修掉上游负坐标走负索引贴错位置、只处理右下越界、目标帧被截短三个问题，未复制上游源码 | 0% |
 
-一句话概括：**31 个节点里 30 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**32 个节点里 31 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -592,6 +594,27 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 **输出**：`image`（合成后的单个 batch）/ `count`（实际张数）。张数输出可接下游做分支判断。
 
 **槽位不够怎么办**：24 个（自动加到上限）对应 A4 证件照 3 列 × 8 行的常见上限；更多张建议先把图片放到 `input` 的某个文件夹，用能读整批的节点导入，或分两批拼两张纸。
+
+
+### `QG_RemoveBackgroundV2` 移除背景 V2 · 细节精修
+
+> **来源：✅ 原创（参照规格）**。功能规格参考 LayerStyle 的「LayerMask: RmBgUltra V2」（GPL-3.0），流程与参数含义对齐，实现全部自写；粗分割直接复用本包的 `QG_BiRefNet`，不引入第二套权重，也不复制上游源码。
+
+**作用**：把图片抠成透明背景，并在粗遮罩基础上重做边缘细节（发丝、半透明边）。五选一的细节方法与截图节点一致：
+
+| 细节方法 | 依赖与特点 |
+| --- | --- |
+| `VITMatte`（默认） | 用 `hustvl/vitmatte-small-composition-1k`，首次需联网下载；按 trimap 出发丝级 alpha，边缘最细 |
+| `VITMatte(local)` | 同一个小模型，只允许读本地缓存，不联网 |
+| `vitmatte-base-composition-1k` | 更大的 base 模型，更细但更慢、显存更高 |
+| `PyMatting` | 闭合形式抠图，需 `pymatting` + `pyamg` |
+| `GuidedFilter` | opencv 引导滤波，速度最快，细节不如前几种 |
+
+**控件**：`detail_erode` / `detail_dilate`（默认 6）决定 trimap 的腐蚀/膨胀核，值越大待处理边缘越宽；`black_point` / `white_point`（默认 0.01 / 0.99）把精修后的 alpha 线性拉伸到 0..1；`process_detail` 关掉就只输出 BiRefNet 粗分割结果，不需要任何额外依赖；`device` 选 `auto` 跟随 ComfyUI 当前设备，指定 `cuda` 但不可用时自动回退 CPU；`max_megapixels`（默认 2.0）是 ViTMatte 推理时的像素上限（百万像素），超出会按比例缩小处理再放大回原尺寸。
+
+**粗分割模型**：新增可选 `model`，默认 `BiRefNet-general`（与 `QG_BiRefNet` 共用 models/RMBG 缓存）；也可用环境变量 `QG_REMOVEBG_MODEL` 覆盖。ViTMatte 权重若已放在本地，可用 `QG_VITMATTE_DIR` 指向该目录。
+
+**输出**：`IMAGE` 是 RGBA（alpha 即精修遮罩，原图 RGB 不变），`MASK` 是同尺寸单通道遮罩。批次逐帧处理，帧数与顺序和输入一致。
 
 
 ### `QG_IDCardSheet` 身份证拼版
@@ -1218,6 +1241,7 @@ ComfyUI-QG-Multipack/
 ├── qg_color_picker.py          QG_ColorPicker（点色块选色，按 HEX/RGB/HSL 输出颜色值与字符串）
 ├── qg_multi_photo_sheet.py     QG_MultiPhotoSheet（多人各占一格拼到同一张纸，统一格居中裁切）
 ├── qg_image_batch_builder.py   QG_ImageBatchBuilder（动态槽：默认 1 个接一个加一个，上限 24，成 IMAGE batch）
+├── qg_remove_background_v2.py  QG_RemoveBackgroundV2（BiRefNet 粗分割 + ViTMatte/PyMatting/GuidedFilter 细节精修）
 ├── web/                        前端脚本（逐个说明见「前端增强」一章）
 ├── workflows/                  两份可直接加载的证件照示例工作流 json
 ├── models/id_photo/            内置证件照服装/发型素材（7 分类 200 张 + 提示词 JSON）
@@ -1242,7 +1266,7 @@ ComfyUI-QG-Multipack/
 | `locales/zh/nodeDefs.json` | ComfyUI 官方前端 i18n | ComfyUI 前端自动加载 | 节点 key → `display_name` / `description` / `inputs`({name,tooltip}) / `outputs`（**输出索引字符串** "0"/"1"…） |
 | `translations/zh-CN/Nodes/`、`Menus/ComfyUI-QG-Multipack.json` | ComfyUI-Global-Translation（原 AIGODLIKE 系） | 汉化插件按需加载 | 节点 key → `title` / `description` / `inputs` / `widgets` / `outputs`（**槽名/控件参数名**）；Menus 是全局下拉值映射 |
 
-- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 31 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
+- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 32 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
 - **规范约定**：`widgets` 键用源码里的真实参数名，不用界面显示名；**不写恒等翻译**（键==值的条目无意义，还会污染插件的「已翻译文本」判定）；`ui` 字段用于翻译节点内嵌 DOM 面板的英文原文——本包面板文案本身就是中文，暂不需要 `ui` 词条。分类也不用 `Categories` 词表（本包 category 已是「QG 工具」）。
 - 新增/改名节点、增删控件或输出槽时，两套词表都要同步；`tests/test_i18n_standard.py` 会校验节点数、需汉化项覆盖、无恒等翻译、description 齐全。
 

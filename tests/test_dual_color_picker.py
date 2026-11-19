@@ -116,7 +116,7 @@ check("汉化主档 outputs 用槽名",
 check("nodeDefs mode.options 覆盖三个英文值",
       sorted(ea.get("inputs", {}).get("mode", {}).get("options", {}))
       == ["radial_gradient", "solid", "vertical_gradient"])
-check("两份词表节点数一致", len(a) == len(b) == 31, "%d/%d" % (len(a), len(b)))
+check("两份词表节点数一致", len(a) == len(b) == 32, "%d/%d" % (len(a), len(b)))
 
 print()
 print("== [5] 前端登记与规范红线 ==")
@@ -144,7 +144,7 @@ check("原创表有条目且标注参照规格",
       "| `QG_DualColorPicker` | ✅ 原创（参照规格）" in rd)
 check("有独立章节", "### `QG_DualColorPicker` 双色取色器" in rd)
 check("前端作用表登记新 JS", "`web/qg_dual_color_picker.js`" in rd)
-check("节点总数已更新为 28", "本节覆盖全部 31 个节点" in rd)
+check("节点总数已更新为 28", "本节覆盖全部 32 个节点" in rd)
 
 print()
 print("合计 PASS %d / FAIL %d" % (ok, fail))

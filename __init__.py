@@ -42,7 +42,7 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.17.1"
+__version__ = "2.18.0"
 
 import asyncio
 import time
@@ -406,6 +406,20 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 图像批次组合导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 移除背景 V2：qg_remove_background_v2.py（注册 key QG_RemoveBackgroundV2）
+try:
+    from . import qg_remove_background_v2 as _remove_bg_v2
+
+    NODE_CLASS_MAPPINGS.update(_remove_bg_v2.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_remove_bg_v2.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 移除背景 V2 导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 

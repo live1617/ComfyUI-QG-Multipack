@@ -845,5 +845,37 @@
       "image": "图像批次",
       "count": "张数"
     }
+  },
+  "QG_RemoveBackgroundV2": {
+    "title": "QG 移除背景 V2 · 细节精修",
+    "description": "移除背景并重做边缘细节：先用本包 BiRefNet 做粗分割，再按所选细节方法精修边缘。VITMatte 系列用 hustvl 模型按 trimap 出发丝级 alpha（首次需联网下载，VITMatte(local) 只用本地缓存）；vitmatte-base-composition-1k 用更大的 base 模型；PyMatting 用闭合形式抠图，需 pymatting + pyamg；GuidedFilter 用 opencv 引导滤波，速度最快。腐蚀/膨胀控制 trimap 待处理边缘宽度，黑点和白点拉伸 alpha 范围；关掉「处理细节」就只出粗分割结果。输出 RGBA 图像与单通道遮罩。",
+    "inputs": {
+      "image": "图像",
+      "detail_method": "细节方法",
+      "detail_erode": "腐蚀核",
+      "detail_dilate": "膨胀核",
+      "black_point": "黑点",
+      "white_point": "白点",
+      "process_detail": "处理细节",
+      "device": "设备",
+      "max_megapixels": "最大像素（百万）",
+      "model": "粗分割模型"
+    },
+    "widgets": {
+      "image": "图像",
+      "detail_method": "细节方法",
+      "detail_erode": "腐蚀核",
+      "detail_dilate": "膨胀核",
+      "black_point": "黑点",
+      "white_point": "白点",
+      "process_detail": "处理细节",
+      "device": "设备",
+      "max_megapixels": "最大像素（百万）",
+      "model": "粗分割模型"
+    },
+    "outputs": {
+      "IMAGE": "图像",
+      "MASK": "遮罩"
+    }
   }
 }
