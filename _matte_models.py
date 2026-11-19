@@ -24,6 +24,13 @@ import re
 import numpy as np
 from PIL import Image
 
+# 根目录解析统一走 qg_model_paths；两种加载场景都要能拿到：
+# ① 包上下文（ComfyUI 里 `from . import`）；② 顶层 import（测试把包根插进 sys.path）。
+try:  # pragma: no cover - 取决于加载方式
+    from . import qg_model_paths as _QP
+except ImportError:  # pragma: no cover
+    import qg_model_paths as _QP
+
 try:
     import onnxruntime as ort
 except Exception:  # pragma: no cover - 只在没装时报
@@ -40,13 +47,12 @@ _SESSIONS = {}
 
 
 def _models_root():
-    """ComfyUI/models 的绝对路径，拿不到就退回相对路径。"""
-    try:
-        import folder_paths
-        return folder_paths.models_dir
-    except Exception:
-        here = os.path.dirname(os.path.abspath(__file__))
-        return os.path.normpath(os.path.join(here, "..", "..", "..", "models"))
+    """ComfyUI/models 的绝对路径，拿不到就退回相对路径。
+
+    实现委托给统一解析层 ``qg_model_paths``；返回语义与旧版一致，测试与
+    其它模块可直接替换此函数。
+    """
+    return _QP.models_root()
 
 
 def _bundled_dir():
@@ -55,8 +61,7 @@ def _bundled_dir():
     不依赖 ComfyUI 的 folder_paths：插件目录本身就知道自己在哪里，
     纯离线环境（没有 models 目录、没有网络）也能找到这两个 modnet。
     """
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "models", "background_removal")
+    return _QP.bundled_dir("background_removal")
 
 
 def _source_folders():
@@ -67,24 +72,15 @@ def _source_folders():
     和放 ``ComfyUI/models/background_removal`` 是一样的待遇。只拼 ``models_dir``
     的直子目录是不够的 —— 那样额外路径里的模型明明在，节点却说"没找到"。
     """
+    # 挂载路径 + models_dir 兜底统一由 qg_model_paths 解析；两个类别分别
+    # 取，保持旧版「先所有 background_removal、再所有 matting」的相对顺序。
     folders = []
-    try:
-        import folder_paths
-        for name, _ in _FOLDERS:
-            try:
-                for path in folder_paths.get_folder_paths(name):
-                    if path and path not in folders:
-                        folders.append(path)
-            except Exception:                     # 该名字没注册，跳过
-                pass
-    except Exception:                             # 不在 ComfyUI 里跑
-        pass
-
-    models_dir = _models_root()
     for name, _ in _FOLDERS:
-        path = os.path.join(models_dir, name)
-        if path not in folders:
-            folders.append(path)
+        # 注入 _models_root() 而非让统一层自己取：保留本模块的可 mock 点，
+        # 根目录解析（挂载 + 去重）仍集中在 qg_model_paths。
+        for path in _QP.category_roots(name, root=_models_root()):
+            if path not in folders:
+                folders.append(path)
 
     # 随包的离线兜底放在用户目录之后：用户自己更新过的同名权重优先，
     # 内置副本只在用户目录没有时补上，命中后 resolve() 不会再去联网。
@@ -94,7 +90,7 @@ def _source_folders():
 
     # 兼容：HivisionIDPhotos 插件自带的 weights 已经有现成模型，
     # 不去复制一份，能读到就用。
-    comfy_root = os.path.dirname(models_dir)
+    comfy_root = os.path.dirname(_models_root())
     folders.append(os.path.join(comfy_root, "custom_nodes",
                                 "HivisionIDPhotos-ComfyUI", "hivision",
                                 "creator", "weights"))
@@ -270,7 +266,8 @@ def _resolve_preset(name):
     info = PRESET_MODELS.get(name)
     if info is None:
         return None
-    dest = os.path.join(_models_root(), "background_removal", info["save_as"])
+    dest = os.path.join(_QP.primary_root("background_removal", root=_models_root()),
+                        info["save_as"])
     min_bytes = _parse_size_hint(info.get("size_hint"))
     if os.path.exists(dest) and (min_bytes is None or os.path.getsize(dest) >= min_bytes):
         return dest

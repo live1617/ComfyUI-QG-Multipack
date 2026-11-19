@@ -35,6 +35,12 @@ except (ImportError, ValueError):  # 单文件 spec 加载时没有包上下文
     except ImportError:  # pragma: no cover - 插件不完整时才走到
         _BR = None
 
+# 根目录解析统一走 qg_model_paths（两种加载场景都要拿到）
+try:  # pragma: no cover - 取决于加载方式
+    from . import qg_model_paths as _QP
+except ImportError:  # pragma: no cover
+    import qg_model_paths as _QP
+
 try:
     import cv2
 except ImportError:  # pragma: no cover
@@ -148,24 +154,9 @@ def _vitmatte_model_roots():
     先问 folder_paths（带上 extra_model_paths.yaml 的挂载），再拼 models_dir
     兜底。只拼 models_dir 会让挂载库里的模型明明在、节点却说没找到。
     """
-    roots = []
-    try:
-        import folder_paths
-        for path in folder_paths.get_folder_paths("background_removal"):
-            if path and path not in roots:
-                roots.append(path)
-    except Exception:  # 不在 ComfyUI 里跑 / 类别没注册
-        pass
-    try:
-        import folder_paths
-        fallback = os.path.join(folder_paths.models_dir, "background_removal")
-    except Exception:
-        here = os.path.dirname(os.path.abspath(__file__))
-        fallback = os.path.normpath(os.path.join(
-            here, "..", "..", "..", "models", "background_removal"))
-    if fallback not in roots:
-        roots.append(fallback)
-    return roots
+    # 挂载路径 + models_dir 兜底统一由 qg_model_paths 解析，去重保序；
+    # 与 _matte_models / birefnet_node 现在共用同一套根目录口径。
+    return _QP.category_roots("background_removal")
 
 
 def _is_vitmatte_dir(path):

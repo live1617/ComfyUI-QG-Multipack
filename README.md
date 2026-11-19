@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.18.1** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.18.2** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -612,7 +612,7 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 **控件**：`detail_erode` / `detail_dilate`（默认 6）决定 trimap 的腐蚀/膨胀核，值越大待处理边缘越宽；`black_point` / `white_point`（默认 0.01 / 0.99）把精修后的 alpha 线性拉伸到 0..1；`process_detail` 关掉就只输出 BiRefNet 粗分割结果，不需要任何额外依赖；`device` 选 `auto` 跟随 ComfyUI 当前设备，指定 `cuda` 但不可用时自动回退 CPU；`max_megapixels`（默认 2.0）是 ViTMatte 推理时的像素上限（百万像素），超出会按比例缩小处理再放大回原尺寸。
 
-**粗分割模型**：新增可选 `model`，默认 `BiRefNet-general`（与 `QG_BiRefNet` 共用 models/RMBG 缓存）；也可用环境变量 `QG_REMOVEBG_MODEL` 覆盖。
+**粗分割模型**：新增可选 `model`，默认 `BiRefNet-general`（与 `QG_BiRefNet` 共用 models/background_removal 缓存）；也可用环境变量 `QG_REMOVEBG_MODEL` 覆盖。
 
 **ViTMatte 权重放哪**：优先从 ComfyUI 的 `models/background_removal/` 模型库读取，按方法自动选子目录——`VITMatte` / `VITMatte(local)` 读 `vitmatte-small-composition-1k/`，base 读 `vitmatte-base-composition-1k/`（目录内需有 `model.safetensors` 或 `pytorch_model.bin`，外加 `config.json` 与 `preprocessor_config.json`）。模型库命中即纯本地加载、不联网，也兼容 `extra_model_paths.yaml` 的挂载路径。模型库没有时才回退 HuggingFace 在线/缓存；也可用环境变量 `QG_VITMATTE_DIR` 指向自定义本地目录（优先级最高）。两个权重仓库均为 Apache-2.0，可自行下载后放入上述目录离线使用。
 
@@ -1110,20 +1110,26 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 ### 目录约定
 
-所有权重都放在 ComfyUI 的 models 目录下，分 2 个子目录（与 ComfyUI-RMBG 插件**同一套缓存**，谁先下过另一边直接复用）：
+v2.19 起本包所有抠图模型统一收敛到 ComfyUI 的 `models/background_removal/` 类别（与本包其它抠图节点同一处，便于集中管理）：
 
 ```
-<ComfyUI>/models/RMBG/
+<ComfyUI>/models/background_removal/
 ├── BiRefNet/     ← 17 个 BiRefNet 变体（RMBG-2.0 除外）+ 3 个模型定义文件
-└── RMBG-2.0/     ← RMBG-2.0 单独一个目录
+├── RMBG-2.0/     ← RMBG-2.0 单独一个目录（subdir）
+├── vitmatte-small-composition-1k/  ← 细节精修小模型
+├── vitmatte-base-composition-1k/   ← 细节精修大模型
+├── rmbg-1.4.onnx / birefnet-v1-lite.onnx  ← 人像抠图换背景按需下载
+└── modnet_*.onnx  ← 随包副本（也在插件 models/background_removal/）
 ```
+
+**旧目录仍可读**：以前下载在 `<ComfyUI>/models/RMBG/{BiRefNet,RMBG-2.0}/` 的模型照常命中，不必搬动；但新下载一律写进上表的 `background_removal/`，不再生成 RMBG 副本。
 
 `<ComfyUI>` 指 ComfyUI 主目录（本机是 `D:/ComfyUI_windows_portable/ComfyUI`）。
 
 ### 一、BiRefNet 家族：1038lab 主仓库（12 项）
 
 仓库：<https://huggingface.co/1038lab/BiRefNet>
-放置位置：全部 `<ComfyUI>/models/RMBG/BiRefNet/`
+放置位置：全部 `<ComfyUI>/models/background_removal/BiRefNet/`（旧 `models/RMBG/BiRefNet/` 仍可读）
 
 | 模型名 | 本地文件名（不可改） | 大小 | 下载地址 |
 | --- | --- | --- | --- |
@@ -1146,7 +1152,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 1038lab 主仓库里**没有**这 5 个，必须去作者按数据集发布的独立仓库取：
 
-放置位置：同样 `<ComfyUI>/models/RMBG/BiRefNet/`
+放置位置：同样 `<ComfyUI>/models/background_removal/BiRefNet/`（旧 RMBG 目录仍可读）
 
 | 模型名 | 本地文件名（不可改） | 大小 | 仓库地址 | 仓库内文件名 |
 | --- | --- | --- | --- | --- |
@@ -1162,7 +1168,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 ### 三、RMBG-2.0（1 项）
 
-放置位置：`<ComfyUI>/models/RMBG/RMBG-2.0/`
+放置位置：`<ComfyUI>/models/background_removal/RMBG-2.0/`（旧 RMBG 目录仍可读）
 
 | 模型名 | 本地文件名 | 大小 | 下载地址 |
 | --- | --- | --- | --- |
@@ -1172,7 +1178,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 ### 四、模型定义文件（3 个，自动下载）
 
-放在 `<ComfyUI>/models/RMBG/BiRefNet/`，BiRefNet 家族共用，缺少时自动从主仓库补：
+放在 `<ComfyUI>/models/background_removal/BiRefNet/`，BiRefNet 家族共用，缺少时自动从主仓库补：
 
 | 文件 | 大小 | 下载地址 |
 | --- | --- | --- |
@@ -1277,7 +1283,7 @@ ComfyUI-QG-Multipack/
 - **「Nodes 2.0（Vue 节点）」下计时器与流式气泡已单独适配**。ComfyUI 新版前端把节点正文交给 Vue 渲染，LiteGraph 的 `drawNode` 提前返回，`onDrawBackground` / `onDrawForeground` 都不再被调用，所以在节点上直接画的内容会整片消失。本包的做法是在主画布之上叠一张透明 `canvas`（`position:absolute; pointer-events:none`），每帧按画布的平移/缩放换算坐标，只重画计时器面板和流式气泡；正常模式下不会创建这张画布，仍走原来的 `onDrawBackground`，因此不会重复绘制。实测（前端 1.57.4）读数、气泡、缩放 60% / 160% 下的位置与大小都正常。
   （中途试过包 `drawFrontCanvas` 往主画布补画：像素采样证明内容确实画出来了，但 Vue 模式把节点画在另一张 overlay canvas 上、压在主画布之上，补画被完全盖住，所以最终改成独立图层。）
 - **右侧「节点参数」面板里颜色还是原生输入框**。节点画布上的颜色字段已经图形化，但右侧面板由前端 Vue 渲染，ComfyUI 前端（1.5x）没有开放 widget 渲染器的扩展点，扩展侧改不了。
-- **`QG_BiRefNet` 首次加载会给模型定义打两处补丁，但只改副本**。`birefnet.py` 是随权重下载的实现，其中 `from .BiRefNet_config import` 的相对导入、以及 window-attention 里 `mask` 与 `attn` 的 dtype 不一致，在本机都会直接报错。节点把打过补丁的版本写进 `models/RMBG/_qg_patched/`（原文件只读），源文件按 `mtime + 大小` 认版本，上游更新后会自动生成新副本。原文件本来就修好过（patch 前后一致）时直接用原文件，不做任何拷贝；万一连一个可写目录都没有，才退回「就地修」，并在写不进去时给出一条说清两种解决方法的报错。
+- **`QG_BiRefNet` 首次加载会给模型定义打两处补丁，但只改副本**。`birefnet.py` 是随权重下载的实现，其中 `from .BiRefNet_config import` 的相对导入、以及 window-attention 里 `mask` 与 `attn` 的 dtype 不一致，在本机都会直接报错。节点把打过补丁的版本写进 `models/background_removal/_qg_patched/`（原文件只读），源文件按 `mtime + 大小` 认版本，上游更新后会自动生成新副本。原文件本来就修好过（patch 前后一致）时直接用原文件，不做任何拷贝；万一连一个可写目录都没有，才退回「就地修」，并在写不进去时给出一条说清两种解决方法的报错。
 - **计时器靠事件判定起停**：`execution_start` 起表，`execution_success` / `execution_error` / `execution_interrupted` 收表，执行中其它节点的 `executing` 事件不参与判定——否则一有节点开始执行就会误停。
 - **改名后旧名会一直留着**：`rules.json` 里每条规则有稳定 `id`，改名时后端自动把旧名记进 `aliases`（最多 8 个），老工作流照常命中，下拉里只显示当前名字。要彻底清掉旧名，删掉这条规则重新建一条即可。
 - **图像反推必须联网、且要有能看图的模型**：本地 Ollama 也要先拉一个视觉模型（如 `qwen2.5vl:7b`）。免费模型（`glm-4.6v-flash`）高峰期会返回 429「访问量过大」，换个模型或等一会儿即可；节点会把接口原文一并报出来。

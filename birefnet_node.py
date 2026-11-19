@@ -1,8 +1,9 @@
 """QG BiRefNet 去除背景 —— 高精度二分图像分割（DIS）抠图节点。
 
 行为对齐 1038lab/ComfyUI-RMBG 的 BiRefNet 节点（先读懂其 AILab_BiRefNet.py
-后自行实现，代码结构全部重写）。模型权重与该插件共享同一缓存目录
-（models/RMBG/BiRefNet），任一节点先下载过，另一边直接复用。
+后自行实现，代码结构全部重写）。v2.19 起本包权重下载落点统一收敛到
+models/background_removal/BiRefNet（与其余抠图节点同一类别）；历史
+models/RMBG 目录仍会读取，老用户已下载的模型照常命中、无需搬动。
 
 模型定义文件（birefnet.py / birefnet_lite.py）来自 HuggingFace
 1038lab/BiRefNet 仓库，运行时动态加载；BiRefNet 模型与权重遵循
@@ -13,7 +14,8 @@ Apache-2.0（ZhengPeng7），本集成代码不复制其文件、仅在运行时
   1038lab/BiRefNet           BiRefNet 12 个变体 + 3 个模型定义文件
   ZhengPeng7/BiRefNet-*      DIS / DIS-TR_TEs / COD / HRSOD / legacy 五个
   1038lab/RMBG-2.0           RMBG-2.0（官方 briaai 仓库 gated，走公开镜像）
-落盘位置统一在 models/RMBG/ 下按模型分子目录，与 ComfyUI-RMBG 共用缓存。
+落盘位置统一在 models/background_removal/ 下按模型分子目录（旧 models/RMBG
+兼容读取）。
 
 流水线：
   1. 预处理：整图缩放到方形 process_res（32 对齐；512 档强制 512），
@@ -39,6 +41,12 @@ from PIL import Image, ImageFilter
 
 import comfy.model_management as mm
 
+# 根目录解析统一走 qg_model_paths（包上下文相对导入优先，顶层兜底给测试）。
+try:  # pragma: no cover - 取决于加载方式
+    from . import qg_model_paths as _QP
+except ImportError:  # pragma: no cover
+    import qg_model_paths as _QP
+
 try:  # scipy 是可选的：没装时遮罩偏移退回逐次 3×3 滤波，结果一样只是慢
     from scipy import ndimage as _ndimage
 except ImportError:  # pragma: no cover - 取决于运行环境
@@ -49,7 +57,7 @@ _REPO_ID = "1038lab/BiRefNet"
 # 每个变体：模型定义脚本、权重文件、推理分辨率档位。
 # default_res 是推理输入的方形边长（模型按固定分辨率训练）。
 # 可选字段：
-#   subdir  —— 权重放到 models/RMBG/<subdir>/（默认落在 models/RMBG/BiRefNet/）
+#   subdir  —— 权重放到 models/background_removal/<subdir>/（默认 .../BiRefNet/）
 #   repo    —— 权重下载源（默认 1038lab/BiRefNet）
 #   dl_name —— 仓库里的文件名（默认与 weights 同名）。ZhengPeng7 各数据集仓库
 #              统一叫 model.safetensors，下载后另存为 weights 指定的本地名。
@@ -124,40 +132,52 @@ def _want_half():
 
 
 def _cache_dir(model_name=None):
-    """与 ComfyUI-RMBG 共享的模型缓存目录（下载落这里）。
+    """新模型的统一下载落点：``models/background_removal/BiRefNet``。
 
-    带 subdir 的模型（如 RMBG-2.0）落在自己的子目录，和 RMBG 插件完全一致，
-    两边谁先下载另一边都能直接用。
+    v2.19 起本包抠图模型统一收敛到 ``background_removal`` 类别，
+    不再往 ``models/RMBG`` 写新副本（旧目录仍会被 _search_dirs 读取，
+    已下载的模型无需搬动）。带 subdir 的模型（如 RMBG-2.0）落自己的子目录。
     """
-    root = os.path.join(folder_paths.models_dir, "RMBG")
+    root = _QP.primary_root("background_removal")
     sub = MODEL_CONFIG.get(model_name, {}).get("subdir") if model_name else None
     return os.path.join(root, sub) if sub else os.path.join(root, "BiRefNet")
 
 
 def _search_dirs(model_name=None):
-    """按优先级列出模型搜索目录：本模型专属目录 → 共享缓存 → 挂载库。"""
+    """按优先级列出搜索目录：新落点 → 历史 RMBG 缓存 → 挂载库。
+
+    历史 ``models/RMBG`` 与各挂载根仅作**兼容读取**，保证老用户已下载的模型
+    照常命中、不重复下载；下载落点只有 :func:`_cache_dir` 一个。
+    """
     dirs = []
     cfg = MODEL_CONFIG.get(model_name, {}) if model_name else {}
     sub = cfg.get("subdir")
 
+    # 1) 新落点（background_removal），带 subdir 的专属目录优先
     if sub:
-        dirs.append(os.path.join(folder_paths.models_dir, "RMBG", sub))
+        dirs.append(os.path.join(_QP.primary_root("background_removal"), sub))
     dirs.append(_cache_dir())
 
-    # 挂载库里除了根目录，常见子目录也要看：BiRefNet/ 与各模型自己的子目录
+    # 2) 历史共享缓存 models/RMBG：老副本继续可用，不再写入
+    legacy = os.path.join(_QP.models_root(), "RMBG")
+    if sub:
+        d = os.path.join(legacy, sub)
+        if d not in dirs and os.path.isdir(d):
+            dirs.append(d)
+    legacy_biref = os.path.join(legacy, "BiRefNet")
+    if legacy_biref not in dirs and os.path.isdir(legacy_biref):
+        dirs.append(legacy_biref)
+
+    # 3) 挂载库：background_removal（新）/ RMBG、BiRefNet（历史兼容）
+    #    每个根下看根目录、BiRefNet/ 与 subdir/ 三种常见布局
     wanted = {"", "BiRefNet"}
     if sub:
         wanted.add(sub)
-    for folder_name in ("BiRefNet", "RMBG"):
-        try:
-            roots = folder_paths.get_folder_paths(folder_name)
-        except KeyError:
-            continue
-        for root in roots:
-            for name in sorted(wanted):
-                d = os.path.join(str(root), name) if name else str(root)
-                if d not in dirs and os.path.isdir(d):
-                    dirs.append(d)
+    for root in _QP.category_roots("background_removal", "RMBG", "BiRefNet"):
+        for name in sorted(wanted):
+            d = os.path.join(str(root), name) if name else str(root)
+            if d not in dirs and os.path.isdir(d):
+                dirs.append(d)
     return dirs
 
 
@@ -294,8 +314,9 @@ def _writable_patch_dir():
     """找一个能写补丁副本的目录：共享缓存 → 本包目录 → 系统临时目录。"""
     here = os.path.dirname(os.path.abspath(__file__))
     candidates = [
-        # 放在 models/RMBG 下一级，不进 BiRefNet/ 子目录，免得和模型文件混在一起
-        os.path.join(folder_paths.models_dir, "RMBG", "_qg_patched"),
+        # 放在 models/background_removal 下一级，不进 BiRefNet/ 子目录，
+        # 免得和模型文件混在一起（v2.19 起 scratch 也收敛到统一类别）
+        os.path.join(_QP.primary_root("background_removal"), "_qg_patched"),
         os.path.join(here, ".patched"),
         os.path.join(tempfile.gettempdir(), "qg_birefnet_patched"),
     ]
@@ -372,7 +393,7 @@ def _patched_script(script_path):
             f"BiRefNet 模型定义 {script_path} 需要打补丁后才能加载，但既找不到可写的"
             f"缓存目录，原文件也写不进去（{exc}）。\n"
             "解决办法（任选其一）：\n"
-            "  1. 让 ComfyUI 对 models/RMBG 目录有写权限；\n"
+            "  1. 让 ComfyUI 对 models/background_removal 目录有写权限；\n"
             "  2. 手动把该文件里的 `from .BiRefNet_config` 改成 "
             "`from BiRefNet_config`，并把 window-attention 里的 "
             "`+ mask.unsqueeze(1).unsqueeze(0)` 改成 "
