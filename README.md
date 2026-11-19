@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.18.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.18.1** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -604,15 +604,17 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 
 | 细节方法 | 依赖与特点 |
 | --- | --- |
-| `VITMatte`（默认） | 用 `hustvl/vitmatte-small-composition-1k`，首次需联网下载；按 trimap 出发丝级 alpha，边缘最细 |
-| `VITMatte(local)` | 同一个小模型，只允许读本地缓存，不联网 |
-| `vitmatte-base-composition-1k` | 更大的 base 模型，更细但更慢、显存更高 |
+| `VITMatte`（默认） | 用 `hustvl/vitmatte-small-composition-1k`，优先读模型库，缺失才联网下载；按 trimap 出发丝级 alpha，边缘最细 |
+| `VITMatte(local)` | 同一个小模型，只允许读本地，不联网 |
+| `vitmatte-base-composition-1k` | 更大的 base 模型，更细但更慢、显存更高；同样优先读模型库 |
 | `PyMatting` | 闭合形式抠图，需 `pymatting` + `pyamg` |
 | `GuidedFilter` | opencv 引导滤波，速度最快，细节不如前几种 |
 
 **控件**：`detail_erode` / `detail_dilate`（默认 6）决定 trimap 的腐蚀/膨胀核，值越大待处理边缘越宽；`black_point` / `white_point`（默认 0.01 / 0.99）把精修后的 alpha 线性拉伸到 0..1；`process_detail` 关掉就只输出 BiRefNet 粗分割结果，不需要任何额外依赖；`device` 选 `auto` 跟随 ComfyUI 当前设备，指定 `cuda` 但不可用时自动回退 CPU；`max_megapixels`（默认 2.0）是 ViTMatte 推理时的像素上限（百万像素），超出会按比例缩小处理再放大回原尺寸。
 
-**粗分割模型**：新增可选 `model`，默认 `BiRefNet-general`（与 `QG_BiRefNet` 共用 models/RMBG 缓存）；也可用环境变量 `QG_REMOVEBG_MODEL` 覆盖。ViTMatte 权重若已放在本地，可用 `QG_VITMATTE_DIR` 指向该目录。
+**粗分割模型**：新增可选 `model`，默认 `BiRefNet-general`（与 `QG_BiRefNet` 共用 models/RMBG 缓存）；也可用环境变量 `QG_REMOVEBG_MODEL` 覆盖。
+
+**ViTMatte 权重放哪**：优先从 ComfyUI 的 `models/background_removal/` 模型库读取，按方法自动选子目录——`VITMatte` / `VITMatte(local)` 读 `vitmatte-small-composition-1k/`，base 读 `vitmatte-base-composition-1k/`（目录内需有 `model.safetensors` 或 `pytorch_model.bin`，外加 `config.json` 与 `preprocessor_config.json`）。模型库命中即纯本地加载、不联网，也兼容 `extra_model_paths.yaml` 的挂载路径。模型库没有时才回退 HuggingFace 在线/缓存；也可用环境变量 `QG_VITMATTE_DIR` 指向自定义本地目录（优先级最高）。两个权重仓库均为 Apache-2.0，可自行下载后放入上述目录离线使用。
 
 **输出**：`IMAGE` 是 RGBA（alpha 即精修遮罩，原图 RGB 不变），`MASK` 是同尺寸单通道遮罩。批次逐帧处理，帧数与顺序和输入一致。
 

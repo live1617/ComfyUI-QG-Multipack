@@ -110,12 +110,39 @@ pa = mod.pymatting_alpha(pm_rgb, pm_mask, 1, 0.01, 0.99)
 check("PyMatting 形状", pa.shape == (128, 128), str(pa.shape))
 check("PyMatting 值域", bool(np.all(np.isfinite(pa))) and float(pa.min()) >= 0)
 
-check("VITMatte 小模型仓库", mod._vitmatte_source("VITMatte")[0].endswith(
-    "vitmatte-small-composition-1k"))
-check("VITMatte base 仓库", mod._vitmatte_source(
-    "vitmatte-base-composition-1k")[0].endswith(
-    "vitmatte-base-composition-1k"))
-check("local 模式只读本地", mod._vitmatte_source("VITMatte(local)")[1] is True)
+# 模型库发现：造一个临时 background_removal 根，验证命中本地目录时只读、
+# 不再联网；缺失时才回退仓库名。环境变量优先级最高。
+import tempfile
+with tempfile.TemporaryDirectory() as tmp:
+    fake_root = Path(tmp) / "background_removal"
+    small_dir = fake_root / "vitmatte-small-composition-1k"
+    small_dir.mkdir(parents=True)
+    (small_dir / "model.safetensors").write_bytes(b"stub")
+    (small_dir / "config.json").write_text("{}", encoding="utf-8")
+    (small_dir / "preprocessor_config.json").write_text("{}", encoding="utf-8")
+
+    # 把临时根插到发现列表最前面，模拟用户模型库命中
+    orig_roots = mod._vitmatte_model_roots
+    mod._vitmatte_model_roots = lambda: [str(fake_root)] + orig_roots()
+    try:
+        src, only = mod._vitmatte_source("VITMatte")
+        check("模型库命中返回本地路径", src == str(small_dir), src)
+        check("模型库命中只读本地", only is True)
+        check("目录完整性判定", mod._is_vitmatte_dir(str(small_dir)))
+        check("缺配置不算命中", not mod._is_vitmatte_dir(str(fake_root)))
+
+        base_src, _ = mod._vitmatte_source("vitmatte-base-composition-1k")
+        check("base 未命中回退仓库名",
+              base_src.endswith("vitmatte-base-composition-1k"), base_src)
+
+        # local 严格语义：即便没命中也只读本地
+        check("local 模式只读本地",
+              mod._vitmatte_source("VITMatte(local)")[1] is True)
+    finally:
+        mod._vitmatte_model_roots = orig_roots
+
+check("小模型目录名映射", mod._VIT_MODEL_DIRS["VITMatte"] ==
+      "vitmatte-small-composition-1k")
 
 # ---- 3. run 流程（stub 粗分割与 ViTMatte）----
 orig_predict = mod._BR._runner.predict

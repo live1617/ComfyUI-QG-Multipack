@@ -59,6 +59,13 @@ _VIT_REPOS = {
     "VITMatte(local)": "hustvl/vitmatte-small-composition-1k",
     "vitmatte-base-composition-1k": "hustvl/vitmatte-base-composition-1k",
 }
+# 每种 ViTMatte 方法在 ComfyUI/models/background_removal 下的目录名。
+# 权重放这里（随用户模型库走，不进插件包），离线环境无需联网下载。
+_VIT_MODEL_DIRS = {
+    "VITMatte": "vitmatte-small-composition-1k",
+    "VITMatte(local)": "vitmatte-small-composition-1k",
+    "vitmatte-base-composition-1k": "vitmatte-base-composition-1k",
+}
 _VIT_DIR_ENV = "QG_VITMATTE_DIR"
 
 # 模型按 (仓库, 本地目录) 缓存，避免批次里每帧重新加载。
@@ -135,12 +142,61 @@ def _resolve_device(device):
     return mm.get_torch_device()
 
 
+def _vitmatte_model_roots():
+    """ComfyUI/models/background_removal 的全部根路径，按优先级。
+
+    先问 folder_paths（带上 extra_model_paths.yaml 的挂载），再拼 models_dir
+    兜底。只拼 models_dir 会让挂载库里的模型明明在、节点却说没找到。
+    """
+    roots = []
+    try:
+        import folder_paths
+        for path in folder_paths.get_folder_paths("background_removal"):
+            if path and path not in roots:
+                roots.append(path)
+    except Exception:  # 不在 ComfyUI 里跑 / 类别没注册
+        pass
+    try:
+        import folder_paths
+        fallback = os.path.join(folder_paths.models_dir, "background_removal")
+    except Exception:
+        here = os.path.dirname(os.path.abspath(__file__))
+        fallback = os.path.normpath(os.path.join(
+            here, "..", "..", "..", "models", "background_removal"))
+    if fallback not in roots:
+        roots.append(fallback)
+    return roots
+
+
+def _is_vitmatte_dir(path):
+    """目录里有可用权重（safetensors 或 bin）+ 两份配置才算命中。"""
+    if not os.path.isdir(path):
+        return False
+    has_weights = (os.path.isfile(os.path.join(path, "model.safetensors"))
+                   or os.path.isfile(os.path.join(path, "pytorch_model.bin")))
+    has_config = (os.path.isfile(os.path.join(path, "config.json"))
+                  and os.path.isfile(os.path.join(path, "preprocessor_config.json")))
+    return has_weights and has_config
+
+
 def _vitmatte_source(method):
-    """返回 (模型标识, 是否只允许本地缓存)。"""
-    repo = _VIT_REPOS.get(method, _VIT_REPOS["VITMatte"])
+    """返回 (模型标识, 是否只允许本地文件)。
+
+    优先级：环境变量 > 用户模型库 > HuggingFace 仓库。命中模型库时返回本地
+    绝对路径并置 local_only=True，from_pretrained 只读本地、完全不联网。
+    ``VITMatte(local)`` 的严格语义另行保留：即便模型库和缓存都没有，也不联网。
+    """
     local_dir = os.environ.get(_VIT_DIR_ENV, "").strip()
     if local_dir:
-        return local_dir, method == "VITMatte(local)"
+        return local_dir, True
+
+    folder = _VIT_MODEL_DIRS.get(method, _VIT_MODEL_DIRS["VITMatte"])
+    for root in _vitmatte_model_roots():
+        candidate = os.path.join(root, folder)
+        if _is_vitmatte_dir(candidate):
+            return candidate, True
+
+    repo = _VIT_REPOS.get(method, _VIT_REPOS["VITMatte"])
     return repo, method == "VITMatte(local)"
 
 
@@ -161,9 +217,11 @@ def _load_vitmatte(method):
             processor = VitMatteImageProcessor.from_pretrained(source, local_files_only=local_only)
         except Exception as error:
             raise RuntimeError(
-                "ViTMatte 模型加载失败（%s）。首次使用需要联网下载 hustvl 权重；"
-                "也可以把权重放到本地目录并设置环境变量 %s。"
-                % (error, _VIT_DIR_ENV)) from error
+                "ViTMatte 模型加载失败（%s）。可把权重放到 ComfyUI 的 "
+                "models/background_removal/%s 目录（离线可用），或设置环境变量 "
+                "%s 指向本地权重目录；首次联网下载 hustvl 权重也可。"
+                % (error, _VIT_MODEL_DIRS.get(method, _VIT_MODEL_DIRS["VITMatte"]),
+                   _VIT_DIR_ENV)) from error
         cached = (model, processor)
         _VIT_CACHE[key] = cached
     return cached, local_only
