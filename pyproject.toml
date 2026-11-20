@@ -13,5 +13,5 @@ Repository = "https://github.com/live1617/ComfyUI-QG-Multipack"
 
 [tool.comfy]
 DisplayName = "QG 工具（ComfyUI-QG-Multipack）"
-PublisherId = ""
-Icon = ""
+PublisherId = "live1617"
+Icon = "https://raw.githubusercontent.com/live1617/ComfyUI-QG-Multipack/main/icon.svg"

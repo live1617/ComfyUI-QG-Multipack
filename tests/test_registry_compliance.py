@@ -142,6 +142,32 @@ def main() -> int:
     desc = m.group(1) if m else ""
     check("description 声明 32 个节点（与实际一致）", "32 个节点" in desc, desc[:120])
 
+    # [tool.comfy].PublisherId 必填且非空（Registry 发布硬要求，创建后不可改）。
+    pm = _re.search(r'^PublisherId\s*=\s*"([^"]*)"', pyproject, _re.M)
+    publisher = pm.group(1).strip() if pm else ""
+    check("PublisherId 已填写且非空", bool(publisher), repr(publisher))
+    check("PublisherId 与预期账号一致", publisher == "live1617", repr(publisher))
+    check("version 符合语义化版本", bool(_re.search(
+        r'^version\s*=\s*"\d+\.\d+\.\d+"', pyproject, _re.M)))
+
+    # Icon（可选但已启用）：官方要求公开 URL、SVG/PNG/JPG/GIF、≤400×400、正方形。
+    im = _re.search(r'^Icon\s*=\s*"([^"]*)"', pyproject, _re.M)
+    icon = im.group(1).strip() if im else ""
+    check("Icon 已填写且非空", bool(icon), repr(icon))
+    check("Icon 是 https 公开 URL", icon.startswith("https://"), repr(icon))
+    check("Icon 指向本仓库 raw 文件",
+          icon.startswith("https://raw.githubusercontent.com/live1617/ComfyUI-QG-Multipack/"), repr(icon))
+    icon_path = PKG_ROOT / "icon.svg"
+    check("仓库根目录存在 icon.svg", icon_path.exists())
+    if icon_path.exists():
+        svg = icon_path.read_text(encoding="utf-8")
+        wm = _re.search(r'\bwidth="(\d+)"', svg)
+        hm = _re.search(r'\bheight="(\d+)"', svg)
+        w = int(wm.group(1)) if wm else 0
+        h = int(hm.group(1)) if hm else 0
+        check("icon.svg 为 400×400 正方形（符合 Registry 上限）", w == 400 and h == 400, f"{w}x{h}")
+        check("icon.svg 是合法 SVG（含 viewBox）", "<svg" in svg and "viewBox" in svg)
+
     # .comfyignore 存在且排除 tests/，避免开发文件进入 Registry 包。
     ci = PKG_ROOT / ".comfyignore"
     check("存在 .comfyignore", ci.exists())
