@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.18.3** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.18.4** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -14,7 +14,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_MaskByName` | Mask by Name | 输入一句话（如 "the girl's hair"），用 ComfyUI 内置 SAM 3 找出对应区域（需自备 SAM 3 权重，见[安装](#安装)） | `MASK` / `cut_out` / `found` |
 | `QG_QwenTextEncode` | Qwen Image 2.1 文本编码 | Qwen Image 2.1 专用条件编码：最多 10 张参考图（输入口动态增减）+ 填充/裁剪 + 局部遮罩，一次出 positive / negative / 初始 latent / 还原信息 | `positive` / `negative` / `latent` / `info` |
 | `QG_QwenRestore` | 还原 Qwen Image 2.1 画布 | 吃上面节点的 `info`，把「填充」模式加的灰边画布按比例裁回去（与本包或 Goohaitools 原版的 info 均可互连） | `image` |
-| `QG_QwenPromptOptimizer` | Qwen image 2.1 提示词优化 | 本地 llama-cpp 反推/优化提示词：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；需 `models/LLM` 下的 Qwen GGUF + mmproj，依赖缺失时节点内按钮自动安装 | `prompt` / `json` / `是否反推` |
+| `QG_QwenPromptOptimizer` | Qwen image 2.1 提示词优化 | 本地 llama-cpp 反推/优化提示词：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；需 `models/LLM` 下的 Qwen GGUF + mmproj，依赖缺失时节点内按钮给出手动安装指引 | `prompt` / `json` / `是否反推` |
 | `QG_Translate` | LLM 翻译 | 调 DeepSeek / Kimi / 通义 / 智谱 / 硅基流动 / OpenRouter / 本地 Ollama 等 OpenAI 兼容接口做翻译 | `text` |
 | `QG_PromptTranslate` | 提示词翻译 | 原文进、译好的提示词出；服务可选两条百度通道（通用 / 大模型）或任一已配服务商，目标语言 / 自动释放显存 / 种子四个控件 | `translated_text` |
 | `QG_ImageToPrompt` | 图像反推提示词 | 图片进、提示词出：规则来自设置里的规则管理器（内置 5 条：像素级描述 / Tag 标签流 / 自然语言短描述 / 图像编辑指令 / 视频动态提示词），视觉模型按「服务商/模型」选，**边推理边在节点下方出字**，batch 逐帧反推 | `提示词输出` / `提示词列表` |
@@ -303,7 +303,7 @@ MASK(可选) ──▶ mask       latent_width ──▶│                     
 | 接图 + 空提示词 | **反推**：视觉模型看图，直接写出能复刻这张图的完整生成提示词（自动忽略水印文字） |
 | 接图 + 有提示词 | 图生图改写：按提示词指令改写图片内容描述 |
 
-**模型要求**：`models/LLM`（或 `llm`）目录下放 Qwen Image 2.1 的三个 GGUF——文生图模型（文件名含 `PE-T2I`）、图生图模型（含 `PE-I2I`）、视觉编码器（含 `mmproj`）。目录没注册过也没关系，节点导入时会自动把 `models/LLM` 注册进 ComfyUI 的模型目录表。**依赖 llama-cpp-python ≥ 0.3.48（JamePeng fork，带 Qwen3.5 视觉支持）+ diskcache**；没装时节点上会出现「llama-cpp需0.3.48以上，点击自动安装」按钮，点击确认后用当前 ComfyUI 的 Python 自动从 GitHub 下载匹配系统/Python/CUDA 的官方 wheel（装完需完全重启 ComfyUI）。没装时执行会报「llama-cpp-python 不可用」，不影响其他节点。
+**模型要求**：`models/LLM`（或 `llm`）目录下放 Qwen Image 2.1 的三个 GGUF——文生图模型（文件名含 `PE-T2I`）、图生图模型（含 `PE-I2I`）、视觉编码器（含 `mmproj`）。目录没注册过也没关系，节点导入时会自动把 `models/LLM` 注册进 ComfyUI 的模型目录表。**依赖 llama-cpp-python ≥ 0.3.48（JamePeng fork，带 Qwen3.5 视觉支持）+ diskcache**；没装时节点上会出现「llama-cpp需0.3.48以上，点击查看安装说明」按钮，点击后弹出匹配当前系统/Python/CUDA 的 wheel 文件名后缀与官方发布页地址，需自行下载 wheel 并用 ComfyUI 自带 Python 执行 `python -m pip install <wheel文件> diskcache`（装完完全重启 ComfyUI）。**本包不自动安装依赖**：在节点进程内用 subprocess 调 pip 违反 Comfy Registry 安全标准，故改为手动安装指引（与上游 GPL 逐行移植的详见 NOTICES 的有意差异）。没装时执行会报「llama-cpp-python 不可用」，不影响其他节点。
 
 **控件**（与参考截图逐项一致）：`用户提示词`（多行）/ `文生图模型` / `图生图模型` / `视觉模型` / `输出语言`（自动/中文/English，自动按提示词语言判断，反推固定中文）/ `透明背景`（强制输出 RGBA 透明背景描述，自动改写并删除与背景矛盾的内容）/ `种子值` + `种子模式`（随机时每次排队自动换种子、执行后回填实际值）/ `卸载模型`（自动/保持加载/运行后自动卸载/运行前后自动卸载——「自动」按剩余内存判断）。输入口 `图像 1~10` 与 `QG_QwenTextEncode` 同款**动态增减**（接一个多显示两个空位，最多 10 个）；提示词文本框高度可拖拽节点边缘调整并按节点记忆。
 
@@ -1096,7 +1096,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 | `QG_PromptTranslate` | 百度翻译（appid + key），或上面任一 LLM 服务商 | 同上，失败原因同样画在节点下方 |
 | `QG_ImageToPrompt` | 视觉模型 API（共用服务商配置，要选**支持图像输入**的模型） | 选到纯文本模型会报错 |
 | `QG_PromptOptimize` | 对话模型 API（共用服务商配置，无需图像能力） | 没配地址/Key 时运行报错，原因同时画在节点下方 |
-| `QG_QwenPromptOptimizer` | pip：`llama-cpp-python>=0.3.48`（JamePeng fork）+ `diskcache`；`models/LLM` 下自备 Qwen Image 2.1 GGUF（T2I / I2I / mmproj 三个文件） | 缺依赖时节点能拖出来、能连线，运行报「llama-cpp-python 不可用」；节点上会自动出现「点击自动安装」按钮（需能访问 GitHub），装完要完全重启 ComfyUI |
+| `QG_QwenPromptOptimizer` | pip：`llama-cpp-python>=0.3.48`（JamePeng fork）+ `diskcache`；`models/LLM` 下自备 Qwen Image 2.1 GGUF（T2I / I2I / mmproj 三个文件） | 缺依赖时节点能拖出来、能连线，运行报「llama-cpp-python 不可用」；节点上会出现「点击查看安装说明」按钮，给出匹配 wheel 后缀与发布页地址，**需手动下载安装**（Registry 合规，不自动装），装完要完全重启 ComfyUI |
 
 ### 容错到什么程度
 

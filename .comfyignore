@@ -1,0 +1,35 @@
+# Comfy Registry 发布归档排除清单。
+# 语法同 .gitignore；comfy node publish 默认打包所有 git 跟踪文件，
+# 这里把开发与测试资产排除在 registry 归档之外（不影响本地备份包）。
+
+# 对照/回归测试：含 exec()、GPL 参考源码加载器、子进程调用，
+# 若进入归档会触发 Registry 自动扫描误判 eval/exec/subprocess 红线。
+tests/
+
+# 开发文档与内部规范（项目既定不公开）
+ISSUES.md
+开发规范.md
+
+# 本机私有配置与用户规则（含凭证/用户数据）
+config.json
+config.json.tmp
+rules.json
+
+# Python 运行产物
+__pycache__/
+*.pyc
+*.pyo
+
+# 顶层专有字体（All Rights Reserved，不随包分发；锚定顶层避免误伤 assets/fonts/）
+/fonts/
+
+# 大模型权重缓存：随包仅有 Apache-2.0 的 modnet onnx，其余按需下载
+*.safetensors
+*.ckpt
+*.pt
+
+# 编辑器与系统文件
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

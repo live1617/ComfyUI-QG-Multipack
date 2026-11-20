@@ -1,10 +1,13 @@
 // QG Qwen image 2.1 提示词优化 —— 前端增强。
 // 本文件是 Goohaitools-comfyui（GPL-3.0）web/js/qwen_image_prompt_optimizer.js
 // 的逐行移植：动态图像口（最后连接位置 index+2、最多 10 个）、llama-cpp 依赖
-// 检测与「点击自动安装」按钮、随机种子队列 hook、提示词高度可拖拽布局。
+// 检测按钮、随机种子队列 hook、提示词高度可拖拽布局。
 // 两项目同为 GPL-3.0；移植写入本包并在 THIRD-PARTY-NOTICES.md 署名。
 // 有意差异：注册 key、HTTP 路由前缀（/qg_qwen_prompt_optimizer/*）与节点内部
 // 状态标识改用 qg 前缀，避免与参考插件同画布时互相干扰。
+// Comfy Registry 合规：上游「点击自动安装」会在节点进程内 subprocess pip
+// install，违反 Registry 安全标准；本包改为「查看手动安装说明」，只展示环境
+// 匹配结果与发布页地址，不发起任何安装请求。
 import { app } from "/scripts/app.js";
 import { api } from "/scripts/api.js";
 
@@ -17,7 +20,6 @@ const SEED_WIDGET_NAMES = new Set(["种子值", "seed"]);
 const SEED_MODE_WIDGET_NAMES = new Set(["种子模式", "seed_mode"]);
 const LAST_SEED_MODE_PROPERTY = "qg_last_executed_seed_mode";
 const LLAMA_STATUS_ROUTE = "/qg_qwen_prompt_optimizer/llama_status";
-const LLAMA_INSTALL_ROUTE = "/qg_qwen_prompt_optimizer/install_llama";
 const imageName = (index) => `图像_${String(index + 1).padStart(2, "0")}`;
 const isImageInput = (slot) => {
     const name = String(slot?.name || "");
@@ -104,41 +106,20 @@ async function installLlamaDependencyButton(node) {
         return;
     }
     if (!status?.needs_install || node._qgLlamaInstallWidget) return;
-    const canInstall = status.supported === true;
-    const label = "llama-cpp需0.3.48以上，点击自动安装";
-    const widget = node.addWidget("button", label, null, async () => {
-        if (!canInstall) {
-            dependencyMessage(`${status.reason}\n请从以下地址手动安装：\n${status.release_url}`);
-            window.open(status.release_url, "_blank", "noopener,noreferrer");
-            return;
-        }
-        const confirmed = window.confirm(
-            `${status.installed_version ? `当前 llama-cpp-python 版本：${status.installed_version}` : "当前未安装 llama-cpp-python"}`
-            + `\n\n将使用当前 ComfyUI 的 Python 自动安装匹配 ${status.backend} 的最新官方 wheel。安装后必须完全重启 ComfyUI。`
-            + "此安装需从github下载轮子，请确保网络能正常访问github才能安装成功。是否继续？",
-        );
-        if (!confirmed) return;
-        widget.name = "正在安装 llama-cpp...";
-        widget.label = widget.name;
-        node.setDirtyCanvas?.(true, true);
-        try {
-            const response = await api.fetchApi(LLAMA_INSTALL_ROUTE, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ confirm: true }),
-            });
-            const result = await response.json();
-            if (!response.ok || !result?.success) throw new Error(result?.message || `HTTP ${response.status}`);
-            widget.name = "安装完成，请重启 ComfyUI";
-            widget.label = widget.name;
-            widget.callback = () => dependencyMessage(result.message, true);
-            dependencyMessage(`${result.message}\n\n已安装：${result.wheel}`, true);
-        } catch (error) {
-            widget.name = "安装失败，点击重试";
-            widget.label = widget.name;
-            dependencyMessage(`llama-cpp-python 安装失败：\n${error?.message || error}\n\n可前往发布页手动安装：\n${status.release_url}`);
-        }
-        node.setDirtyCanvas?.(true, true);
+    const label = "llama-cpp需0.3.48以上，点击查看安装说明";
+    const widget = node.addWidget("button", label, null, () => {
+        const current = status.installed_version
+            ? `当前 llama-cpp-python 版本：${status.installed_version}\n`
+            : "当前未安装 llama-cpp-python\n";
+        const detail = status.supported === true
+            ? `${current}\n本包遵循 Comfy Registry 安全规范，不自动安装依赖。\n`
+              + `请到发布页下载文件名以 ${status.wheel_suffix || "匹配当前环境"} 结尾的 `
+              + `${status.backend || ""} wheel，用 ComfyUI 自带 Python 执行：\n`
+              + `  python -m pip install <wheel文件> diskcache\n安装后完全重启 ComfyUI。`
+            : `${current}\n${status.reason || "当前环境无法自动匹配 wheel。"}\n`
+              + `请到发布页按系统与 Python 版本手动选择对应 wheel。`;
+        dependencyMessage(`${detail}\n\n发布页：${status.release_url}`);
+        window.open(status.release_url, "_blank", "noopener,noreferrer");
     });
     widget.serialize = false;
     widget.options = { ...(widget.options || {}), serialize: false };

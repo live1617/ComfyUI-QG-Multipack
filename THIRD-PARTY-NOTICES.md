@@ -194,6 +194,21 @@ under the README's rule: runtime **98.94%** (937/947), node **95.65%**
 no Goohaitools source file is redistributed — the ported logic lives in
 this pack's own files with attribution here, per the license.
 
+**Compliance-driven intentional difference (v2.18.4):** the upstream
+"click to auto-install" installs `llama-cpp-python` by calling `pip install`
+through `subprocess` from inside the node process. The Comfy Registry
+security standard explicitly forbids this
+("Runtime package installation through subprocess calls is not permitted",
+docs.comfy.org/registry/standards). This pack therefore removes
+`_find_llama_wheel`, `_install_llama_cpp`, the `subprocess`/`urllib.request`/
+`asyncio` imports and the async install lock. The `/install_llama` route and
+its handler name are retained for backward compatibility, but now only return
+a manual-install hint (matched wheel suffix + the official releases URL);
+the front-end button opens that page instead of POSTing an install request.
+The detection helpers that the zero-difference comparison asserts on —
+`_version_tuple`, `_llama_install_target`, `_llama_dependency_status` — are
+byte-identical to upstream, so all 227 comparison checks still pass.
+
 Measured for `QG_RatioResolution` vs "比例与分辨率"
 (`GoohaiRatioAndResolution`): the sizing semantics are deliberately kept
 line-for-line equivalent (original-ratio from an optional image, six

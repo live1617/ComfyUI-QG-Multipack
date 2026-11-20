@@ -1,4 +1,4 @@
-# QG Qwen Image 2.1 提示词优化 —— 节点本体 + llama-cpp 依赖检测/自动安装接口。
+# QG Qwen Image 2.1 提示词优化 —— 节点本体 + llama-cpp 依赖检测/手动安装指引。
 #
 # 本文件是 Goohaitools-comfyui（GPL-3.0）「nodes/Qwen image 2.1 提示词优化.py」
 # 的逐行移植：三种模式（文生图 / 图生图 / 反推）的判定、system prompt 选择、
@@ -7,17 +7,20 @@
 # THIRD-PARTY-NOTICES.md 署名。有意差异：注册 key 与 HTTP 路由前缀改为
 # qg（/qg_qwen_prompt_optimizer/*，避免与参考插件冲突）、分类「QG 工具」、
 # 控制台提示前缀、路由注册加 PromptServer 空指针保护（单测/无服务环境不炸）。
+#
+# 有意差异（Comfy Registry 合规）：上游的「点击自动安装 llama-cpp」通过在节点
+# 进程内 subprocess 调 pip install 实现，违反 Registry 安全标准
+# 「Runtime package installation through subprocess calls is not permitted」。
+# 本包保留依赖检测与状态接口，但把自动安装改为「手动安装指引」：返回匹配当前
+# 环境的 wheel 名称与发布页地址，由用户自行安装。检测函数
+# _version_tuple / _llama_install_target / _llama_dependency_status 保持逐行一致。
 from __future__ import annotations
 
-import asyncio
 import importlib.metadata
 import importlib.util
-import json
 import platform
 import re
-import subprocess
 import sys
-import urllib.request
 from pathlib import Path
 
 import folder_paths
@@ -66,8 +69,9 @@ _ensure_llm_folder_registry()
 
 _LLAMA_CPP_MIN_VERSION = (0, 3, 48)
 _LLAMA_CPP_RELEASES_URL = "https://github.com/JamePeng/llama-cpp-python/releases"
-_LLAMA_CPP_API_URL = "https://api.github.com/repos/JamePeng/llama-cpp-python/releases?per_page=100"
-_LLAMA_CPP_INSTALL_LOCK = asyncio.Lock()
+# 有意差异：上游用 _LLAMA_CPP_API_URL 查 GitHub Releases 找 wheel、再用
+# subprocess 调 pip 安装。本包不查询、不安装，只按平台给出手动安装指引。
+# 保留 _LLAMA_CPP_RELEASES_URL 供指引文案指向发布页。
 
 
 def _version_tuple(value: str) -> tuple[int, int, int]:
@@ -143,65 +147,40 @@ def _llama_dependency_status() -> dict[str, object]:
     }
 
 
-def _find_llama_wheel(target: dict[str, object]) -> tuple[str, str]:
-    request = urllib.request.Request(
-        _LLAMA_CPP_API_URL,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "ComfyUI-QG-Multipack"},
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        releases = json.load(response)
-    marker = str(target["tag_marker"]).casefold()
-    suffix = str(target["wheel_suffix"]).casefold()
-    for release in releases:
-        if release.get("draft") or release.get("prerelease"):
-            continue
-        tag = str(release.get("tag_name", ""))
-        if marker not in tag.casefold():
-            continue
-        for asset in release.get("assets", []):
-            name = str(asset.get("name", ""))
-            url = str(asset.get("browser_download_url", ""))
-            if name.casefold().endswith(suffix) and url.startswith(
-                "https://github.com/JamePeng/llama-cpp-python/releases/download/"
-            ):
-                return url, name
-    raise RuntimeError("官方发布页没有找到与当前系统、Python 和 CUDA 完全匹配的 wheel。")
+def _llama_manual_hint() -> dict[str, object]:
+    """生成手动安装指引：不联网查询、不执行任何安装命令。
 
-
-def _install_llama_cpp() -> dict[str, object]:
+    Comfy Registry 明令禁止在节点内用 subprocess 运行时安装包；自动安装改为
+    给出「环境识别结果 + 匹配 wheel 的文件名后缀 + 发布页地址」，由用户用
+    ComfyUI 自带 Python 自行安装。检测字段完全复用 _llama_install_target，
+    因此与上游的逐行对照断言不受影响。
+    """
     target = _llama_install_target()
+    release_url = str(target.get("release_url") or _LLAMA_CPP_RELEASES_URL)
+    suffix = str(target.get("wheel_suffix") or "")
+    backend = str(target.get("backend") or "")
     if not target.get("supported"):
-        raise RuntimeError(str(target.get("reason") or "当前环境不支持自动安装。"))
-    wheel_url, wheel_name = _find_llama_wheel(target)
-    command = [
-        sys.executable,
-        "-m",
-        "pip",
-        "install",
-        "--upgrade",
-        "--force-reinstall",
-        "--no-deps",
-        "--disable-pip-version-check",
-        "--no-input",
-        "diskcache",
-        wheel_url,
-    ]
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=900,
-        check=False,
-    )
-    output = "\n".join(part.strip() for part in (completed.stdout, completed.stderr) if part.strip())
-    if completed.returncode != 0:
-        raise RuntimeError(f"pip 安装失败（退出码 {completed.returncode}）：\n{output[-4000:]}")
+        return {
+            "success": False,
+            "manual": True,
+            "message": (
+                f"{target.get('reason') or '当前环境无法自动匹配 wheel。'}"
+                f"\n请到发布页按系统 / Python 版本选择对应 wheel 手动安装：{release_url}"
+            ),
+            "release_url": release_url,
+        }
     return {
-        "success": True,
-        "wheel": wheel_name,
-        "message": "llama-cpp-python 安装完成。请完全重启 ComfyUI 后再使用该节点。",
+        "success": False,
+        "manual": True,
+        "message": (
+            f"为符合 Comfy Registry 安全规范，本包不自动安装依赖。"
+            f"\n请到发布页下载文件名以 {suffix} 结尾的 {backend} wheel，"
+            f"用 ComfyUI 自带 Python 执行：python -m pip install <wheel文件> diskcache"
+            f"\n安装后完全重启 ComfyUI。发布页：{release_url}"
+        ),
+        "release_url": release_url,
+        "wheel_suffix": suffix,
+        "backend": backend,
     }
 
 
@@ -215,24 +194,12 @@ if _routes is not None:
 
     @_routes.post("/qg_qwen_prompt_optimizer/install_llama")
     async def qg_qwen_install_llama(request):
-        try:
-            payload = await request.json()
-        except Exception:
-            payload = {}
-        if payload.get("confirm") is not True:
-            return web.json_response({"success": False, "message": "安装请求缺少用户确认。"}, status=400)
-        if _LLAMA_CPP_INSTALL_LOCK.locked():
-            return web.json_response({"success": False, "message": "安装任务正在运行。"}, status=409)
-        async with _LLAMA_CPP_INSTALL_LOCK:
-            try:
-                result = await asyncio.to_thread(_install_llama_cpp)
-                return web.json_response(result)
-            except Exception as error:
-                return web.json_response({
-                    "success": False,
-                    "message": str(error),
-                    "release_url": _LLAMA_CPP_RELEASES_URL,
-                }, status=500)
+        """保留路由名（对照测试断言其存在），但只返回手动安装指引。
+
+        上游在此处执行 subprocess pip install，违反 Comfy Registry 安全标准；
+        本包不安装任何包，仅回传匹配当前环境的 wheel 后缀与发布页地址。
+        """
+        return web.json_response(_llama_manual_hint())
 
 
 def _models_dir() -> str:
