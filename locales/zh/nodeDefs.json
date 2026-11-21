@@ -1941,5 +1941,109 @@
         "tooltip": "筛选后的遮罩；合并时是单张 [H,W]，逐帧时是按次序堆叠的批次。"
       }
     }
+  },
+  "QG_YoloDetectorLoader": {
+    "display_name": "QG 检测模型加载器",
+    "description": "扫描本机 ultralytics 权重并用它加载目标检测模型，输出自造检测对象 QG_YOLO_DETECTOR，供 QG 简易 Seg 检测使用。只用 ultralytics 推理库，不依赖 ComfyUI-Impact-Pack 或 Impact-Subpack。",
+    "inputs": {
+      "model_name": {
+        "name": "检测模型",
+        "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下，或用 QG_ULTRALYTICS_DIR 指定目录。"
+      },
+      "device": {
+        "name": "推理设备",
+        "tooltip": "推理设备。auto 自动选 CUDA（可用时），cpu 强制 CPU，cuda 不可用时自动回退 CPU。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "检测器",
+        "tooltip": "自造检测对象 QG_YOLO_DETECTOR，只能接本包的 QG 简易 Seg 检测节点。"
+      }
+    }
+  },
+  "QG_SamModelLoader": {
+    "display_name": "QG SAM 模型加载器",
+    "description": "扫描本机 SAM 权重并用 segment_anything 加载，输出自造 SAM 对象 QG_SAM_MODEL，供 QG 简易 Seg 检测把检测框细化成轮廓。按文件名自动识别 vit_b/vit_l/vit_h，不依赖 ComfyUI-Impact-Pack。",
+    "inputs": {
+      "model_name": {
+        "name": "SAM 模型",
+        "tooltip": "本机 SAM 权重（models/sams）。按文件名自动识别 vit_b/vit_l/vit_h；HQ 权重按 vit_h 加载。"
+      },
+      "device": {
+        "name": "推理设备",
+        "tooltip": "推理设备。auto 自动选 CUDA（可用时），cpu 强制 CPU，cuda 不可用时自动回退 CPU。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "SAM 模型",
+        "tooltip": "自造 SAM 对象 QG_SAM_MODEL，只能接本包的 QG 简易 Seg 检测节点。"
+      }
+    }
+  },
+  "QG_SimpleSegDetector": {
+    "display_name": "QG 简易 Seg 检测",
+    "description": "用自造检测器出框，可选接自造 SAM 模型把框细化成轮廓，输出自造 QG_SEGS 容器与普通遮罩批次。参数对齐参考节点的控件含义，逐项独立实现。类型自造，不能接 Impact 下游；MASK 输出可直接接本包遮罩类节点。",
+    "inputs": {
+      "detector": {
+        "name": "检测器",
+        "tooltip": "自造检测器对象，由 QG 检测模型加载器输出。"
+      },
+      "image": {
+        "name": "图像",
+        "tooltip": "单张图片。批次大于 1 会直接报错，请先用批次拆分节点逐帧处理。"
+      },
+      "bbox_threshold": {
+        "name": "BBox 阈值",
+        "tooltip": "检测置信度阈值：低于此分数的框丢弃。"
+      },
+      "bbox_dilation": {
+        "name": "BBox 膨胀",
+        "tooltip": "框四边膨胀像素：正值外扩、负值收缩，影响裁剪与 SAM 提示框。"
+      },
+      "crop_factor": {
+        "name": "裁剪系数",
+        "tooltip": "裁剪系数：每段裁剪区域相对检测框放大的倍数，记入 SEG 元数据。"
+      },
+      "drop_size": {
+        "name": "最小尺寸",
+        "tooltip": "最小尺寸：宽或高小于该像素数的段丢弃。"
+      },
+      "sub_threshold": {
+        "name": "次要阈值",
+        "tooltip": "SAM 二值化阈值：越高遮罩越保守，只保留 SAM 更有把握的核心区域。"
+      },
+      "sub_dilation": {
+        "name": "次要膨胀",
+        "tooltip": "SAM 提示框在框膨胀之上再膨胀的像素，正值外扩。"
+      },
+      "sub_bbox_expansion": {
+        "name": "次要 BBox 扩展",
+        "tooltip": "SAM 提示框四边额外扩展的像素，给 SAM 更多上下文。"
+      },
+      "sam_mask_hint_threshold": {
+        "name": "SAM 遮挡检测阈值",
+        "tooltip": "SAM 打分低于该值的段直接丢弃（质量过滤），0 表示不过滤。"
+      },
+      "post_dilation": {
+        "name": "扩张后",
+        "tooltip": "对最终每段遮罩做膨胀（负值收缩）的像素数，0 不处理。"
+      },
+      "sam_model": {
+        "name": "SAM 模型",
+        "tooltip": "可选 SAM 模型（QG SAM 模型加载器输出）。给了就把检测框细化成轮廓；不给则直接用矩形框作遮罩。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Segs",
+        "tooltip": "自造 QG_SEGS 容器：每段的框、标签、打分与遮罩；只能接本包下游。"
+      },
+      "1": {
+        "name": "遮罩",
+        "tooltip": "遮罩批次 [N,H,W]，每段一帧，可直接接本包的遮罩类节点。"
+      }
+    }
   }
 }

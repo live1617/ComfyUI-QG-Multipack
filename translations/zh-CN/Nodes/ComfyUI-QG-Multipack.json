@@ -888,5 +888,68 @@
     "outputs": {
       "MASK": "遮罩"
     }
+  },
+  "QG_YoloDetectorLoader": {
+    "title": "QG 检测模型加载器",
+    "description": "扫描本机 ultralytics 权重并用它加载目标检测模型，输出自造检测对象 QG_YOLO_DETECTOR，供 QG 简易 Seg 检测使用。只用 ultralytics 推理库，不依赖 ComfyUI-Impact-Pack 或 Impact-Subpack。",
+    "inputs": {
+      "model_name": "检测模型",
+      "device": "推理设备"
+    },
+    "widgets": {
+      "model_name": "检测模型",
+      "device": "推理设备"
+    },
+    "outputs": {
+      "detector": "检测器"
+    }
+  },
+  "QG_SamModelLoader": {
+    "title": "QG SAM 模型加载器",
+    "description": "扫描本机 SAM 权重并用 segment_anything 加载，输出自造 SAM 对象 QG_SAM_MODEL，供 QG 简易 Seg 检测把检测框细化成轮廓。按文件名自动识别 vit_b/vit_l/vit_h，不依赖 ComfyUI-Impact-Pack。",
+    "inputs": {
+      "model_name": "SAM 模型",
+      "device": "推理设备"
+    },
+    "widgets": {
+      "model_name": "SAM 模型",
+      "device": "推理设备"
+    },
+    "outputs": {
+      "sam_model": "SAM 模型"
+    }
+  },
+  "QG_SimpleSegDetector": {
+    "title": "QG 简易 Seg 检测",
+    "description": "用自造检测器出框，可选接自造 SAM 模型把框细化成轮廓，输出自造 QG_SEGS 容器与普通遮罩批次。参数对齐参考节点的控件含义，逐项独立实现。类型自造，不能接 Impact 下游；MASK 输出可直接接本包遮罩类节点。",
+    "inputs": {
+      "detector": "检测器",
+      "image": "图像",
+      "bbox_threshold": "BBox 阈值",
+      "bbox_dilation": "BBox 膨胀",
+      "crop_factor": "裁剪系数",
+      "drop_size": "最小尺寸",
+      "sub_threshold": "次要阈值",
+      "sub_dilation": "次要膨胀",
+      "sub_bbox_expansion": "次要 BBox 扩展",
+      "sam_mask_hint_threshold": "SAM 遮挡检测阈值",
+      "post_dilation": "扩张后",
+      "sam_model": "SAM 模型"
+    },
+    "widgets": {
+      "bbox_threshold": "BBox 阈值",
+      "bbox_dilation": "BBox 膨胀",
+      "crop_factor": "裁剪系数",
+      "drop_size": "最小尺寸",
+      "sub_threshold": "次要阈值",
+      "sub_dilation": "次要膨胀",
+      "sub_bbox_expansion": "次要 BBox 扩展",
+      "sam_mask_hint_threshold": "SAM 遮挡检测阈值",
+      "post_dilation": "扩张后"
+    },
+    "outputs": {
+      "segs": "Segs",
+      "MASK": "遮罩"
+    }
   }
 }

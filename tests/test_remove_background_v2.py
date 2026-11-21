@@ -203,15 +203,15 @@ nd = json.loads((PKG / "locales" / "zh" / "nodeDefs.json").read_text(encoding="u
 tr = json.loads((PKG / "translations" / "zh-CN" / "Nodes" /
                  "ComfyUI-QG-Multipack.json").read_text(encoding="utf-8"))
 key = "QG_RemoveBackgroundV2"
-check("nodeDefs 33 节点", len(nd) == 33, str(len(nd)))
-check("translations 33 节点", len(tr) == 33, str(len(tr)))
+check("nodeDefs 36 节点", len(nd) == 36, str(len(nd)))
+check("translations 36 节点", len(tr) == 36, str(len(tr)))
 check("两份词表描述逐字一致", nd[key]["description"] == tr[key]["description"])
 check("词表覆盖全部控件", set(nd[key]["inputs"]) == set(list(req) + list(opt)))
 check("细节方法选项有中文说明", len(nd[key]["inputs"]["detail_method"]["options"]) == 5)
 check("输出名两路", set(tr[key]["outputs"]) == {"IMAGE", "MASK"})
 rd = (PKG / "README.md").read_text(encoding="utf-8")
-check("README 覆盖节点数 33", "覆盖全部 33 个节点" in rd)
-check("README 概括句 33/32", "33 个节点里 32 个" in rd)
+check("README 覆盖节点数 36", "覆盖全部 36 个节点" in rd)
+check("README 概括句 36/35", "36 个节点里 35 个" in rd)
 check("README 登记新节点", key in rd)
 
 print("== 汇总：%d 项，失败 %d ==" % (_np, _fail))

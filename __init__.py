@@ -41,10 +41,14 @@
 #           扫描 models/id_photo/ 自备素材，前端网格选模板出提示词）
 #   · 后端：遮罩次序过滤节点（qg_mask_order_filter.py，注册 key QG_MaskOrderFilter，
 #           参考 Goohaitools「Seg次序过滤」规格独立实现，只吃/出 MASK，不依赖 SEGS）
+#   · 后端：简易 Seg 检测三件套（qg_yolo_detector_loader.py / qg_sam_model_loader.py
+#           / qg_simple_seg_detector.py，注册 key QG_YoloDetectorLoader /
+#           QG_SamModelLoader / QG_SimpleSegDetector，自造类型 QG_YOLO_DETECTOR /
+#           QG_SAM_MODEL / QG_SEGS，只用 ultralytics + segment_anything，不依赖 Impact）
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.21.0"
+__version__ = "2.22.0"
 
 import asyncio
 import time
@@ -436,6 +440,44 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 遮罩次序过滤导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 简易 Seg 检测三件套：自造类型，只用 ultralytics + segment_anything，不依赖 Impact
+try:
+    from . import qg_yolo_detector_loader as _yolo_loader
+
+    NODE_CLASS_MAPPINGS.update(_yolo_loader.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_yolo_loader.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 检测模型加载器导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+try:
+    from . import qg_sam_model_loader as _sam_loader
+
+    NODE_CLASS_MAPPINGS.update(_sam_loader.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_sam_loader.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG SAM 模型加载器导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+try:
+    from . import qg_simple_seg_detector as _simple_seg
+
+    NODE_CLASS_MAPPINGS.update(_simple_seg.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_simple_seg.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 简易 Seg 检测导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 
