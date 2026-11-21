@@ -1897,5 +1897,69 @@
         "tooltip": "单通道遮罩，白色为前景、黑色为背景，灰色是半透明边缘。"
       }
     }
+  },
+  "QG_SimpleSegDetectorSEGS": {
+    "display_name": "QG 简易 Seg 检测 (SEGS)",
+    "description": "用 BBox 检测器在单张图上找目标，输出 Impact-Pack 的 SEGS 区域集合。可选 SAM 模型把矩形细化成轮廓，或用 SEGM 检测器的遮罩取交，最后对每段遮罩做膨胀/收缩。需要本机安装 ComfyUI-Impact-Pack；未安装时节点仍显示，只在运行时给出中文提示。",
+    "inputs": {
+      "bbox_detector": {
+        "name": "BBox 检测器",
+        "tooltip": "Impact-Pack 的 BBox 检测器输出，先找出画面里目标的矩形框。"
+      },
+      "image": {
+        "name": "图像",
+        "tooltip": "单张图片。本节点不接受批次（batch 大于 1 会直接报错）。"
+      },
+      "bbox_threshold": {
+        "name": "BBox 阈值",
+        "tooltip": "置信度低于此分数的检测框丢弃。调低可找出更多目标，也更容易误检。"
+      },
+      "bbox_dilation": {
+        "name": "BBox 膨胀",
+        "tooltip": "检测框向外扩的像素数；负值收缩，0 保持原样。"
+      },
+      "crop_factor": {
+        "name": "裁剪系数",
+        "tooltip": "每段区域的裁剪框相对检测框放大多少倍，给后续局部重绘留出上下文。"
+      },
+      "drop_size": {
+        "name": "最小尺寸",
+        "tooltip": "宽或高小于该像素数的检测框直接丢弃。"
+      },
+      "sub_threshold": {
+        "name": "次要阈值",
+        "tooltip": "SAM 遮罩提示与 SEGM 检测器使用的置信度阈值。"
+      },
+      "sub_dilation": {
+        "name": "次要膨胀",
+        "tooltip": "传给 SAM 的提示区域膨胀量，或 SEGM 检测器使用的膨胀量。"
+      },
+      "sub_bbox_expansion": {
+        "name": "次要 BBox 扩展",
+        "tooltip": "SAM 检测提示时把框再扩多少像素，0 为不扩。"
+      },
+      "sam_mask_hint_threshold": {
+        "name": "SAM 遮罩提示阈值",
+        "tooltip": "只有遮罩值高于该比例的区域才作为 SAM 的提示点。"
+      },
+      "post_dilation": {
+        "name": "扩张后",
+        "tooltip": "对最终每段遮罩做膨胀（负值收缩）的像素数，0 不处理。"
+      },
+      "sam_model_opt": {
+        "name": "SAM 模型（可选）",
+        "tooltip": "Impact-Pack 的 SAMLoader 输出。给了就把 BBox 矩形细化成轮廓；与 SEGM 同时给时 SAM 优先。"
+      },
+      "segm_detector_opt": {
+        "name": "SEGM 检测器（可选）",
+        "tooltip": "没给 SAM 时用它的遮罩与 BBox 区域取交；若与 BBox 检测器是同一对象，直接复用检测结果。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "区域集合",
+        "tooltip": "检测到的区域集合（Impact-Pack 的 SEGS），可直接接 Detailer 等 Impact 下游节点。"
+      }
+    }
   }
 }

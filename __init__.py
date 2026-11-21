@@ -37,12 +37,15 @@
 #           图片进、主色 #RRGGBB 出，降采样+滤边+容差分桶）
 #   · 后端：面部对齐节点（face_align_node.py，注册 key QG_FaceAlign，
 #           目标图人脸按参考图缩放旋转对齐，无参考图时仅摆平角度）
+#   · 后端：简易 Seg 检测节点（qg_simple_seg_detector.py，注册 key
+#           QG_SimpleSegDetectorSEGS，按 Impact-Pack 规格独立实现，把 BBox 检测
+#           结果经 SAM/SEGM 精修后打包成 SEGS，运行时依赖 impact.core）
 #   · 后端：证件照服装发型节点（qg_id_photo_outfit.py，注册 key QG_IDPhotoOutfit，
 #           扫描 models/id_photo/ 自备素材，前端网格选模板出提示词）
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.18.4"
+__version__ = "2.19.0"
 
 import asyncio
 import time
@@ -420,6 +423,23 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 移除背景 V2 导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+
+# 简易 Seg 检测：qg_simple_seg_detector.py（注册 key QG_SimpleSegDetectorSEGS）
+# 按 Impact-Pack 的 ImpactSimpleDetectorSEGS 规格独立实现，运行时依赖
+# impact.core 与其自定义类型；软依赖探测在模块内部，未装 Impact-Pack 时
+# 节点仍注册、只在执行时给中文提示。单独 try/except 不拖垮其余节点。
+try:
+    from . import qg_simple_seg_detector as _simple_seg
+
+    NODE_CLASS_MAPPINGS.update(_simple_seg.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_simple_seg.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 简易 Seg 检测导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 

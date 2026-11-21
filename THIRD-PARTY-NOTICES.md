@@ -489,3 +489,22 @@ Two matting weights are redistributed **unmodified** with this pack at
   included them because the packaging script's exclude list did not
   mirror `.gitignore`; the script now excludes the whole top-level
   `fonts/` directory and asserts that no such file enters an archive.
+
+
+## ComfyUI-Impact-Pack — runtime API and type contract (GPL-3.0)
+
+- Upstream: https://github.com/ltdrdata/ComfyUI-Impact-Pack
+- License: GNU General Public License v3.0 (same license as this pack).
+- Used by: `QG_SimpleSegDetectorSEGS`. This pack **does not copy** the
+  upstream `SimpleDetectorForEach` source. The node shell, input validation,
+  dependency probing and Chinese tooltips are written here; the detection and
+  mask operations are performed at run time by calling the upstream public
+  API (`impact.core.make_sam_mask`, `segs_bitwise_and_mask`, `dilate_segs`,
+  `segs_to_combined_mask`) and the detector objects passed in by the user.
+- Required at run time: Impact-Pack defines the custom types `BBOX_DETECTOR`,
+  `SAM_MODEL`, `SEGM_DETECTOR`, `SEGS` and the `SEG` namedtuple that this node
+  consumes/produces. Those type strings intentionally match the upstream
+  exactly so that workflows can connect this node to Impact-Pack loaders and
+  downstream detailer nodes. Impact-Pack is **not bundled**; the node stays
+  registered without it and raises a Chinese instruction only when executed.
+- No upstream source code, binary, or model is redistributed by this pack.

@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.18.4** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.19.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -42,6 +42,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_IDPhotoPrompt` | QG 证件照简易提示词 | 13 维下拉 + seed 组合成一句中文人像提示词（随机可复现，值英文编号、中文仅显示） | `prompt` |
 | `QG_PhotoSheetMixed` | QG 证件照混合排版（A5） | 13 种 A5 固定版式，含双尺寸混排 / 旋转 / 竖版 / 零间距，批量逐帧出图 | `sheet` / `layout_name` / `total` |
 | `QG_ImageComposite` | QG 图像合成 | 把源图按坐标贴到目标画布，遮罩控制混合；负坐标与四边越界按裁切处理，批次自动补齐 | `image` |
+| `QG_SimpleSegDetectorSEGS` | QG 简易 Seg 检测 (SEGS) | 用 Impact-Pack 的 BBox 检测器找目标，可选 SAM 细化为轮廓或 SEGM 遮罩取交，输出 SEGS 给 Impact 下游；需本机安装 Impact-Pack | `segs` |
 
 ## 示例工作流
 
@@ -59,7 +60,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后四个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 32 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
+本节覆盖全部 33 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -137,8 +138,9 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_IDPhotoPrompt` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照简易提示词」（GPL-3.0）；13 维选项中文词条取自公开规格（属数据），组装 / 随机 / 值映射自写，未复制上游代码；修掉上游 `random.seed()` 污染进程全局随机与「简单背景」重复叠加 | 0% |
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
 | `QG_ImageComposite` | ✅ 原创（参照规格） | 功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0）；坐标求交、遮罩混合、批次补齐自写，并修掉上游负坐标走负索引贴错位置、只处理右下越界、目标帧被截短三个问题，未复制上游源码 | 0% |
+| `QG_SimpleSegDetectorSEGS` | ✅ 原创（参照规格，运行时依赖） | 功能规格参考 ComfyUI-Impact-Pack 的 `ImpactSimpleDetectorSEGS`（GPL-3.0）；节点壳 / 参数校验 / 软依赖提示自写，未复制上游源码。类型 `BBOX_DETECTOR` / `SAM_MODEL` / `SEGM_DETECTOR` / `SEGS` 与 SEG 结构由 Impact-Pack 定义，运行时调用其 `impact.core` 公开接口（make_sam_mask / segs_bitwise_and_mask / dilate_segs / segs_to_combined_mask），本机必须安装 Impact-Pack | 0% |
 
-一句话概括：**32 个节点里 31 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**33 个节点里 32 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -1039,6 +1041,15 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 实现上 13 个版式是**数据**：每条版式由若干「横带」组成，横带里是若干「区域」（尺寸 + 行列 + 是否旋转），一个引擎统一算居中与粘贴，几何计算 `layout_plan()` 是纯整数运算、不依赖 PIL，所以 5 档 DPI × 13 版式的「不越界 / 不重叠 / 份数正确」可以离线断言。相对参照规格修掉四处：批量只取第一帧、`ImageOps.expand` 描边撑大照片挤占相邻格、超界被 `paste` 静默裁切、`#ABC` 短 hex 按固定下标切字符串导致异常。
 
+## 简易 Seg 检测（`QG_SimpleSegDetectorSEGS`）
+
+把 BBox 检测器找出的矩形框打包成 Impact-Pack 的 `SEGS`，直接接它的 Detailer 等下游节点。控件与 Impact-Pack「简单检测器 (SEGS)」一致：BBox 阈值/膨胀、裁剪系数、最小尺寸、次要三项、SAM 遮罩提示阈值、扩张后。
+
+- **前置条件**：本机必须装 `ComfyUI-Impact-Pack`。本节点的三个输入类型（`BBOX_DETECTOR` / `SAM_MODEL` / `SEGM_DETECTOR`）与输出 `SEGS` 都是它定义的；未安装时节点仍会显示，只在运行时给中文提示，不影响本包其余节点。类型字符串故意不加 QG 前缀——要与 Impact-Pack 逐字一致才能连线。
+- **推荐接线**：Impact 的 BBox 检测器加载器 → 本节点的「BBox 检测器」；图片进「图像」；可选接 Impact 的 `SAMLoader` 输出把矩形细化成轮廓。给了 SAM 时优先走 SAM，否则给了 SEGM 检测器才用其遮罩取交。若 SEGM 与 BBox 是同一个检测器对象（YOLO-World 常见接法），自动省掉一次重复检测。
+- **限制**：只接受单张图片，batch 大于 1 直接报错（与 Impact 的 detector 口径一致）。
+- **实现边界**：按公开规格独立实现，未复制上游源码；运行时调用 `impact.core` 的公开接口。来源与许可证见 `THIRD-PARTY-NOTICES.md`。
+
 ## 前端增强（不产生节点，直接作用于画布）
 
 | 文件 | 作用 |
@@ -1275,7 +1286,7 @@ ComfyUI-QG-Multipack/
 | `locales/zh/nodeDefs.json` | ComfyUI 官方前端 i18n | ComfyUI 前端自动加载 | 节点 key → `display_name` / `description` / `inputs`({name,tooltip}) / `outputs`（**输出索引字符串** "0"/"1"…） |
 | `translations/zh-CN/Nodes/`、`Menus/ComfyUI-QG-Multipack.json` | ComfyUI-Global-Translation（原 AIGODLIKE 系） | 汉化插件按需加载 | 节点 key → `title` / `description` / `inputs` / `widgets` / `outputs`（**槽名/控件参数名**）；Menus 是全局下拉值映射 |
 
-- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 32 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
+- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 33 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
 - **规范约定**：`widgets` 键用源码里的真实参数名，不用界面显示名；**不写恒等翻译**（键==值的条目无意义，还会污染插件的「已翻译文本」判定）；`ui` 字段用于翻译节点内嵌 DOM 面板的英文原文——本包面板文案本身就是中文，暂不需要 `ui` 词条。分类也不用 `Categories` 词表（本包 category 已是「QG 工具」）。
 - 新增/改名节点、增删控件或输出槽时，两套词表都要同步；`tests/test_i18n_standard.py` 会校验节点数、需汉化项覆盖、无恒等翻译、description 齐全。
 
