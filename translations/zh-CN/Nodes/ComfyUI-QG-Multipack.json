@@ -953,5 +953,25 @@
       "segs": "Segs",
       "MASK": "遮罩"
     }
+  },
+  "QG_MaskToSeg": {
+    "title": "QG 遮罩到 Seg",
+    "description": "把 ComfyUI 原生 MASK 转成自造 QG_SEGS：每个独立连通区域出一段，带框、标签、打分与遮罩。可接 QG 遮罩次序过滤等本包下游；类型自造，不依赖 Impact-Pack。批次遮罩先逐像素取最大值合成一张再分段。",
+    "inputs": {
+      "mask": "遮罩",
+      "combine": "合并方式",
+      "crop_factor": "裁剪系数",
+      "bbox_fill": "填充 BBox",
+      "drop_size": "最小尺寸",
+      "is_contour": "轮廓方式"
+    },
+    "widgets": {
+      "combine": "合并方式",
+      "bbox_fill": "填充 BBox",
+      "is_contour": "轮廓方式"
+    },
+    "outputs": {
+      "segs": "Segs"
+    }
   }
 }

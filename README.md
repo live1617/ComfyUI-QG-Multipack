@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.3** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.22.4** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -46,6 +46,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_YoloDetectorLoader` | QG 检测模型加载器 | 扫描本机 ultralytics 权重并加载成自造检测器 QG_YOLO_DETECTOR；只用 ultralytics，不依赖 Impact | `detector` |
 | `QG_SamModelLoader` | QG SAM 模型加载器 | 扫描本机 SAM 权重并加载成自造对象 QG_SAM_MODEL，按文件名识别 vit_b/l/h；不依赖 Impact | `sam_model` |
 | `QG_SimpleSegDetector` | QG 简易 Seg 检测 | 检测器出框 → 可选 SAM 逐框精修 → 膨胀/质量过滤，自造类型 QG_SEGS + 原生 MASK 双输出 | `segs` / `MASK` |
+| `QG_MaskToSeg` | QG 遮罩到 Seg | 把 MASK 按连通域逐段转成自造 QG_SEGS：合并/裁剪系数/填充 BBox/最小尺寸/填充轮廓五个控件；批次先取最大值合成再分段 | `segs` |
 
 ## 示例工作流
 
@@ -63,7 +64,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后四个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 36 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
+本节覆盖全部 37 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -145,8 +146,9 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_YoloDetectorLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Subpack 的检测加载器；模型扫描、路径解析、软依赖提示、自造类型全自写，只调 ultralytics 的公开 `YOLO(path)` 接口，类型不与 Impact 互通，未复制上游源码 | 0% |
 | `QG_SamModelLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Pack 的 SAM 加载器；权重扫描、类型推断、设备解析、自造类型全自写，只调 segment_anything 的公开 `sam_model_registry` / `SamPredictor` 接口，未复制上游源码 | 0% |
 | `QG_SimpleSegDetector` | ✅ 原创（参照规格） | 控件与数据流参考 Impact-Pack「简易 Seg 检测」；出框/逐框 SAM 精修/膨胀/质量过滤/自造 QG_SEGS 容器全部自写，类型不与 Impact 互通，另出原生 MASK，未复制上游源码 | 0% |
+| `QG_MaskToSeg` | ✅ 原创（参照规格） | 控件语义参考 Impact-Pack「MaskToSeg」；连通域提取/合并/填充 BBox/最小尺寸/填充轮廓/自造 QG_SEGS 全部自写，类型不与 Impact 互通，缺 cv2 有纯 numpy 回退，未复制上游源码 | 0% |
 
-一句话概括：**36 个节点里 35 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**37 个节点里 36 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -1095,6 +1097,35 @@ Bingsu/adetailer 的单文件直链格式：`https://huggingface.co/Bingsu/adeta
 
 以上三个来自 Meta 官方 `facebookresearch/segment-anything` 仓库 [Model Checkpoints](https://github.com/facebookresearch/segment-anything#model-checkpoints) 一节的原始直链。可选的 HQ 权重在 <https://huggingface.co/lkeab/hq-sam>（如 `sam_hq_vit_b.pth`，加载器按 `vit_h` 注册表读取）；显存有限优先用 `vit_b`。
 
+### `QG_MaskToSeg` 遮罩到 Seg
+
+> **来源：原创（参照规格）**。控件语义参考 Impact-Pack「MaskToSeg」，连通域提取、合并、填充与自造容器全部独立实现，未复制上游源码，也不导入 `impact.core`。
+
+**作用**：把 ComfyUI 原生 MASK 转成自造 `QG_SEGS`——遮罩里每个独立连通区域出一段（带框、标签、打分、遮罩）。和检测器那一路是互补的两条造段路径：检测路线靠 YOLO 出框、SAM 出轮廓；这条路线直接吃现成遮罩。输出可接 `QG_MaskOrderFilter` 等本包下游。
+
+```
+遮罩 ──▶ QG_MaskToSeg ──▶ Segs(QG_SEGS) ──▶ QG 遮罩次序过滤 ──▶ Segs + Mask
+```
+
+**输入 / 输出**
+
+| 槽 | 类型 | 说明 |
+| --- | --- | --- |
+| `遮罩` | MASK | `[H,W]` 单张或 `[N,H,W]` 批次；批次先逐像素取最大值合成一张再分段（与参考节点一致） |
+| `Segs` | `QG_SEGS` | 每段一个连通区域；自造类型，只能接本包下游，不能喂给 Impact 的 Detailer |
+
+**控件**
+
+| 控件 | 默认值 | 说明 |
+| --- | --- | --- |
+| `合并方式` | 逐区域分段 | **逐区域分段**：每个独立连通域各出一段；**合并为一段**：整张遮罩非零像素当一个整体，只出一段 |
+| `裁剪系数` | `3.0` | 记入段的元数据（裁剪框相对外接框的放大倍数）；本节点不裁图，供下游按同一口径使用 |
+| `填充 BBox` | 不填充 | 打开后把每段外接矩形范围填成实心 1.0，适合整块区域处理 |
+| `最小尺寸` | `10` | 外接框宽或高不超过该像素数的段丢弃，滤掉噪点小块 |
+| `轮廓方式` | 填充轮廓 | **填充轮廓**：用连通域实心轮廓当段遮罩；**保留原遮罩**：与原遮罩相乘，保留灰度与镂空 |
+
+**实现边界**：用 `cv2.findContours`（RETR_TREE，只取顶层轮廓）提取连通域；缺 `cv2` 时自动回退到纯 numpy 的 4 邻域洪泛标记，结果一致。整批 MASK 先取逐像素最大值合成再分段，与参考节点的 `batch_mask_to_segs` 同口径。空遮罩返回 0 段的空容器，不报错。
+
 ## 前端增强（不产生节点，直接作用于画布）
 
 | 文件 | 作用 |
@@ -1156,6 +1187,7 @@ Bingsu/adetailer 的单文件直链格式：`https://huggingface.co/Bingsu/adeta
 | `QG_YoloDetectorLoader` | pip：`ultralytics`；`models/ultralytics/{bbox,segm}` 下自备 YOLO 权重（或 `QG_ULTRALYTICS_DIR`） | 缺库时节点能拖出来、照常列权重，运行报中文安装提示；缺权重时下拉给出占位说明 |
 | `QG_SamModelLoader` | pip：`segment_anything`（facebookresearch 官方仓库）；`models/sams` 下自备 SAM 权重（或 `QG_SAMS_DIR`） | 同上，缺库运行时提示；权重体积大，显存小建议用 vit_b |
 | `QG_SimpleSegDetector` | 无额外 pip 依赖；但要接前两个加载器的输出才有意义 | 缺检测器直接报中文提示；不接 SAM 时退化为矩形框遮罩 |
+| `QG_MaskToSeg` | 无额外 pip 依赖；用 `cv2.findContours` 提取连通域，缺 cv2 时纯 numpy 回退 | 空遮罩返回 0 段空容器，不报错；自造 QG_SEGS 只能接本包下游 |
 
 ### 容错到什么程度
 

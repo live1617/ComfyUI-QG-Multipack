@@ -45,10 +45,12 @@
 #           / qg_simple_seg_detector.py，注册 key QG_YoloDetectorLoader /
 #           QG_SamModelLoader / QG_SimpleSegDetector，自造类型 QG_YOLO_DETECTOR /
 #           QG_SAM_MODEL / QG_SEGS，只用 ultralytics + segment_anything，不依赖 Impact）
+#   · 后端：遮罩到 Seg 节点（qg_mask_to_seg.py，注册 key QG_MaskToSeg，
+#           把 MASK 连通域转成自造 QG_SEGS，参考 Impact MaskToSeg 规格独立实现）
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.22.3"
+__version__ = "2.22.4"
 
 import asyncio
 import time
@@ -478,6 +480,19 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 简易 Seg 检测导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+# 遮罩到 Seg：qg_mask_to_seg.py（注册 key QG_MaskToSeg）
+try:
+    from . import qg_mask_to_seg as _mask_to_seg
+
+    NODE_CLASS_MAPPINGS.update(_mask_to_seg.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_mask_to_seg.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] QG 遮罩到 Seg 导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 

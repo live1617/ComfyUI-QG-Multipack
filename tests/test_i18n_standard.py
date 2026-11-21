@@ -65,7 +65,7 @@ with open(os.path.join(PKG,
     menu = json.load(fh)
 
 # ---- 一、nodeDefs（官方前端标准） ----
-check("nodeDefs 36 个节点", len(nd) == 36, str(len(nd)))
+check("nodeDefs 37 个节点", len(nd) == 37, str(len(nd)))
 bad_field = [k for k, v in nd.items() if "display_name" not in v or "title" in v]
 check("全部用官方字段 display_name（无 title）", not bad_field, str(bad_field))
 no_desc = [k for k, v in nd.items() if not v.get("description")]
@@ -84,7 +84,7 @@ for k, v in nd.items():
 check("inputs value 均为 {name, ...} 对象", not bad_in, str(bad_in))
 
 # ---- 二、translations（AIGODLIKE 汉化插件标准） ----
-check("translations 36 个节点", len(tr) == 36, str(len(tr)))
+check("translations 37 个节点", len(tr) == 37, str(len(tr)))
 check("两套词表 key 完全一致", set(nd) == set(tr),
       str(set(nd) ^ set(tr)))
 miss_title = [k for k, v in tr.items() if not v.get("title")]
