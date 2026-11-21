@@ -208,7 +208,7 @@ with io.open(os.path.join(PKG, "locales/zh/nodeDefs.json"), encoding="utf-8") as
     nd = json.load(fh)
 with io.open(os.path.join(PKG, "translations/zh-CN/Nodes/ComfyUI-QG-Multipack.json"), encoding="utf-8") as fh:
     tr = json.load(fh)
-check("两套词表各 33 节点", len(nd) == len(tr) == 33, "%d/%d" % (len(nd), len(tr)))
+check("两套词表各 34 节点", len(nd) == len(tr) == 34, "%d/%d" % (len(nd), len(tr)))
 key = "QG_SimpleSegDetectorSEGS"
 check("两套词表都有新节点", key in nd and key in tr)
 check("nodeDefs inputs 覆盖 13 项", len(nd[key]["inputs"]) == 13, str(len(nd[key]["inputs"])))

@@ -1961,5 +1961,25 @@
         "tooltip": "检测到的区域集合（Impact-Pack 的 SEGS），可直接接 Detailer 等 Impact 下游节点。"
       }
     }
+  },
+  "QG_UltralyticsDetectorLoader": {
+    "display_name": "QG 检测加载器 (Ultralytics)",
+    "description": "选择本机 ultralytics 权重，加载后输出 Impact 生态的 BBox 检测器与 SEGM 检测器。bbox/ 开头的模型只给矩形框，segm/ 开头同时给实例分割遮罩。权重扫描 models/ultralytics/bbox 与 models/ultralytics/segm（含 extra_model_paths 挂载）；未安装 ComfyUI-Impact-Subpack 时节点仍显示，只在运行时给中文提示。",
+    "inputs": {
+      "model_name": {
+        "name": "模型",
+        "tooltip": "选择本机 ultralytics 权重。bbox/ 开头只给矩形框，segm/ 开头同时给出实例分割遮罩；放在 models/ultralytics/bbox 或 segm 目录下。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "BBox 检测",
+        "tooltip": "Impact 生态的 BBox 检测器对象，可接 QG 简易 Seg 检测等节点。"
+      },
+      "1": {
+        "name": "SEGM 检测",
+        "tooltip": "Impact 生态的 SEGM 检测器对象；bbox 模型返回空检测器占位。"
+      }
+    }
   }
 }

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""节点级回归：把静态契约覆盖的 26 个模块 / 27 个注册 key 全部纳入检查。
+"""节点级回归：把静态契约覆盖的 27 个模块 / 28 个注册 key 全部纳入检查。
 
 注意：PhotoKit 并入的 6 个节点在 __init__.py 里按名字动态导入，另有
 独立几何测试 tests/test_photokit_geometry.py，未纳入本文件静态契约；
-所以这里的模块数不等于包内节点总数 33。
+所以这里的模块数不等于包内节点总数 34。
 
 从两层把这个盲区堵上，且**不依赖 GPL 参考源码、真实模型、网络或 API Key**：
 
-1. 静态契约层：AST 读 26 个后端模块（其中 qwen_text_encode 注册 2 个 key，
-   所以共 27 个后端注册 key），逐个核对注册 key、RETURN_TYPES / RETURN_NAMES
+1. 静态契约层：AST 读 27 个后端模块（其中 qwen_text_encode 注册 2 个 key，
+   所以共 28 个后端注册 key），逐个核对注册 key、RETURN_TYPES / RETURN_NAMES
    长度、FUNCTION 指向的方法确实存在、CATEGORY。全部后端节点一个不漏。
 2. 运行时层：对此前完全没有节点级测试的模块真导入、真调用纯逻辑与安全分支
    （含只测过 helpers 的 QG_MaskByName、只测过 runtime 的
@@ -114,7 +114,7 @@ MODULES = [
     "qg_id_photo_prompt", "photo_sheet_mixed_node", "qg_image_composite",
     "qg_id_photo_size_picker", "qg_color_picker", "qg_multi_photo_sheet",
     "qg_image_batch_builder", "qg_remove_background_v2",
-    "qg_simple_seg_detector",
+    "qg_simple_seg_detector", "qg_ultralytics_detector_loader",
 ]
 
 # 此前审查点名「完全没有节点级测试」的模块，本文件对它们做真调用。
@@ -157,7 +157,7 @@ def safe(name, fn, *args, **kwargs):
 # ---------------------------------------------------------------------------
 # 一、静态契约：22 个后端模块 / 24 个注册 key
 # ---------------------------------------------------------------------------
-print("== 一、静态契约（26 个模块 / 27 个 key） ==")
+print("== 一、静态契约（27 个模块 / 28 个 key） ==")
 
 all_keys = []
 class_info = {}
@@ -180,7 +180,7 @@ for module_name in MODULES:
         all_keys.append(key)
         class_info[key] = (module_name, path, cls, tree)
 
-check("后端注册 27 个 key", len(all_keys) == 27, "实际 %d" % len(all_keys))
+check("后端注册 28 个 key", len(all_keys) == 28, "实际 %d" % len(all_keys))
 check("后端 key 无重复", len(all_keys) == len(set(all_keys)))
 check("后端 key 全部 QG_ 前缀",
       all(k.startswith("QG_") for k in all_keys))
@@ -237,7 +237,7 @@ for key, (module_name, path, cls_name, tree) in sorted(class_info.items()):
           isinstance(func, str) and func in methods, str(func))
     check("%s CATEGORY=QG 工具" % key, cat == "QG 工具", str(cat))
 
-check("27 个节点全部纳入检查", len(all_keys) == 27)
+check("28 个节点全部纳入检查", len(all_keys) == 28)
 
 # ---------------------------------------------------------------------------
 # 二、运行时：此前无节点级测试的模块

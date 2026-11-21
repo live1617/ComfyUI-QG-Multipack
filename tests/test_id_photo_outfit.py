@@ -203,7 +203,7 @@ check("i18n：translations 标题与 inputs",
       tr_entry.get("title") == "QG 证件照服装发型"
       and tr_entry.get("inputs", {}).get("style") == "风格类型"
       and tr_entry.get("inputs", {}).get("prompt_output") == "提示词")
-check("i18n：两份词表节点数一致（随包 33 节点）", len(nd) == len(tr) == 33,
+check("i18n：两份词表节点数一致（随包 34 节点）", len(nd) == len(tr) == 34,
       "%d/%d" % (len(nd), len(tr)))
 
 js_path = os.path.join(PKG, "web", "qg_id_photo_outfit.js")
@@ -221,8 +221,8 @@ check("注册：__init__.py 导入块", "qg_id_photo_outfit" in init_src)
 
 readme = open(os.path.join(PKG, "README.md"), encoding="utf-8").read()
 check("README：一览表登记", "QG_IDPhotoOutfit" in readme)
-check("README：覆盖节点数与包内一致", "覆盖全部 33 个节点" in readme)
-check("README：概括句与包内一致", "33 个节点里 32 个" in readme)
+check("README：覆盖节点数与包内一致", "覆盖全部 34 个节点" in readme)
+check("README：概括句与包内一致", "34 个节点里 33 个" in readme)
 check("README：新章节含素材格式", "models/id_photo/" in readme
       and "id_photo_data.json" in readme)
 

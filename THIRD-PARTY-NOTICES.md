@@ -508,3 +508,27 @@ Two matting weights are redistributed **unmodified** with this pack at
   downstream detailer nodes. Impact-Pack is **not bundled**; the node stays
   registered without it and raises a Chinese instruction only when executed.
 - No upstream source code, binary, or model is redistributed by this pack.
+
+
+## ComfyUI-Impact-Subpack — runtime detector API (AGPL-3.0)
+
+- Upstream: https://github.com/ltdrdata/ComfyUI-Impact-Subpack
+- License: GNU Affero General Public License v3.0.
+- Used by: `QG_UltralyticsDetectorLoader`. This pack **does not copy** the
+  upstream `UltralyticsDetectorProvider` source. Folder scanning, path
+  resolution, cache key, dependency probing and Chinese tooltips are written
+  here. Detector objects are created at run time by calling the upstream
+  public API `modules.subcore.load_yolo`, `UltraBBoxDetector`,
+  `UltraSegmDetector` and `NO_SEGM_DETECTOR`.
+- Required at run time: Impact-Subpack defines the custom types
+  `BBOX_DETECTOR` / `SEGM_DETECTOR` and the detector classes that downstream
+  Impact nodes expect. Type strings intentionally match the upstream exactly
+  so workflows can connect to Impact loaders and detailers; this is a
+  cross-package wiring contract, not a naming shortcut. Impact-Subpack is
+  **not bundled** and its AGPL-3.0 source is **not redistributed** here; the
+  node stays registered without it and raises a Chinese instruction only when
+  executed. No YOLO weights are bundled either.
+- Licensing note: AGPL-3.0 and this pack's GPL-3.0 are not mutually
+  license-compatible for code copying. This node only calls the upstream at
+  run time through its public API; no upstream source is incorporated into
+  this distribution.

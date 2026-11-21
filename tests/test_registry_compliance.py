@@ -140,7 +140,7 @@ def main() -> int:
     pyproject = (PKG_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     m = _re.search(r"^description\s*=\s*\"([^\"]+)\"", pyproject, _re.M)
     desc = m.group(1) if m else ""
-    check("description 声明 33 个节点（与实际一致）", "33 个节点" in desc, desc[:120])
+    check("description 声明 34 个节点（与实际一致）", "34 个节点" in desc, desc[:120])
 
     # [tool.comfy].PublisherId 必填且非空（Registry 发布硬要求，创建后不可改）。
     pm = _re.search(r'^PublisherId\s*=\s*"([^"]*)"', pyproject, _re.M)

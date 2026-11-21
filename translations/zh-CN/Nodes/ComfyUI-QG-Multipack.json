@@ -914,5 +914,19 @@
     "outputs": {
       "SEGS": "区域集合"
     }
+  },
+  "QG_UltralyticsDetectorLoader": {
+    "title": "QG 检测加载器 (Ultralytics)",
+    "description": "选择本机 ultralytics 权重，加载后输出 Impact 生态的 BBox 检测器与 SEGM 检测器。bbox/ 开头的模型只给矩形框，segm/ 开头同时给实例分割遮罩。权重扫描 models/ultralytics/bbox 与 models/ultralytics/segm（含 extra_model_paths 挂载）；未安装 ComfyUI-Impact-Subpack 时节点仍显示，只在运行时给中文提示。",
+    "inputs": {
+      "model_name": "模型"
+    },
+    "widgets": {
+      "model_name": "模型"
+    },
+    "outputs": {
+      "BBOX_DETECTOR": "BBox 检测",
+      "SEGM_DETECTOR": "SEGM 检测"
+    }
   }
 }
