@@ -882,11 +882,12 @@
     "title": "QG 遮罩次序过滤",
     "description": "把遮罩批次的每一帧当成一个独立段，按面积、宽高或位置排序，按 X 坐标分组，再用开始索引和过滤数量挑选，可选按外接框重叠去重，最后合并成一张或逐帧输出。只处理 ComfyUI 原生 MASK，不依赖 Impact-Pack 或 Goohaitools。",
     "inputs": {
-      "masks": "遮罩",
-      "segs": "分段"
+      "segs": "分段",
+      "masks": "遮罩"
     },
     "widgets": {},
     "outputs": {
+      "segs": "分段",
       "MASK": "遮罩"
     }
   },

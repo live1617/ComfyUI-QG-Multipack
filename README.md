@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.1** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.22.2** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -28,7 +28,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_MultiPhotoSheet` | QG 多人证件照拼版 | 多人的照片各占一格拼到同一张纸，统一格居中裁切、列数指定行数自动 | `拼版图像` / `行数` / `列数` / `人数` |
 | `QG_ImageBatchBuilder` | QG 图像批次组合 | 输入槽动态增减（默认 1 个，接一个加一个，上限 24），接几张合几张成 batch，省掉串一堆「合并图像」节点 | `image` / `count` |
 | `QG_RemoveBackgroundV2` | QG 移除背景 V2 · 细节精修 | 本包 BiRefNet 粗分割 + 五种边缘精修（VITMatte / VITMatte(local) / base / PyMatting / GuidedFilter），腐蚀膨胀控制 trimap、黑白点拉伸 alpha，输出透明 RGBA 与遮罩 | `IMAGE` / `MASK` |
-| `QG_MaskOrderFilter` | QG 遮罩次序过滤 | 遮罩每帧当成一段，按面积/宽高/位置排序、X 分组、索引筛选、IoU 去重，合并或逐帧输出；`遮罩`/`segs` 二选一输入，只出 MASK，不依赖 Impact-Pack | `MASK` |
+| `QG_MaskOrderFilter` | QG 遮罩次序过滤 | 遮罩每帧当成一段，按面积/宽高/位置排序、X 分组、索引筛选、IoU 去重，合并或逐帧输出；`分段`/`遮罩` 二选一输入（分段在上），输出 Segs + Mask 两路，不依赖 Impact-Pack | `Segs` / `MASK` |
 | `QG_IDCardSheet` | QG 身份证拼版 | 拍歪的卡片找四角扶正、加圆角投影、按厘米铺到纸上 | `IMAGE` |
 | `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（默认用随包 OFL 中文字体，中文不再成方框） | `IMAGE` |
 | `QG_DualColorPicker` | QG 双色取色器 | 一次输出模式 + 主色 + 辅色三路字符串，颜色控件点开弹出色板 | `模式` / `主色` / `辅色` |
@@ -127,7 +127,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_MultiPhotoSheet` | ✅ 原创 | 多人各占一格的拼版几何自实现（纯整数规划），与「一张照片复制多份」的排版节点正交 | 0% |
 | `QG_ImageBatchBuilder` | ✅ 原创 | 多输入槽汇总成 batch 的收集/对齐逻辑自实现，独立于核心 `ImageBatch` | 0% |
 | `QG_RemoveBackgroundV2` | ✅ 原创（参照规格） | 功能规格参考 LayerStyle「RmBgUltra V2」；粗分割复用本包 BiRefNet，trimap / ViTMatte 推理 / PyMatting / 引导滤波全部独立实现，未复制上游源码 | 0% |
-| `QG_MaskOrderFilter` | ✅ 原创（参照规格） | 控件与行为参考 Goohaitools「Seg次序过滤」（GPL-3.0）；排序/分组/索引筛选/IoU 去重/合并全部独立实现，且只吃出 ComfyUI 原生 MASK（上游吃的是 Impact-Pack 的 SEGS），未复制上游源码 | 0% |
+| `QG_MaskOrderFilter` | ✅ 原创（参照规格） | 控件与行为参考 Goohaitools「Seg次序过滤」（GPL-3.0）；排序/分组/索引筛选/IoU 去重/合并全部独立实现，吃原生 MASK 或本包 QG_SEGS，出本包自造 QG_SEGS + 原生 MASK，不碰 Impact-Pack 的 SEGS，未复制上游源码 | 0% |
 | `QG_IDCardSheet` | ⚠️ GPL 参考后重写 | Goohaitools「身份证自动扶正拼版」（GPL-3.0），三处核心算法已替换 | 未逐项统计（结构/命名沿用） |
 | `QG_Watermark` | ✅ 原创 | 斜向水印自实现 | 0% |
 | `QG_DualColorPicker` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 取色器（双）」（GPL-3.0）；代码自写，前端复用本包 `qg_color_picker.js`，未复制上游源码 | 0% |
@@ -1049,15 +1049,16 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 ## 遮罩次序过滤（`QG_MaskOrderFilter`）
 
-把 MASK 批次的每一帧当成一个独立段，按规则排序、按 X 分组、按索引筛选，再合并或逐帧输出。功能对齐 Goohaitools 的「Seg次序过滤」，但**只处理 ComfyUI 原生 MASK**——上游吃/出的是 Impact-Pack 的 `SEGS`，必须先装 Impact-Pack 才能连线；本节点不依赖任何上游，任何环境都能用。
+把 MASK 批次的每一帧当成一个独立段，按规则排序、按 X 分组、按索引筛选，再合并或逐帧输出。功能与输出布局对齐 Goohaitools 的「Seg次序过滤」：**Seg 在上、Mask 在下**；但上游吃/出的是 Impact-Pack 的 `SEGS`，必须先装 Impact-Pack 才能连线，本节点的 Seg 是本包自造 `QG_SEGS` 兼容容器，不依赖任何上游，任何环境都能用。
 
-- **两个输入口二选一**：`遮罩`（MASK 批次，每帧一段）与 `segs 分段`（本包 `QG 简易 Seg 检测` 输出的 `QG_SEGS` 容器，每段取其中遮罩当一段）都可接；两个都不接会报中文错误，`masks` 与 `segs` 都接时优先用 `masks`。segs 只认本包自造类型，走 duck-typing 的 `mask_batch()`，不导入检测节点、不碰 Impact/LitSegs 的第三方结构。
+- **两个输入口二选一**：`segs 分段`（本包 `QG 简易 Seg 检测` 输出的 `QG_SEGS` 容器，每段取其中遮罩当一段，排在上面）与 `遮罩`（MASK 批次，每帧一段，排在下面）都可接；两个都不接会报中文错误，`masks` 与 `segs` 都接时优先用 `masks`。segs 只认本包自造类型，走 duck-typing 的 `mask_batch()`，不导入检测节点、不碰 Impact/LitSegs 的第三方结构。接 segs 时会把原段的框/标签/打分透传到输出 Seg。
 
 - **优先规则**：`面积大小` / `宽度大小` / `高度大小`（正序从大到小），`上下左右`（按 X 坐标分组，组从左到右、组内从上到下），`下上左右`（组内从下到上）。分组阈值控制 X 相差多少像素算同一列。
 - **筛选**：开始索引 + 过滤数量挑选排序后的段；过滤数量为 0 表示取到末尾，数量超出尾部会从头循环。
 - **重叠因子**：新增控件（Goohaitools 本机源码里没有，但截图界面里有）。按各段外接框的 IoU 去重：与前面已保留段重叠超过该比例就跳过，0 关闭。
 - **合并遮罩**：打开时对所有段取逐像素最大值输出单张 `[H,W]`；关闭时按筛选顺序堆成批次，每段仍是独立遮罩。
-- **实现边界**：每帧的外接框由非零像素行列下标直接求 min/max，不引 cv2、不依赖 SEGS；来源与许可见 `THIRD-PARTY-NOTICES.md`（无新增第三方条目，纯原创）。
+- **双输出**：`Segs`（筛选后的 `QG_SEGS`，每段独立遮罩，即使「合并遮罩」打开也保留分段）与 `MASK`（合并单张或逐帧批次）。Seg 可继续接本包 seg 下游，不能喂给 Impact 的 Detailer。
+- **实现边界**：每帧的外接框由非零像素行列下标直接求 min/max，不引 cv2、不依赖第三方 SEGS；来源与许可见 `THIRD-PARTY-NOTICES.md`（无新增第三方条目，纯原创）。
 
 ## 简易 Seg 检测三件套（`QG_YoloDetectorLoader` / `QG_SamModelLoader` / `QG_SimpleSegDetector`）
 
@@ -1066,7 +1067,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 - **`QG_YoloDetectorLoader`**：扫描本机 `models/ultralytics/{bbox,segm}` 的权重（含 `extra_model_paths` 挂载；也可用环境变量 `QG_ULTRALYTICS_DIR` 指定），下拉项形如 `bbox/face_yolov8n.pt`。输出自造检测器对象；`bbox/` 只出框，`segm/` 是实例分割权重（本节点当前只用其框）。
 - **`QG_SamModelLoader`**：扫描 `models/sams`（或 `QG_SAMS_DIR`），按文件名自动识别 `vit_b` / `vit_l` / `vit_h`（HQ 权重按 `vit_h` 加载）。输出自造 SAM 对象；SAM 权重体积大（vit_b 约 375 MB、vit_h 约 2.5 GB），显存小的机器建议用 `vit_b`。
 - **`QG_SimpleSegDetector`**：接检测器 + 单张图，可选接 SAM 模型。不接 SAM 时直接用矩形框当遮罩；接了 SAM 就把框细化成轮廓。控件与参考节点一致：BBox 阈值 / 膨胀、裁剪系数、最小尺寸、次要阈值 / 膨胀 / BBox 扩展、SAM 遮挡检测阈值、扩张后。
-- **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 `QG_MaskOrderFilter` 等遮罩节点。
+- **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 `QG_MaskOrderFilter` 等遮罩节点。过滤器筛选后同样回出 Segs + Mask 两路，可继续串接本包节点。
 - **模型放哪**：权重不随包，放本机模型库即可；两个加载器缺库时节点照常出现、照常列权重，只在真正运行时给中文安装提示。
 
 ## 前端增强（不产生节点，直接作用于画布）
