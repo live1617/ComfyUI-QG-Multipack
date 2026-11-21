@@ -12,6 +12,7 @@ import sys
 import types
 
 import numpy as np
+import torch
 
 PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PKG)
@@ -208,7 +209,10 @@ def run(sam_model=None, drop_size=10, hint_threshold=0.0, dilation=0):
 segs, mask = run()
 check("无 SAM：小框被最小尺寸过滤", len(segs) == 1, str(len(segs)))
 check("无 SAM：矩形遮罩", segs[0].mask.sum() == 900, str(segs[0].mask.sum()))
-check("MASK 批次形状", mask.shape == (1, 100, 120) and mask.dtype == np.float32)
+check("MASK 批次形状且为 torch.Tensor（ComfyUI 标准）",
+      mask.shape == (1, 100, 120) and isinstance(mask, torch.Tensor) and
+      mask.dtype == torch.float32,
+      "%s %s" % (type(mask), getattr(mask, "dtype", None)))
 check("SEGS 容器类型", isinstance(segs, SD.QGSegs))
 check("SEGS 元素类型", isinstance(segs[0], SD.QGSeg))
 check("SEGS 可迭代/索引", len(list(iter(segs))) == 1 and segs[0].label == "person")

@@ -23,6 +23,7 @@ MASK 输出是 ComfyUI 原生格式，可直接接本包 QG_MaskOrderFilter 等�
 from __future__ import annotations
 
 import numpy as np
+import torch
 
 _MAX_RESOLUTION = 16384
 
@@ -254,7 +255,13 @@ class QGSimpleSegDetector:
             segs.append(QGSeg(box, item.get("label", ""), score, mask, crop_factor))
 
         container = QGSegs(segs, width, height)
-        return (container, container.mask_batch())
+        # ComfyUI 的 MASK 类型是 torch.Tensor；输出 ndarray 会让 Preview 等下游
+        # 节点报 "input is not a Tensor"。内部仍用 numpy，出口统一转 Tensor。
+        mask_batch = container.mask_batch()
+        if not isinstance(mask_batch, torch.Tensor):
+            mask_batch = torch.from_numpy(
+                np.ascontiguousarray(mask_batch, dtype=np.float32))
+        return (container, mask_batch)
 
 
 def _resize_mask(mask, width, height):

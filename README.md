@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.22.1** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -28,7 +28,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_MultiPhotoSheet` | QG 多人证件照拼版 | 多人的照片各占一格拼到同一张纸，统一格居中裁切、列数指定行数自动 | `拼版图像` / `行数` / `列数` / `人数` |
 | `QG_ImageBatchBuilder` | QG 图像批次组合 | 输入槽动态增减（默认 1 个，接一个加一个，上限 24），接几张合几张成 batch，省掉串一堆「合并图像」节点 | `image` / `count` |
 | `QG_RemoveBackgroundV2` | QG 移除背景 V2 · 细节精修 | 本包 BiRefNet 粗分割 + 五种边缘精修（VITMatte / VITMatte(local) / base / PyMatting / GuidedFilter），腐蚀膨胀控制 trimap、黑白点拉伸 alpha，输出透明 RGBA 与遮罩 | `IMAGE` / `MASK` |
-| `QG_MaskOrderFilter` | QG 遮罩次序过滤 | 遮罩每帧当成一段，按面积/宽高/位置排序、X 分组、索引筛选、IoU 去重，合并或逐帧输出；只吃出 MASK，不依赖 Impact-Pack | `MASK` |
+| `QG_MaskOrderFilter` | QG 遮罩次序过滤 | 遮罩每帧当成一段，按面积/宽高/位置排序、X 分组、索引筛选、IoU 去重，合并或逐帧输出；`遮罩`/`segs` 二选一输入，只出 MASK，不依赖 Impact-Pack | `MASK` |
 | `QG_IDCardSheet` | QG 身份证拼版 | 拍歪的卡片找四角扶正、加圆角投影、按厘米铺到纸上 | `IMAGE` |
 | `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（默认用随包 OFL 中文字体，中文不再成方框） | `IMAGE` |
 | `QG_DualColorPicker` | QG 双色取色器 | 一次输出模式 + 主色 + 辅色三路字符串，颜色控件点开弹出色板 | `模式` / `主色` / `辅色` |
@@ -1050,6 +1050,8 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 ## 遮罩次序过滤（`QG_MaskOrderFilter`）
 
 把 MASK 批次的每一帧当成一个独立段，按规则排序、按 X 分组、按索引筛选，再合并或逐帧输出。功能对齐 Goohaitools 的「Seg次序过滤」，但**只处理 ComfyUI 原生 MASK**——上游吃/出的是 Impact-Pack 的 `SEGS`，必须先装 Impact-Pack 才能连线；本节点不依赖任何上游，任何环境都能用。
+
+- **两个输入口二选一**：`遮罩`（MASK 批次，每帧一段）与 `segs 分段`（本包 `QG 简易 Seg 检测` 输出的 `QG_SEGS` 容器，每段取其中遮罩当一段）都可接；两个都不接会报中文错误，`masks` 与 `segs` 都接时优先用 `masks`。segs 只认本包自造类型，走 duck-typing 的 `mask_batch()`，不导入检测节点、不碰 Impact/LitSegs 的第三方结构。
 
 - **优先规则**：`面积大小` / `宽度大小` / `高度大小`（正序从大到小），`上下左右`（按 X 坐标分组，组从左到右、组内从上到下），`下上左右`（组内从下到上）。分组阈值控制 X 相差多少像素算同一列。
 - **筛选**：开始索引 + 过滤数量挑选排序后的段；过滤数量为 0 表示取到末尾，数量超出尾部会从头循环。

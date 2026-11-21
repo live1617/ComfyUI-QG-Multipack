@@ -7,6 +7,9 @@
 * **只吃 MASK、只出 MASK。** 上游的输入/输出是 Impact-Pack 的 ``SEGS``，必须
   装 Impact-Pack 才能连线；本节点把输入 MASK 的**每一帧当成一个独立段**，
   任何环境都能用，输出仍是 ComfyUI 原生 MASK。
+* **可选 segs 口。** 也可直接接本包 QG_SimpleSegDetector 输出的自造 ``QG_SEGS``
+  容器（每段取其中遮罩当一段）；与 masks 二选一，masks 优先。只认本包自造类型，
+  解析走 duck-typing 的 ``mask_batch()``，不导入检测节点、不碰第三方 SEGS。
 * **不依赖 cv2。** 每帧的外接框直接由非零像素的行列下标取 min/max，面积用
   ``sum(mask > 阈值)``；连通域分析不是本节点语义的一部分。
 * **新增「重叠因子」。** 截图里有该控件但本机 Goohaitools 源码没有；这里把它
@@ -26,15 +29,31 @@ import torch
 PRIORITY_RULES = ["面积大小", "宽度大小", "高度大小", "上下左右", "下上左右"]
 DIRECTIONS = ["正序", "反序"]
 _VALID_CUT = 0.1
+# 自造 SEGS 类型，与 qg_simple_seg_detector.SEGS_TYPE 保持一致；
+# 只接本包 QG_SimpleSegDetector 的输出，不碰 Impact/LitSegs 的第三方结构。
+SEGS_TYPE = "QG_SEGS"
+
+
+def _to_numpy(mask):
+    """把 MASK 转成 numpy float32。
+
+    ComfyUI 原生 MASK 是 torch.Tensor，但本包自造检测节点以及其他第三方插件
+    可能直接给 numpy.ndarray；这里统一规整，避免在上游给 ndarray 时调用
+    ``.detach()`` 报 AttributeError。
+    """
+    if isinstance(mask, torch.Tensor):
+        return mask.detach().cpu().numpy().astype(np.float32, copy=False)
+    return np.asarray(mask, dtype=np.float32)
 
 
 def _as_bhw(mask):
-    """把 MASK 规整成 ``[B, H, W]``；返回 (batch, 是否原本二维)。"""
-    if mask.ndim == 2:
-        return mask.unsqueeze(0), True
-    if mask.ndim == 3:
-        return mask, False
-    return mask.reshape(-1, mask.shape[-2], mask.shape[-1]), False
+    """把 MASK 规整成 ``[B, H, W]`` 的 numpy 数组；返回 (batch, 是否原本二维)。"""
+    arr = _to_numpy(mask)
+    if arr.ndim == 2:
+        return arr[None, ...], True
+    if arr.ndim == 3:
+        return arr, False
+    return arr.reshape(-1, arr.shape[-2], arr.shape[-1]), False
 
 
 def _frame_feature(plane):
@@ -162,9 +181,6 @@ class QGMaskOrderFilter:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "masks": ("MASK", {
-                    "tooltip": "遮罩批次，每一帧当成一个独立段；单张 [H,W] 视为一段。",
-                }),
                 "优先规则": (list(PRIORITY_RULES), {
                     "default": "上下左右",
                     "tooltip": "面积大小：正序从大到小。宽度/高度大小：同理。上下左右：按 X 坐标分组，组从左到右、组内从上到下。下上左右：组内从下到上。",
@@ -195,19 +211,41 @@ class QGMaskOrderFilter:
                     "tooltip": "合并：所有筛选段取逐像素最大值，输出单张遮罩。逐帧：按次序堆成批次，每段独立。",
                 }),
             },
+            "optional": {
+                "masks": ("MASK", {
+                    "tooltip": "遮罩批次，每一帧当成一个独立段；单张 [H,W] 视为一段。与 segs 二选一，都不接则报错。",
+                }),
+                "segs": (SEGS_TYPE, {
+                    "tooltip": "自造分段容器（QG 简易 Seg 检测的输出），每段取其中遮罩当一段；与 masks 二选一，优先用 masks。",
+                }),
+            },
         }
 
-    def execute(self, masks, 优先规则="上下左右", 正反顺序="正序", 开始索引=0,
-                过滤数量=1, 分组阈值=120, 重叠因子=0.0, 合并遮罩=False):
+    def execute(self, masks=None, 优先规则="上下左右", 正反顺序="正序", 开始索引=0,
+                过滤数量=1, 分组阈值=120, 重叠因子=0.0, 合并遮罩=False, segs=None):
+        # masks 与 segs 二选一：masks 优先；只接 segs 时取每段的遮罩当一段。
+        # 全程 duck-typing，不 import 检测节点，也不解析任何第三方 SEGS 结构。
+        if masks is None:
+            if segs is None:
+                raise ValueError(
+                    "QG 遮罩次序过滤：请接上「遮罩」或「segs 分段」其中一个输入口。")
+            if not hasattr(segs, "mask_batch"):
+                raise TypeError(
+                    "QG 遮罩次序过滤：segs 必须是本包「QG 简易 Seg 检测」输出的 "
+                    "QG_SEGS 容器，收到的是 %s。" % type(segs).__name__)
+            masks = segs.mask_batch()
         batch, was_2d = _as_bhw(masks)
-        device, dtype = masks.device, masks.dtype
-        frames = [batch[i].detach().cpu().numpy().astype(np.float32, copy=False)
-                  for i in range(batch.shape[0])]
+        # 输入是 Tensor 时跟随其设备/精度；输入是 ndarray 时按 CPU fp32 处理。
+        if isinstance(masks, torch.Tensor):
+            device, dtype = masks.device, masks.dtype
+        else:
+            device, dtype = torch.device("cpu"), torch.float32
+        frames = [batch[i] for i in range(batch.shape[0])]
         items = order_segments(frames, 优先规则, 正反顺序, 分组阈值)
         selected = select_segments(items, 开始索引, 过滤数量, 重叠因子)
         _, height, width = batch.shape
         out = merge_segments(selected, height, width, 合并遮罩)
-        result = torch.from_numpy(out).to(device=device, dtype=dtype)
+        result = torch.from_numpy(np.ascontiguousarray(out)).to(device=device, dtype=dtype)
         # 单帧输入 + 合并输出：保持二维，和 ComfyUI MASK 习惯一致
         if was_2d and 合并遮罩 and result.ndim == 3 and result.shape[0] == 1:
             result = result[0]

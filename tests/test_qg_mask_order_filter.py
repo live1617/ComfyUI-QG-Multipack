@@ -46,6 +46,7 @@ def rect(y0, y1, x0, x1, h=20, w=40, value=1.0):
 node = M.QGMaskOrderFilter
 it = node.INPUT_TYPES()
 req = it["required"]
+opt = it.get("optional", {})
 check("注册 key = QG_MaskOrderFilter",
       list(M.NODE_CLASS_MAPPINGS) == ["QG_MaskOrderFilter"], str(M.NODE_CLASS_MAPPINGS))
 check("display 名含 QG 与 过滤",
@@ -55,8 +56,10 @@ check("RETURN_TYPES = (MASK,)",
       node.RETURN_TYPES == ("MASK",), str(node.RETURN_TYPES))
 check("CATEGORY = QG 工具", node.CATEGORY == "QG 工具", node.CATEGORY)
 check("FUNCTION = execute", node.FUNCTION == "execute", node.FUNCTION)
-check("控件齐全（8 个）", len(req) == 8, list(req))
-check("masks 是 MASK 类型", req["masks"][0] == "MASK", str(req["masks"][0]))
+check("控件齐全（7 个，masks 移到 optional）", len(req) == 7, list(req))
+check("masks 是 MASK 类型（optional）", opt["masks"][0] == "MASK", str(opt["masks"][0]))
+check("segs 是可选口且类型为自造 QG_SEGS",
+      opt["segs"][0] == "QG_SEGS" == M.SEGS_TYPE, str(opt["segs"][0]))
 check("优先规则 5 项",
       req["优先规则"][0] == ["面积大小", "宽度大小", "高度大小", "上下左右", "下上左右"],
       str(req["优先规则"][0]))
@@ -81,7 +84,9 @@ nd = json.load(open(os.path.join(PKG, "locales/zh/nodeDefs.json"), encoding="utf
 tr = json.load(open(os.path.join(PKG, "translations/zh-CN/Nodes/ComfyUI-QG-Multipack.json"), encoding="utf-8"))
 key = "QG_MaskOrderFilter"
 check("两套词表都有新 key", key in nd and key in tr)
-check("nodeDefs 28 个控件词条", len(nd[key]["inputs"]) == 8, list(nd[key]["inputs"]))
+check("nodeDefs 9 个控件词条（含 segs）", len(nd[key]["inputs"]) == 9, list(nd[key]["inputs"]))
+check("nodeDefs 有 segs 词条", nd[key]["inputs"].get("segs", {}).get("name") == "分段")
+check("translations 有 segs 词条", tr[key]["inputs"].get("segs") == "分段")
 check("nodeDefs 输出中文", "遮罩" in nd[key]["outputs"]["0"]["name"])
 check("translations 无恒等项（中文参数名按 Qwen 先例不写）",
       all(k != v for f in ("inputs", "widgets", "outputs")
@@ -154,6 +159,69 @@ check("全空遮罩不报错且输出全零", bool((out_empty == 0).all()))
 out_one = node().execute(batch, "面积大小", "正序", 0, 1, 120, 0.0, False)[0]
 check("逐帧只取一段时 batch=1", tuple(out_one.shape) == (1, 20, 40), str(out_one.shape))
 check("dtype 跟随输入", node().execute(batch.double(), 合并遮罩=True)[0].dtype == torch.float64)
+
+# ---------- 七、输入类型兼容：ndarray / list（复现真实崩溃场景） ----------
+# 上游 QG_SimpleSegDetector 曾输出 ndarray，旧版在 .detach() 处崩溃。
+arr_batch = np.stack([rect(1, 4, 2, 5), rect(6, 9, 10, 13)])
+out_arr = node().execute(arr_batch, "面积大小", "正序", 0, 0, 120, 0.0, False)[0]
+check("ndarray 批次输入不崩溃、输出 Tensor",
+      isinstance(out_arr, torch.Tensor) and tuple(out_arr.shape) == (2, 20, 40),
+      "%s %s" % (type(out_arr), getattr(out_arr, "shape", None)))
+check("ndarray 输入取值正确", float(out_arr[0, 1, 2]) == 1.0 and float(out_arr[1, 6, 10]) == 1.0)
+out_arr2d = node().execute(rect(2, 5, 2, 5), "面积大小", "正序", 0, 1, 120, 0.0, True)[0]
+check("ndarray 二维输入不崩溃、输出 Tensor 二维",
+      isinstance(out_arr2d, torch.Tensor) and tuple(out_arr2d.shape) == (20, 40),
+      str(getattr(out_arr2d, "shape", None)))
+out_list = node().execute([rect(1, 4, 2, 5)], "面积大小", "正序", 0, 1, 120, 0.0, False)[0]
+check("list 输入不崩溃、输出 Tensor", isinstance(out_list, torch.Tensor), str(type(out_list)))
+out_arr_empty = node().execute(np.zeros((0, 20, 40), np.float32), "面积大小", "正序", 0, 1, 120, 0.0, False)[0]
+# 既有兜底语义：无段可挑时输出 1 帧全零，避免下游拿到 0 帧遮罩。
+check("ndarray 空批次安全（兜底 1 帧全零）", isinstance(out_arr_empty, torch.Tensor) and
+      tuple(out_arr_empty.shape) == (1, 20, 40) and bool((out_arr_empty == 0).all()),
+      str(getattr(out_arr_empty, "shape", None)))
+
+# ---------- 八、segs 可选口（自造 QG_SEGS，二选一） ----------
+class _FakeSegs:
+    """只需 mask_batch() 即可，验证 duck-typing 不 import 检测节点。"""
+    def __init__(self, planes):
+        self.width = 40
+        self.height = 20
+        self._planes = [np.asarray(p, dtype=np.float32) for p in planes]
+
+    def mask_batch(self):
+        # 与真实 QGSegs.mask_batch() 一致：空段返回 (0,H,W)
+        if not self._planes:
+            return np.zeros((0, self.height, self.width), dtype=np.float32)
+        return np.stack(self._planes, axis=0)
+
+fake_segs = _FakeSegs([rect(1, 4, 2, 5), rect(6, 9, 10, 13)])
+out_segs = node().execute(None, "面积大小", "正序", 0, 0, 120, 0.0, False, segs=fake_segs)[0]
+check("只接 segs：输出 Tensor 且取到两段",
+      isinstance(out_segs, torch.Tensor) and tuple(out_segs.shape) == (2, 20, 40),
+      "%s %s" % (type(out_segs), getattr(out_segs, "shape", None)))
+check("只接 segs：遮罩值正确", float(out_segs[0, 1, 2]) == 1.0 and float(out_segs[1, 6, 10]) == 1.0)
+out_segs_merged = node().execute(None, "面积大小", "正序", 0, 0, 120, 0.0, True, segs=fake_segs)[0]
+check("只接 segs：合并输出二维", tuple(out_segs_merged.shape) == (20, 40), str(out_segs_merged.shape))
+# masks 与 segs 都接时 masks 优先
+prefer = node().execute(batch, "面积大小", "正序", 0, 0, 120, 0.0, False, segs=fake_segs)[0]
+check("masks 优先于 segs", float(prefer[0, 1, 2]) == 1.0 and tuple(prefer.shape) == (2, 20, 40))
+# 两个都不接 -> 中文报错
+try:
+    node().execute(None)
+    check("都不接时报中文 ValueError", False, "未抛异常")
+except ValueError as exc:
+    check("都不接时报中文 ValueError", "遮罩" in str(exc) and "segs" in str(exc), str(exc))
+# segs 不是本包容器 -> 中文 TypeError
+try:
+    node().execute(None, segs=[1, 2, 3])
+    check("非法 segs 报中文 TypeError", False, "未抛异常")
+except TypeError as exc:
+    check("非法 segs 报中文 TypeError", "QG_SEGS" in str(exc), str(exc))
+# 空 segs 容器安全
+out_segs_empty = node().execute(None, segs=_FakeSegs([]))[0]
+check("空 segs 容器安全（兜底 1 帧）",
+      isinstance(out_segs_empty, torch.Tensor) and tuple(out_segs_empty.shape) == (1, 20, 40),
+      str(getattr(out_segs_empty, "shape", None)))
 
 print("\n== 汇总：PASS %d / FAIL %d ==" % (ok, fail))
 if fail:
