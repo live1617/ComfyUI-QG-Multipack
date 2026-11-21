@@ -126,7 +126,7 @@ class _FakeModel:
         self.mode = mode
 
     def __call__(self, tensor):
-        n = 33
+        n = 32
         if self.mode == "nan":
             out = torch.full((1, 1, n, n), float("nan"))
         elif self.mode == "left":

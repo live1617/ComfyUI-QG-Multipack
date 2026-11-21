@@ -2,8 +2,8 @@
 # version 由 打包备份.py 从 VERSION 文件自动同步，请勿手改这一行。
 [project]
 name = "comfyui-qg-multipack"
-description = "QG 工具包：提示词规则/翻译/优化、图生文反推、Qwen Image 2.1 提示词优化与文本编码、BiRefNet 抠图、证件照/排版/拼版、人脸矫正与面部对齐、取色器/颜色转换/自定义颜色/主色提取、水印等 34 个节点的中文友好合集（GPL-3.0）"
-version = "2.20.0"
+description = "QG 工具包：提示词规则/翻译/优化、图生文反推、Qwen Image 2.1 提示词优化与文本编码、BiRefNet 抠图、证件照/排版/拼版、人脸矫正与面部对齐、取色器/颜色转换/自定义颜色/主色提取、水印等 32 个节点的中文友好合集（GPL-3.0）"
+version = "2.20.1"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = []

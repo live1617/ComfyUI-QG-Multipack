@@ -877,56 +877,5 @@
       "IMAGE": "图像",
       "MASK": "遮罩"
     }
-  },
-  "QG_SimpleSegDetectorSEGS": {
-    "title": "QG 简易 Seg 检测 (SEGS)",
-    "description": "用 BBox 检测器在单张图上找目标，输出 Impact-Pack 的 SEGS 区域集合。可选 SAM 模型把矩形细化成轮廓，或用 SEGM 检测器的遮罩取交，最后对每段遮罩做膨胀/收缩。需要本机安装 ComfyUI-Impact-Pack；未安装时节点仍显示，只在运行时给出中文提示。",
-    "inputs": {
-      "bbox_detector": "BBox 检测器",
-      "image": "图像",
-      "bbox_threshold": "BBox 阈值",
-      "bbox_dilation": "BBox 膨胀",
-      "crop_factor": "裁剪系数",
-      "drop_size": "最小尺寸",
-      "sub_threshold": "次要阈值",
-      "sub_dilation": "次要膨胀",
-      "sub_bbox_expansion": "次要 BBox 扩展",
-      "sam_mask_hint_threshold": "SAM 遮罩提示阈值",
-      "post_dilation": "扩张后",
-      "sam_model_opt": "SAM 模型（可选）",
-      "segm_detector_opt": "SEGM 检测器（可选）"
-    },
-    "widgets": {
-      "bbox_detector": "BBox 检测器",
-      "image": "图像",
-      "bbox_threshold": "BBox 阈值",
-      "bbox_dilation": "BBox 膨胀",
-      "crop_factor": "裁剪系数",
-      "drop_size": "最小尺寸",
-      "sub_threshold": "次要阈值",
-      "sub_dilation": "次要膨胀",
-      "sub_bbox_expansion": "次要 BBox 扩展",
-      "sam_mask_hint_threshold": "SAM 遮罩提示阈值",
-      "post_dilation": "扩张后",
-      "sam_model_opt": "SAM 模型（可选）",
-      "segm_detector_opt": "SEGM 检测器（可选）"
-    },
-    "outputs": {
-      "SEGS": "区域集合"
-    }
-  },
-  "QG_UltralyticsDetectorLoader": {
-    "title": "QG 检测加载器 (Ultralytics)",
-    "description": "选择本机 ultralytics 权重，加载后输出 Impact 生态的 BBox 检测器与 SEGM 检测器。bbox/ 开头的模型只给矩形框，segm/ 开头同时给实例分割遮罩。权重扫描 models/ultralytics/bbox 与 models/ultralytics/segm（含 extra_model_paths 挂载）；未安装 ComfyUI-Impact-Subpack 时节点仍显示，只在运行时给中文提示。",
-    "inputs": {
-      "model_name": "模型"
-    },
-    "widgets": {
-      "model_name": "模型"
-    },
-    "outputs": {
-      "BBOX_DETECTOR": "BBox 检测",
-      "SEGM_DETECTOR": "SEGM 检测"
-    }
   }
 }
