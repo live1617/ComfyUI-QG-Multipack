@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.2** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.22.3** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -1069,6 +1069,31 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 - **`QG_SimpleSegDetector`**：接检测器 + 单张图，可选接 SAM 模型。不接 SAM 时直接用矩形框当遮罩；接了 SAM 就把框细化成轮廓。控件与参考节点一致：BBox 阈值 / 膨胀、裁剪系数、最小尺寸、次要阈值 / 膨胀 / BBox 扩展、SAM 遮挡检测阈值、扩张后。
 - **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 `QG_MaskOrderFilter` 等遮罩节点。过滤器筛选后同样回出 Segs + Mask 两路，可继续串接本包节点。
 - **模型放哪**：权重不随包，放本机模型库即可；两个加载器缺库时节点照常出现、照常列权重，只在真正运行时给中文安装提示。
+
+### 模型下载地址（权重不随包，需手动下载放置）
+
+两个加载器**只扫描本机已有文件，不会自动下载**。按下面地址下载后放进对应目录即可；SAM 权重的文件名必须含 `vit_b` / `vit_l` / `vit_h`（加载器靠文件名认模型类型），YOLO 权重保持原文件名。
+
+**一、YOLO 检测权重** → `<ComfyUI>/models/ultralytics/bbox/`（实例分割权重放 `segm/`）
+
+| 用途 | 文件名 | 下载地址 |
+| --- | --- | --- |
+| 人脸检测（上文示例 `face_yolov8n.pt` 即此仓库） | `face_yolov8n.pt` / `face_yolov8s.pt` / `face_yolov8m.pt` | <https://huggingface.co/Bingsu/adetailer> |
+| 手部检测 | `hand_yolov8n.pt` / `hand_yolov8s.pt` | 同上 |
+| 人物实例分割 | `person_yolov8n-seg.pt` / `person_yolov8s-seg.pt` / `person_yolov8m-seg.pt` | 同上（放 `segm/`） |
+| 通用 80 类检测（COCO） | `yolo11n.pt` / `yolov8n.pt` 等 | <https://github.com/ultralytics/assets/releases> |
+
+Bingsu/adetailer 的单文件直链格式：`https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8n.pt`（把末尾文件名换成要下的那个即可）。这些 `.pt` 都是 ultralytics 官方库保存的权重，HuggingFace 因 pickle 里的 `getattr` 标为 unsafe，来源可信、可正常使用。
+
+**二、SAM 权重** → `<ComfyUI>/models/sams/`
+
+| 类型 | 大小 | 下载地址 |
+| --- | --- | --- |
+| `vit_b`（显存小推荐） | ~375 MB | <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth> |
+| `vit_l` | ~1.2 GB | <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth> |
+| `vit_h`（最大） | ~2.5 GB | <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth> |
+
+以上三个来自 Meta 官方 `facebookresearch/segment-anything` 仓库 [Model Checkpoints](https://github.com/facebookresearch/segment-anything#model-checkpoints) 一节的原始直链。可选的 HQ 权重在 <https://huggingface.co/lkeab/hq-sam>（如 `sam_hq_vit_b.pth`，加载器按 `vit_h` 注册表读取）；显存有限优先用 `vit_b`。
 
 ## 前端增强（不产生节点，直接作用于画布）
 
