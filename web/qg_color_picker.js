@@ -37,6 +37,8 @@ const COLOR_WIDGETS = {
     QG_ColorPicker: ["color"],
     // 多人证件照拼版：纸张底色 + 每格描边色（PANEL_TITLE 已有这两个控件名）。
     QG_MultiPhotoSheet: ["bg_color", "border_color"],
+    // 图像与遮罩预览：遮罩叠加色 + 序号色，两个都是整块色条（BANNER_WIDGETS）。
+    QG_ImageMaskPreview: ["mask_color", "index_color"],
 };
 
 /**
@@ -84,6 +86,8 @@ const PANEL_TITLE = {
     bg_color: "底色",
     pad_color: "衬底颜色",
     color: "颜色",
+    mask_color: "遮罩颜色",
+    index_color: "序号颜色",
 };
 
 /**
@@ -96,6 +100,10 @@ const BANNER_TEXT = {
     secondary_color: { en: "Secondary", zh: "辅色" },
     color1: { en: "Color 1", zh: "颜色1" },
     color2: { en: "Color 2", zh: "颜色2" },
+    // 图像与遮罩预览的两个色条：各带中文标签（走 BANNER_TEXT 而非 BANNER_WIDGETS，
+    // 后者只会显示写死的「颜色」，区分不出遮罩色与序号色）。
+    mask_color: { en: "Mask Color", zh: "遮罩颜色" },
+    index_color: { en: "Index Color", zh: "序号颜色" },
 };
 
 /** 画布上画的字汉化插件够不到，这里延迟到绘制时判定界面语言。 */

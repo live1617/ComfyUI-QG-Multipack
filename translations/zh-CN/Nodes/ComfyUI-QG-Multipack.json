@@ -973,5 +973,33 @@
     "outputs": {
       "segs": "Segs"
     }
+  },
+  "QG_ImageMaskPreview": {
+    "title": "QG 图像与遮罩预览",
+    "description": "在图像上叠加遮罩区域颜色与序号：遮罩每帧当一个对象分别上色、按中心画序号；序号字号可跟随遮罩缩放或固定大小。颜色用本包 STRING 色块，字体走本包发现逻辑。",
+    "inputs": {
+      "image": "图像",
+      "mask": "遮罩",
+      "mask_opacity": "遮罩不透明",
+      "mask_color": "遮罩颜色",
+      "show_index": "显示序号",
+      "index_opacity": "序号不透明",
+      "index_scale": "序号缩放",
+      "index_ratio": "序号比例",
+      "index_font": "序号字体",
+      "index_color": "序号颜色"
+    },
+    "widgets": {
+      "mask_opacity": "遮罩不透明",
+      "mask_color": "遮罩颜色",
+      "index_opacity": "序号不透明",
+      "index_scale": "序号缩放",
+      "index_ratio": "序号比例",
+      "index_font": "序号字体",
+      "index_color": "序号颜色"
+    },
+    "outputs": {
+      "image": "图像"
+    }
   }
 }

@@ -113,7 +113,7 @@ check("汉化主档 outputs 用槽名",
 check("两份 widgets 键是源码真实参数名",
       sorted(eb.get("widgets", {})) == ["color", "mode"])
 check("模式值未做恒等翻译", "options" not in ea.get("inputs", {}).get("mode", {}))
-check("两份词表节点数一致（随包 37 节点）", len(a) == len(b) == 37, "%d/%d" % (len(a), len(b)))
+check("两份词表节点数一致（随包 38 节点）", len(a) == len(b) == 38, "%d/%d" % (len(a), len(b)))
 
 print()
 print("== [5] 前端登记与文档 ==")
@@ -125,7 +125,7 @@ check("扩展名保持本包前缀", 'name: "QG.Multipack.ColorPicker"' in js)
 init = read("__init__.py")
 check("__init__ 注册了新模块", "import qg_color_picker as _color_picker" in init)
 rd = read("README.md")
-check("README 覆盖节点数已更新", "覆盖全部 37 个节点" in rd)
+check("README 覆盖节点数已更新", "覆盖全部 38 个节点" in rd)
 check("README 有新节点行", "QG_ColorPicker" in rd)
 iss = read("ISSUES.md")
 check("ISSUES 记录了本项", "| 139 |" in iss and "QG 取色器" in iss)

@@ -121,7 +121,7 @@ check("汉化主档 outputs 用槽名",
 check("nodeDefs format.options 覆盖四个值",
       sorted(ea.get("inputs", {}).get("format", {}).get("options", {}))
       == ["#HEX", "HEX", "HSL", "RGB"])
-check("两份词表节点数一致（随包 37 节点）", len(a) == len(b) == 37, "%d/%d" % (len(a), len(b)))
+check("两份词表节点数一致（随包 38 节点）", len(a) == len(b) == 38, "%d/%d" % (len(a), len(b)))
 
 print()
 print("== [5] 前端登记与规范红线 ==")
@@ -141,7 +141,7 @@ check("一览表有条目", "| `QG_ColorConvert` | QG 颜色转换 |" in rd)
 check("原创表有条目且标注参照规格", "| `QG_ColorConvert` | ✅ 原创（参照规格）" in rd)
 check("有独立章节", "### `QG_ColorConvert` 颜色转换" in rd)
 check("前端作用表登记新 JS", "`web/qg_color_convert.js`" in rd)
-check("节点总数已更新为 28", "本节覆盖全部 37 个节点" in rd)
+check("节点总数已更新为 28", "本节覆盖全部 38 个节点" in rd)
 
 print()
 print("合计 PASS %d / FAIL %d" % (ok, fail))

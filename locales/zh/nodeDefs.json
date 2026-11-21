@@ -2089,5 +2089,57 @@
         "tooltip": "自造 QG_SEGS 容器：每个连通区域一段，带框、标签、打分与遮罩；可接 QG 遮罩次序过滤等本包下游。"
       }
     }
+  },
+  "QG_ImageMaskPreview": {
+    "display_name": "QG 图像与遮罩预览",
+    "description": "在图像上叠加遮罩区域颜色与序号：遮罩每帧当一个对象分别上色、按中心画序号（从 1 数起）；序号字号可跟随遮罩缩放或固定大小。参考 Goohaitools「图像与遮罩预览」规格独立实现，颜色用本包 STRING 色块而非 GHCOLOR，字体走本包发现逻辑。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "输入图像，取第一帧；支持 RGB/RGBA，透明部分压黑。"
+      },
+      "mask": {
+        "name": "遮罩",
+        "tooltip": "输入遮罩，[H,W] 单张或 [B,H,W] 批次；每帧当一个对象分别上色与编号。"
+      },
+      "mask_opacity": {
+        "name": "遮罩不透明",
+        "tooltip": "遮罩区域叠加颜色的强度，0 不叠加、1 完全盖住。"
+      },
+      "mask_color": {
+        "name": "遮罩颜色",
+        "tooltip": "叠加到遮罩区域的色值，点色块取色或手填 #RRGGBB。"
+      },
+      "show_index": {
+        "name": "显示序号",
+        "tooltip": "在每个遮罩中心画序号，从 1 数起；布尔控件的显示文字写在源码 label_on/label_off。"
+      },
+      "index_opacity": {
+        "name": "序号不透明",
+        "tooltip": "序号文字的透明度，0 全透明、1 完全不透明。"
+      },
+      "index_scale": {
+        "name": "序号缩放",
+        "tooltip": "跟随遮罩缩放：按各自遮罩高度定字号；固定大小：按最大遮罩高度统一定字号。"
+      },
+      "index_ratio": {
+        "name": "序号比例",
+        "tooltip": "字号 = 遮罩高度 × 该比例。"
+      },
+      "index_font": {
+        "name": "序号字体",
+        "tooltip": "随包 OFL 中文字体优先，其后是 models/fonts 与系统字体，下拉只列真实存在的文件。"
+      },
+      "index_color": {
+        "name": "序号颜色",
+        "tooltip": "序号文字的色值，点色块取色或手填 #RRGGBB。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "叠加了遮罩颜色与序号的预览图，可直接接预览节点查看。"
+      }
+    }
   }
 }
