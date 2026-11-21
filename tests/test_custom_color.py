@@ -156,7 +156,7 @@ check("汉化主档 outputs 用槽名", sorted(eb.get("outputs", {})) == ["image
 check("nodeDefs mode.options 覆盖三个英文值",
       sorted(ea.get("inputs", {}).get("mode", {}).get("options", {}))
       == ["radial_gradient", "solid", "vertical_gradient"])
-check("两份词表节点数一致（随包 32 节点）", len(a) == len(b) == 32, "%d/%d" % (len(a), len(b)))
+check("两份词表节点数一致（随包 33 节点）", len(a) == len(b) == 33, "%d/%d" % (len(a), len(b)))
 
 print()
 print("== [5] 前端登记与规范红线 ==")
@@ -182,7 +182,7 @@ check("一览表有条目", "| `QG_CustomColor` | QG 自定义颜色 |" in rd)
 check("原创表有条目且标注参照规格", "| `QG_CustomColor` | ✅ 原创（参照规格）" in rd)
 check("有独立章节", "### `QG_CustomColor` 自定义颜色" in rd)
 check("前端作用表登记新 JS", "`web/qg_custom_color.js`" in rd)
-check("节点总数已更新为 28", "本节覆盖全部 32 个节点" in rd)
+check("节点总数已更新为 28", "本节覆盖全部 33 个节点" in rd)
 
 print()
 print("合计 PASS %d / FAIL %d" % (ok, fail))
