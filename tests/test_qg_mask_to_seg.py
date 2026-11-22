@@ -147,6 +147,16 @@ empty = M.mask_to_segs(np.zeros((10, 12), np.float32))
 check("空遮罩 0 段", len(empty) == 0)
 check("空容器 mask_batch=[0,H,W]", empty.mask_batch().shape == (0, 10, 12))
 check("空容器 combined_mask 全 0", float(empty.combined_mask().max()) == 0.0)
+
+# 0 帧批次：上游 QG 简易 Seg 检测没检出目标时就是这种输入，必须得空遮罩而非崩溃。
+# （ndarray.max(axis=0) 对长度 0 的轴会抛 zero-size array to reduction operation）
+zero_batch = np.zeros((0, 10, 12), np.float32)
+check("空批次 _combine_frames 不崩且给全 0 图",
+      M._combine_frames(zero_batch).shape == (10, 12)
+      and float(M._combine_frames(zero_batch).max()) == 0.0)
+check("空批次 0 段", len(M.mask_to_segs(zero_batch)) == 0)
+check("空批次 Tensor 输入同样安全",
+      len(M.mask_to_segs(torch.from_numpy(zero_batch))) == 0)
 try:
     M.mask_to_segs(np.zeros((2, 2, 3, 4), np.float32))
     check("4 维输入报错", False)

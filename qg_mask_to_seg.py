@@ -25,7 +25,11 @@ import numpy as np
 import torch
 
 # 复用本包自造容器，保证与 QG_SimpleSegDetector / QG_MaskOrderFilter 同一类型。
-from .qg_simple_seg_detector import QGSeg, QGSegs, SEGS_TYPE  # noqa: F401
+# 包上下文走相对导入，单文件加载（测试脚本）走顶层绝对导入。
+try:
+    from .qg_simple_seg_detector import QGSeg, QGSegs, SEGS_TYPE
+except ImportError:
+    from qg_simple_seg_detector import QGSeg, QGSegs, SEGS_TYPE
 
 _MAX_RESOLUTION = 16384
 
@@ -42,11 +46,19 @@ def _to_numpy(mask):
 
 
 def _combine_frames(mask):
-    """批次 [N,H,W] 取逐像素最大值合成一张 [H,W]；2D 原样返回。"""
+    """批次 [N,H,W] 取逐像素最大值合成一张 [H,W]；2D 原样返回。
+
+    空批次（``[0,H,W]``）是合法输入：上游 QG 简易 Seg 检测没检出目标时就会
+    输出 0 帧遮罩，直接接本节点是常规用法。这种输入应得「一张空遮罩」而不是
+    崩溃——``ndarray.max(axis=0)`` 对 0 长度轴会抛
+    ``zero-size array to reduction operation maximum``。
+    """
     arr = _to_numpy(mask)
     if arr.ndim == 2:
         return arr
     if arr.ndim == 3:
+        if arr.shape[0] == 0:
+            return np.zeros(arr.shape[1:], dtype=np.float32)
         return arr.max(axis=0)
     raise ValueError(
         "QG 遮罩到 Seg 只接受 [H,W] 或 [N,H,W] 的遮罩，收到 %d 维。" % arr.ndim)
@@ -119,12 +131,12 @@ def _contours_numpy(mask_u8):
                 if 0 <= ny < height and 0 <= nx < width and binary[ny, nx] and not seen[ny, nx]:
                     seen[ny, nx] = True
                     stack.append((ny, nx))
-        xs_i = [p[0] for p in pts]
-        ys_i = [p[1] for p in pts]
-        contour = np.array([[[min(xs_i), min(ys_i)], [max(xs_i), max(ys_i)]]], dtype=np.int32)
+        coords = np.asarray(pts, dtype=np.int32)       # 列为 (x, y)
+        x_lo, y_lo = coords.min(axis=0)
+        x_hi, y_hi = coords.max(axis=0)
+        contour = np.array([[[x_lo, y_lo], [x_hi, y_hi]]], dtype=np.int32)
         filled = np.zeros((height, width), dtype=np.uint8)
-        for px, py in pts:
-            filled[py, px] = 255
+        filled[coords[:, 1], coords[:, 0]] = 255
         items.append((contour, (filled / 255.0).astype(np.float32)))
     return items
 
@@ -142,7 +154,7 @@ def mask_to_segs(mask, combine=False, crop_factor=3.0, bbox_fill=False,
     segs = []
     if combine:
         ys, xs = np.nonzero(plane > 0)
-        if len(xs) and len(ys):
+        if xs.size:                    # 两轴长度必然相同，判一个就够
             x0, y0 = int(xs.min()), int(ys.min())
             x1, y1 = int(xs.max()) + 1, int(ys.max()) + 1
             bbox = (float(x0), float(y0), float(x1), float(y1))

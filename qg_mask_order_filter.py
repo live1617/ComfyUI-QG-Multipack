@@ -5,7 +5,7 @@
 为独立实现，未复制上游源码。与上游的关键差别：
 
 * **双输出。** 与上游一样 Seg 在上、Mask 在下；上游是 Impact-Pack 的 ``SEGS``，
-  本包输出自造 ``QG_SEGS`` 兼容容器（duck-typing），不导入检测节点、不碰第三方
+  本包输出自造 ``QG_SEGS``（复用检测节点的 ``QGSeg`` / ``QGSegs``），不碰第三方
   SEGS，也不要求安装 Impact-Pack。
 * **可选 segs 口。** 既可吃 ComfyUI 原生 MASK（每帧当一段），也可直接接本包
   QG_SimpleSegDetector 输出的自造 ``QG_SEGS``；与 masks 二选一，masks 优先。
@@ -26,65 +26,17 @@ from __future__ import annotations
 import numpy as np
 import torch
 
+# Seg 容器直接复用检测节点的 QGSeg / QGSegs：两者字段与方法完全一致，各写一份
+# 会让「QG_SEGS」出现两个不同的类，下游 isinstance 判断必然失配。包上下文走
+# 相对导入，单文件加载（测试脚本）走顶层绝对导入。
+try:
+    from .qg_simple_seg_detector import QGSeg, QGSegs, SEGS_TYPE
+except ImportError:
+    from qg_simple_seg_detector import QGSeg, QGSegs, SEGS_TYPE
+
 PRIORITY_RULES = ["面积大小", "宽度大小", "高度大小", "上下左右", "下上左右"]
 DIRECTIONS = ["正序", "反序"]
 _VALID_CUT = 0.1
-# 自造 SEGS 类型，与 qg_simple_seg_detector.SEGS_TYPE 保持一致；
-# 只接本包 QG_SimpleSegDetector 的输出，不碰 Impact/LitSegs 的第三方结构。
-SEGS_TYPE = "QG_SEGS"
-
-
-class _SegItem:
-    """筛选后的一段：字段与检测节点的 QGSeg 一致，便于下游按属性读取。"""
-
-    __slots__ = ("bbox", "label", "score", "mask", "crop_factor")
-
-    def __init__(self, bbox, label, score, mask, crop_factor):
-        self.bbox = tuple(float(v) for v in bbox)
-        self.label = str(label)
-        self.score = float(score)
-        self.mask = mask
-        self.crop_factor = float(crop_factor)
-
-    def __repr__(self):
-        return "_SegItem(label=%r, score=%.3f, bbox=%s)" % (
-            self.label, self.score, self.bbox)
-
-
-class _SegsContainer:
-    """输出用 QG_SEGS 兼容容器， duck-typing 对齐 QGSegs，不导入检测节点。"""
-
-    def __init__(self, segs, width, height):
-        self.segs = list(segs)
-        self.width = int(width)
-        self.height = int(height)
-
-    def __len__(self):
-        return len(self.segs)
-
-    def __iter__(self):
-        return iter(self.segs)
-
-    def __getitem__(self, index):
-        return self.segs[index]
-
-    def __repr__(self):
-        return "_SegsContainer(%d segs, %dx%d)" % (len(self.segs), self.width, self.height)
-
-    def combined_mask(self):
-        """逐像素取最大，合成一张 [H,W]；无段时返回全 0。"""
-        if not self.segs:
-            return np.zeros((self.height, self.width), dtype=np.float32)
-        out = self.segs[0].mask.copy()
-        for seg in self.segs[1:]:
-            np.maximum(out, seg.mask, out=out)
-        return out
-
-    def mask_batch(self):
-        """每段一帧，堆叠成 [N,H,W]；无段时返回 [0,H,W]。"""
-        if not self.segs:
-            return np.zeros((0, self.height, self.width), dtype=np.float32)
-        return np.stack([s.mask for s in self.segs], axis=0)
 
 
 def _to_numpy(mask):
@@ -135,17 +87,24 @@ def _iou(a, b):
 
 
 def _group_by_x(items, threshold):
-    """按外接框左边界 x1 分组：相邻 x1 差不超过阈值的归为同一组。"""
+    """按外接框左边界 x1 分组：与**本组第一个段**的 x1 相差不超过阈值的归为一组。
+
+    必须拿组首当基准，不能拿「上一个段」当基准：后者是链式聚合，间距为
+    0/100/200、阈值 120 时会一路传递成一整组，把横排的人物全并进同一列，
+    「上下左右」于是退化成纯纵向排序。组首基准下 0/100 同组、200 另起一组，
+    与「X 坐标相差不超过该像素数算同一列」的字面语义一致。
+    """
     ordered = sorted(items, key=lambda it: it["bbox"][0])
-    groups, current, current_x = [], [], None
+    groups, current, anchor_x = [], [], None
     for item in ordered:
         x1 = item["bbox"][0]
-        if current_x is None or abs(x1 - current_x) <= threshold:
+        if anchor_x is None:
+            anchor_x = x1          # 第一段就是本组基准，漏这一步会全程不分组
+        if abs(x1 - anchor_x) <= threshold:
             current.append(item)
-            current_x = x1
         else:
             groups.append(current)
-            current, current_x = [item], x1
+            current, anchor_x = [item], x1
     if current:
         groups.append(current)
     return groups
@@ -208,7 +167,12 @@ def select_segments(items, start=0, count=1, overlap=0.0):
 
 
 def merge_segments(items, height, width, merge=True):
-    """合并输出：merge=True 取逐像素最大值输出 [H,W]；否则堆叠成 [B,H,W]。"""
+    """合并输出：merge=True 取逐像素最大值输出 [H,W]；否则堆叠成 [B,H,W]。
+
+    一段都没选中时**兜底 1 帧全 0**（逐帧模式）或一张全 0 遮罩（合并模式）：
+    输出 0 帧虽然更贴近「什么都没选中」，但预览/保存类节点拿到 ``[0,H,W]``
+    会直接异常，而一张全 0 遮罩在下游是无害的（上色不上、分段为空）。
+    """
     if not items:
         empty = np.zeros((height, width), dtype=np.float32)
         return empty if merge else empty[None, ...]
@@ -222,11 +186,11 @@ def merge_segments(items, height, width, merge=True):
 
 
 def _build_segs(items, width, height):
-    """把筛选后的段打包成 QG_SEGS 兼容容器；有原段元数据时尽量保留。
+    """把筛选后的段打包成 QG_SEGS 容器；有原段元数据时尽量保留。
 
-    参数顺序与 ``_SegsContainer(segs, width, height)`` 一致：先宽后高。
-    传反了不会报错，只会在空段时暴露成 width/height 互换（combined_mask
-    的形状是 (height, width)，互换后尺寸就是错的）。
+    参数顺序与 ``QGSegs(segs, width, height)`` 一致：先宽后高。传反了不会
+    报错，只会在空段时暴露成 width/height 互换（combined_mask 的形状是
+    (height, width)，互换后尺寸就是错的）。
     """
     parts = []
     for item in items:
@@ -239,8 +203,8 @@ def _build_segs(items, width, height):
             crop_factor = getattr(meta, "crop_factor", 3.0)
         else:
             bbox, label, score, crop_factor = item["bbox"], "", 1.0, 3.0
-        parts.append(_SegItem(bbox, label, score, plane, crop_factor))
-    return _SegsContainer(parts, width, height)
+        parts.append(QGSeg(bbox, label, score, plane, crop_factor))
+    return QGSegs(parts, width, height)
 
 
 class QGMaskOrderFilter:
@@ -284,7 +248,7 @@ class QGMaskOrderFilter:
                 }),
                 "分组阈值": ("INT", {
                     "default": 120, "min": 0, "max": 4096, "step": 1,
-                    "tooltip": "上下左右/下上左右规则下，X 坐标相差不超过该像素数的段算同一列。",
+                    "tooltip": "上下左右/下上左右规则下，左边界与同组第一段相差不超过该像素数的段算同一列；0 表示只把左边界完全相同的算一列。",
                 }),
                 "重叠因子": ("FLOAT", {
                     "default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01,
@@ -310,7 +274,8 @@ class QGMaskOrderFilter:
     def execute(self, masks=None, 优先规则="上下左右", 正反顺序="正序", 开始索引=0,
                 过滤数量=1, 分组阈值=120, 重叠因子=0.0, 合并遮罩=False, segs=None):
         # masks 与 segs 二选一：masks 优先；只接 segs 时取每段的遮罩当一段。
-        # 全程 duck-typing，不 import 检测节点，也不解析任何第三方 SEGS 结构。
+        # 输入侧 duck-typing：只要求对象带 mask_batch()，不解析任何第三方 SEGS
+        # 结构；输出侧复用本包 QGSeg / QGSegs，保证类型与检测节点一致。
         source_segs = None
         if masks is None:
             if segs is None:

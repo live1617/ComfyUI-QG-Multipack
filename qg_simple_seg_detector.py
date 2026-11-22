@@ -125,8 +125,15 @@ def _dilate_mask(mask, amount):
 
 
 def _to_uint8_rgb(image):
-    """ComfyUI IMAGE [B,H,W,3] float 0..1 -> 首帧 RGB uint8 [H,W,3]。"""
-    arr = image[0].detach().cpu().numpy() if hasattr(image[0], "detach") else np.asarray(image[0])
+    """ComfyUI IMAGE [B,H,W,3] float 0..1 -> 首帧 RGB uint8 [H,W,3]。
+
+    空批次（0 帧）没有首帧可转，直接给中文错误——否则会抛 IndexError，
+    用户看不懂是哪个节点、为什么。
+    """
+    frame = image[0] if len(image) else None
+    if frame is None:
+        raise ValueError("QG 简易 Seg 检测收到空图像批次（0 帧），无法检测。")
+    arr = frame.detach().cpu().numpy() if hasattr(frame, "detach") else np.asarray(frame)
     arr = np.nan_to_num(np.asarray(arr, dtype=np.float32), nan=0.0, posinf=1.0, neginf=0.0)
     arr = np.clip(arr, 0.0, 1.0)
     return (arr * 255.0 + 0.5).astype(np.uint8)

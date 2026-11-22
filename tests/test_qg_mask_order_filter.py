@@ -143,6 +143,26 @@ lr_rev = M.order_segments(col_frames, "上下左右", "反序", 5)
 check("位置规则反序整体倒过来",
       [it["bbox"] for it in lr_rev] == list(reversed([it["bbox"] for it in lr])))
 
+# 组首基准 vs 链式聚合：三列 x 为 0/100/200，列间距 100，阈值 120。
+# 链式聚合（拿上一个段当基准）会把 0→100→200 一路传成一整组，横排人物全并进
+# 同一列，「上下左右」退化成纯纵向排序；组首基准下 0 与 100 同组、200 另起。
+wide = []
+for x in (0, 100, 200):
+    wide.append(rect(0, 30, x, x + 40, h=120, w=400))
+    wide.append(rect(60, 90, x, x + 40, h=120, w=400))
+chain = M.order_segments(wide, "上下左右", "正序", 120)
+# 链式聚合会把 0/100/200 并成一组，只按 y1 排 ⇒ 三个 y=0 段会连在一起。
+# 组首基准下分成两组：组一 = x∈{0,100}（4 段），组二 = x=200（2 段）。
+xs = [it["bbox"][0] for it in chain]
+check("分组按组首基准，不做链式聚合",
+      set(xs[:4]) == {0, 100} and xs[4:] == [200, 200], xs)
+check("组内按 y1 上到下",
+      [it["bbox"][1] for it in chain] == [0, 0, 60, 60, 0, 60],
+      [it["bbox"] for it in chain])
+check("分组阈值 0 时只有同 X 的段归一组",
+      [it["bbox"][0] for it in M.order_segments(wide, "上下左右", "正序", 0)]
+      == [0, 0, 100, 100, 200, 200])
+
 # ---------- 五、索引 / 数量 / IoU 去重 ----------
 items = M.order_segments(frames, "面积大小", "正序")
 check("过滤数量 0 取到末尾", len(M.select_segments(items, 0, 0)) == 3)

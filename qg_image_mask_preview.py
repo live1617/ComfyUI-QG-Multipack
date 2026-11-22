@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 
 import numpy as np
 import torch
@@ -101,6 +102,16 @@ def load_font(name, size):
     return ImageFont.load_default()
 
 
+@lru_cache(maxsize=64)
+def _cached_font(name, size):
+    """同一字体/字号只读一次文件：多段预览常在同一字号下重复请求。
+
+    字体对象在 PIL 里只读使用（textbbox / draw.text），共享实例安全；新装字体
+    需要重启后端才会生效，与本包其他字体节点的缓存口径一致。
+    """
+    return load_font(name, int(size))
+
+
 def parse_color(value, fallback):
     """把 #rgb / #rrggbb / #rrggbbaa 解析成 0-255 三元组，非法回退 fallback。"""
     text = str(value if value is not None else "").strip().lstrip("#")
@@ -130,9 +141,14 @@ def _to_numpy(value):
 
 
 def _image_frame(image):
-    """取图像第一帧转成 [H,W,3] uint8；RGBA 透明部分压黑。"""
+    """取图像第一帧转成 [H,W,3] uint8；RGBA 透明部分压黑。
+
+    空批次（0 帧）没有首帧可取，给中文错误而不是 IndexError。
+    """
     arr = _to_numpy(image)
     if arr.ndim == 4:
+        if arr.shape[0] == 0:
+            raise ValueError("QG 图像与遮罩预览收到空图像批次（0 帧），无法预览。")
         arr = arr[0]
     if arr.ndim != 3:
         raise ValueError(
@@ -196,16 +212,28 @@ def render_preview(image, mask, mask_opacity=0.4, mask_color=DEFAULT_MASK_COLOR,
     height, width = rgb.shape[:2]
     frames = _mask_frames(mask)
 
-    # 画布用 RGBA，便于逐帧 alpha 合成。
+    # 画布用 RGBA，便于叠加上色层。
     canvas = Image.fromarray(rgb, mode="RGB").convert("RGBA")
     mask_rgb = parse_color(mask_color, DEFAULT_MASK_COLOR)
     opacity = float(np.clip(mask_opacity, 0.0, 1.0))
 
-    fitted = []
+    # 多帧遮罩的叠加按「1-(1-a1)(1-a2)」累积 alpha，数学上与逐帧
+    # alpha_composite 的结果一致（over 运算满足结合律），但只需要一张全图
+    # 缓冲与一次合成：早期实现每帧都新建一张全尺寸 RGBA 图层，4K 图 11 段要
+    # 反复分配约 360MB。段中心顺手记下，避免再存一份 plane 列表。
+    acc = None
+    centers = []
     for i in range(frames.shape[0]):
         plane = _fit_mask(frames[i], width, height)
-        fitted.append(plane)
-        alpha = (plane * opacity * 255.0).astype(np.uint8)
+        if acc is None:
+            acc = np.zeros((height, width), dtype=np.float32)
+        a = plane * opacity
+        acc = acc * (1.0 - a) + a        # over 运算：新层压在已累积层之上
+        if show_index:
+            centers.append((i + 1, _bbox_center(plane)))
+
+    if acc is not None and float(acc.max()) > 0.0:
+        alpha = (np.clip(acc, 0.0, 1.0) * 255.0).astype(np.uint8)
         layer = Image.new("RGBA", (width, height), (*mask_rgb, 0))
         layer.putalpha(Image.fromarray(alpha, mode="L"))
         canvas = Image.alpha_composite(canvas, layer)
@@ -213,16 +241,15 @@ def render_preview(image, mask, mask_opacity=0.4, mask_color=DEFAULT_MASK_COLOR,
     if show_index:
         number_rgb = parse_color(index_color, DEFAULT_INDEX_COLOR)
         number_alpha = int(round(float(np.clip(index_opacity, 0.0, 1.0)) * 255.0))
-        infos = [(i + 1, _bbox_center(plane)) for i, plane in enumerate(fitted)]
-        infos = [(idx, info) for idx, info in infos if info is not None]
+        infos = [(idx, info) for idx, info in centers if info is not None]
         fixed_mode = str(index_scale).strip() == "固定大小"
         max_height = max((info[2] for _, info in infos), default=0)
-        font_name = index_font if index_font else default_font()
+        font_name = index_font or default_font()
 
         for idx, (cx, cy, mask_height) in infos:
             base = max_height if fixed_mode else mask_height
             size = max(1, int(round(base * float(index_ratio))))
-            font = load_font(font_name, size)
+            font = _cached_font(font_name, size)
             text = str(idx)
             text_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             draw = ImageDraw.Draw(text_layer)
@@ -248,6 +275,7 @@ class QGImageMaskPreview:
     @classmethod
     def INPUT_TYPES(cls):
         fonts = font_choices()
+        default_face = default_font()
         return {
             "required": {
                 "image": ("IMAGE", {
@@ -282,7 +310,7 @@ class QGImageMaskPreview:
                                "多人密集场景会互相压盖，建议 0.1~0.2。",
                 }),
                 "index_font": (fonts, {
-                    "default": default_font() if default_font() in fonts else _BANNED_FONT,
+                    "default": default_face if default_face in fonts else _BANNED_FONT,
                     "tooltip": "序号字体：随包 OFL 中文字体优先，其后是 models/fonts 与系统字体。",
                 }),
                 "index_color": ("STRING", {

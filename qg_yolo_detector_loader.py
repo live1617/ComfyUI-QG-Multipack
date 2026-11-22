@@ -22,6 +22,13 @@ from __future__ import annotations
 
 import os
 
+# 候选根推导 / 递归扫描 / 路径安全解析 / 设备解析 全部走公共层，
+# 与 SAM 加载器共用一份实现；本模块只保留 bbox/segm 这层类别特有的拼装。
+try:
+    from . import qg_model_scan as _scan
+except ImportError:                     # 单文件/顶层加载（测试脚本）
+    import qg_model_scan as _scan
+
 DETECTOR_TYPE = "QG_YOLO_DETECTOR"
 
 _YOLO_MISSING = (
@@ -31,55 +38,27 @@ _YOLO_MISSING = (
     "ComfyUI-Impact-Pack 或 Impact-Subpack。"
 )
 
-_FALLBACK_EXTS = (".pt", ".pth", ".onnx", ".safetensors")
+#: 加载器登记的类别名（folder_paths 里没有内置 ultralytics，靠 models 根兜底）。
+_CATEGORY = "ultralytics"
 
 
 def _folder_paths_module():
-    try:
-        import folder_paths  # noqa: PLC0415 - 延迟导入，便于测试进程注入
-    except Exception:
-        return None
-    return folder_paths
+    return _scan.folder_paths_module()
 
 
 def _model_extensions(fp):
-    exts = getattr(fp, "supported_pt_extensions", None) if fp is not None else None
-    return tuple(str(e).lower() for e in exts) if exts else _FALLBACK_EXTS
+    return _scan.model_extensions(fp)
 
 
 def _model_roots(fp):
-    """返回 ultralytics 根的候选目录，去重保序。"""
-    roots = []
-    if fp is not None:
-        try:
-            roots.extend(fp.get_folder_paths("ultralytics"))
-        except Exception:
-            pass
-        models_dir = getattr(fp, "models_dir", None)
-        if models_dir:
-            roots.append(os.path.join(models_dir, "ultralytics"))
-        # extra_model_paths 挂进来的 models 根：从所有已注册路径向上反推。
-        try:
-            for value in getattr(fp, "folder_names_and_paths", {}).values():
-                if isinstance(value, (tuple, list)) and value:
-                    for path in (value[0] if isinstance(value[0], (tuple, list)) else [value[0]]):
-                        if path:
-                            roots.append(os.path.join(os.path.dirname(path), "ultralytics"))
-        except Exception:
-            pass
+    """返回 ultralytics 根的候选目录（含挂载与环境变量），去重保序。"""
+    return _scan.category_roots(
+        _CATEGORY, fp, extra=_env_roots())
+
+
+def _env_roots():
     env_dir = os.environ.get("QG_ULTRALYTICS_DIR")
-    if env_dir:
-        roots.append(env_dir)
-    seen = set()
-    out = []
-    for root in roots:
-        if not root:
-            continue
-        norm = os.path.normpath(root)
-        if norm not in seen:
-            seen.add(norm)
-            out.append(norm)
-    return out
+    return [env_dir] if env_dir else []
 
 
 def _candidate_roots(kind, fp=None):
@@ -88,50 +67,26 @@ def _candidate_roots(kind, fp=None):
         fp = _folder_paths_module()
     roots = []
     for base in _model_roots(fp):
-        sub = os.path.join(base, kind)
         # 目录本身已以 bbox/segm 结尾时不再重复拼一层。
-        roots.append(sub if os.path.basename(os.path.normpath(base)) != kind else base)
-    seen = set()
-    out = []
-    for root in roots:
-        norm = os.path.normpath(root)
-        if norm not in seen:
-            seen.add(norm)
-            out.append(norm)
-    return out
+        roots.append(base if os.path.basename(os.path.normpath(base)) == kind
+                     else os.path.join(base, kind))
+    return _scan.dedupe(roots)
 
 
 def _scan_models(kind, fp=None):
     """递归扫描某类（bbox/segm）权重，返回相对名（子目录用 / 分隔）。
 
-    不含 ``bbox/`` 前缀：调用方统一拼，避免与既有下拉格式重复。
-    子目录同样收录（``yolo11/xxx.pt``）：ultralytics 只按文件路径加载，
-    不限制层级，用户按型号建目录整理权重时不该整批消失。递归深度限制 3 层。
+    不含 ``bbox/`` 前缀：调用方统一拼，避免与既有下拉格式重复。子目录同样
+    收录（``yolo11/xxx.pt``）——ultralytics 只按文件路径加载，不限制层级，
+    用户按型号建目录整理权重时不该整批消失。
     """
     if fp is None:
         fp = _folder_paths_module()
     exts = _model_extensions(fp)
     found = set()
     for root in _candidate_roots(kind, fp):
-        if not os.path.isdir(root):
-            continue
-        for dirpath, dirnames, filenames in os.walk(root):
-            rel_dir = os.path.relpath(dirpath, root)
-            depth = 0 if rel_dir in (".", "") else rel_dir.count(os.sep) + 1
-            dirnames[:] = [d for d in dirnames
-                           if not d.startswith(".") and d != "__pycache__"]
-            if depth >= 3:
-                dirnames[:] = []
-            for name in filenames:
-                if not name.lower().endswith(exts):
-                    continue
-                full = os.path.join(dirpath, name)
-                if not os.path.isfile(full):
-                    continue
-                if depth == 0:
-                    found.add(name)
-                else:
-                    found.add(os.path.relpath(full, root).replace(os.sep, "/"))
+        for rel, _full in _scan.walk_relative(root, exts):
+            found.add(rel)
     return sorted(found)
 
 
@@ -150,35 +105,28 @@ def _resolve_model_path(model_name, fp=None):
         kind, rel = "segm", text[5:]
     else:
         return None
-    parts = [p for p in rel.split("/") if p not in ("", ".")]
-    if not parts or any(p == ".." for p in parts) or ":" in rel:
+    parts = _scan.split_relative(rel)
+    if parts is None:
         return None
-    for root in _candidate_roots(kind, fp):
-        path = os.path.normpath(os.path.join(root, *parts))
-        try:
-            base = os.path.normcase(os.path.abspath(root))
-            target = os.path.normcase(os.path.abspath(path))
-            if os.path.commonpath([base, target]) != base:
-                continue
-        except ValueError:
-            continue
-        if os.path.isfile(path):
-            return path
-    return None
+    return _scan.resolve_in_roots(parts, _candidate_roots(kind, fp))
 
 
 def _resolve_device(device):
-    if device == "cpu":
-        return "cpu"
+    return _scan.resolve_device(device)
+
+
+def _as_sequence(value, count, fill):
+    """把 boxes 的 conf / cls 统一成可按索引取值的序列。
+
+    ultralytics 返回的是 Tensor；某些版本或自定义 head 会给 numpy/list；字段
+    缺失时用 fill 补齐，调用方就不必为三种情况各写一遍分支。
+    """
+    if value is None:
+        return [fill] * count
     try:
-        import torch  # noqa: PLC0415
-        if device == "cuda" and not torch.cuda.is_available():
-            return "cpu"
-        if torch.cuda.is_available():
-            return "cuda"
-    except Exception:
-        pass
-    return "cpu"
+        return value.detach().cpu().numpy()
+    except AttributeError:
+        return value
 
 
 class QGYoloDetector:
@@ -214,22 +162,8 @@ class QGYoloDetector:
             xyxy = xyxy.detach().cpu().numpy()
         except AttributeError:
             pass
-        confs = getattr(boxes, "conf", None)
-        clss = getattr(boxes, "cls", None)
-        if confs is None:
-            confs = [1.0] * len(xyxy)
-        else:
-            try:
-                confs = confs.detach().cpu().numpy()
-            except AttributeError:
-                pass
-        if clss is None:
-            clss = [0] * len(xyxy)
-        else:
-            try:
-                clss = clss.detach().cpu().numpy()
-            except AttributeError:
-                pass
+        confs = _as_sequence(getattr(boxes, "conf", None), len(xyxy), 1.0)
+        clss = _as_sequence(getattr(boxes, "cls", None), len(xyxy), 0)
         names = getattr(self.model, "names", None) or {}
         out = []
         for i in range(len(xyxy)):
@@ -279,14 +213,7 @@ class QGYoloDetectorLoader:
 
     @classmethod
     def IS_CHANGED(cls, model_name, device="auto"):
-        path = _resolve_model_path(model_name)
-        if path is None:
-            return float("nan")
-        try:
-            stat = os.stat(path)
-            return "%s:%s" % (stat.st_mtime, stat.st_size)
-        except OSError:
-            return float("nan")
+        return _scan.file_signature(_resolve_model_path(model_name))
 
     def load_detector(self, model_name, device="auto"):
         path = _resolve_model_path(model_name)

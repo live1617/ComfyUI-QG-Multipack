@@ -373,6 +373,13 @@ s4, m4 = node.detect(EmptyDet(), img, 0.6, 0, 3.0, 10, 0.0, 0, 0, 0.0, 0, None)
 check("空结果 MASK 形状", len(s4) == 0 and m4.shape == (0, 100, 120))
 check("空结果合并遮罩全 0", s4.combined_mask().sum() == 0)
 
+# 0 帧图像批次：给中文错误而不是 IndexError（用户要知道是哪个节点、为什么）
+try:
+    SD._to_uint8_rgb(torch.zeros((0, 8, 8, 3)))
+    check("0 帧图像批次报中文错", False)
+except ValueError as exc:
+    check("0 帧图像批次报中文错", "空图像批次" in str(exc), str(exc))
+
 
 # 检测器必须收到 BGR：ultralytics 把 numpy 输入当 OpenCV 图（内部再翻 RGB）。
 class _CaptureDet:

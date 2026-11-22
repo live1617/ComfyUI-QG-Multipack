@@ -19,6 +19,13 @@ from __future__ import annotations
 
 import os
 
+# 候选根推导 / 递归扫描 / 路径安全解析 / 设备解析 全部走公共层，
+# 与 YOLO 检测器加载器共用一份实现；本模块只保留 SAM 特有的后端分流与加载。
+try:
+    from . import qg_model_scan as _scan
+except ImportError:                     # 单文件/顶层加载（测试脚本）
+    import qg_model_scan as _scan
+
 SAM_TYPE = "QG_SAM_MODEL"
 
 _SAM_MISSING = (
@@ -35,63 +42,26 @@ _SAM_HQ_MISSING = (
     "后完整重启 ComfyUI。"
 )
 
-_FALLBACK_EXTS = (".pth", ".pt", ".ckpt", ".bin", ".safetensors")
+#: SAM 权重登记的类别名（含历史别名 sam，兼容早期把权重放 models/sam 的用法）。
+_CATEGORIES = ("sams", "sam")
 
-# 文件名片段 -> sam_model_registry 的键。按骨干规格精确匹配。
-_MODEL_TYPE_HINTS = (
-    ("vit_h", "vit_h"), ("vit_l", "vit_l"), ("vit_b", "vit_b"),
-)
+#: 文件名里的骨干规格标记，直接就是 sam_model_registry 的键。
+_MODEL_TYPE_HINTS = ("vit_h", "vit_l", "vit_b")
 
 # HQ-SAM 权重常见的文件名标记。
 _HQ_MARKERS = ("sam_hq", "samhq", "hq_sam", "hq-sam")
 
 
 def _folder_paths_module():
-    try:
-        import folder_paths  # noqa: PLC0415
-    except Exception:
-        return None
-    return folder_paths
+    return _scan.folder_paths_module()
 
 
-def _model_extensions(fp):
-    exts = getattr(fp, "supported_pt_extensions", None) if fp is not None else None
-    return tuple(str(e).lower() for e in exts) if exts else _FALLBACK_EXTS
-
-
-def _sam_roots(fp):
-    """返回 SAM 权重目录候选，去重保序。"""
-    roots = []
-    if fp is not None:
-        for key in ("sams", "sam"):
-            try:
-                roots.extend(fp.get_folder_paths(key))
-            except Exception:
-                pass
-        models_dir = getattr(fp, "models_dir", None)
-        if models_dir:
-            roots.append(os.path.join(models_dir, "sams"))
-        try:
-            for value in getattr(fp, "folder_names_and_paths", {}).values():
-                if isinstance(value, (tuple, list)) and value:
-                    for path in (value[0] if isinstance(value[0], (tuple, list)) else [value[0]]):
-                        if path:
-                            roots.append(os.path.join(os.path.dirname(path), "sams"))
-        except Exception:
-            pass
+def _sam_roots(fp=None):
+    """返回 SAM 权重目录候选（含挂载与环境变量），去重保序。"""
+    if fp is None:
+        fp = _folder_paths_module()
     env_dir = os.environ.get("QG_SAMS_DIR")
-    if env_dir:
-        roots.append(env_dir)
-    seen = set()
-    out = []
-    for root in roots:
-        if not root:
-            continue
-        norm = os.path.normpath(root)
-        if norm not in seen:
-            seen.add(norm)
-            out.append(norm)
-    return out
+    return _scan.category_roots(_CATEGORIES, fp, extra=[env_dir] if env_dir else [])
 
 
 def _scan_models(fp=None):
@@ -99,36 +69,13 @@ def _scan_models(fp=None):
 
     与 ComfyUI 自身的 ``folder_paths.get_filename_list`` 口径一致：该接口是
     递归的，Impact 等加载器因此能看到 ``sams/hq/xxx.pth`` 这类按型号分目录的
-    权重。本节点原先只列根目录一层，用户整理成子目录后就整批消失。递归深度
-    限制 3 层，避免误挂大目录时遍历过慢。
+    权重。本节点原先只列根目录一层，用户整理成子目录后就整批消失。
     """
     if fp is None:
         fp = _folder_paths_module()
-    exts = _model_extensions(fp)
-    found = set()
-    for root in _sam_roots(fp):
-        if not os.path.isdir(root):
-            continue
-        for dirpath, dirnames, filenames in os.walk(root):
-            rel_dir = os.path.relpath(dirpath, root)
-            depth = 0 if rel_dir in (".", "") else rel_dir.count(os.sep) + 1
-            # 跳过隐藏目录与缓存目录；到达深度上限就不再下钻。
-            dirnames[:] = [d for d in dirnames
-                           if not d.startswith(".") and d != "__pycache__"]
-            if depth >= 3:
-                dirnames[:] = []
-            for name in filenames:
-                if not name.lower().endswith(exts):
-                    continue
-                full = os.path.join(dirpath, name)
-                if not os.path.isfile(full):
-                    continue
-                if depth == 0:
-                    found.add(name)
-                else:
-                    rel = os.path.relpath(full, root).replace(os.sep, "/")
-                    found.add(rel)
-    return sorted(found)
+    env_dir = os.environ.get("QG_SAMS_DIR")
+    return _scan.scan_category(
+        _CATEGORIES, fp, extra=[env_dir] if env_dir else [])
 
 
 def _resolve_model_path(model_name, fp=None):
@@ -139,24 +86,10 @@ def _resolve_model_path(model_name, fp=None):
     """
     if fp is None:
         fp = _folder_paths_module()
-    name = str(model_name or "").strip().replace("\\", "/")
-    if not name or name.startswith("/") or ":" in name:
+    parts = _scan.split_relative(model_name)
+    if parts is None:
         return None
-    parts = [p for p in name.split("/") if p not in ("", ".")]
-    if not parts or any(p == ".." for p in parts):
-        return None
-    for root in _sam_roots(fp):
-        path = os.path.normpath(os.path.join(root, *parts))
-        try:
-            base = os.path.normcase(os.path.abspath(root))
-            target = os.path.normcase(os.path.abspath(path))
-            if os.path.commonpath([base, target]) != base:
-                continue          # 越界（例如符号链接或盘符差异）直接跳过
-        except ValueError:
-            continue
-        if os.path.isfile(path):
-            return path
-    return None
+    return _scan.resolve_in_roots(parts, _sam_roots(fp))
 
 
 def _is_hq_model(model_name):
@@ -180,8 +113,8 @@ def _guess_model_type(model_name):
     官方默认发布规格回落 vit_h（三个官方权重里 vit_h 最常见）。
     """
     low = os.path.basename(str(model_name).replace("\\", "/")).lower()
-    for needle, key in _MODEL_TYPE_HINTS:
-        if needle in low:
+    for key in _MODEL_TYPE_HINTS:
+        if key in low:
             return key
     if _is_hq_model(low):
         return "vit_h"
@@ -189,17 +122,7 @@ def _guess_model_type(model_name):
 
 
 def _resolve_device(device):
-    if device == "cpu":
-        return "cpu"
-    try:
-        import torch  # noqa: PLC0415
-        if device == "cuda" and not torch.cuda.is_available():
-            return "cpu"
-        if torch.cuda.is_available():
-            return "cuda"
-    except Exception:
-        pass
-    return "cpu"
+    return _scan.resolve_device(device)
 
 
 class QGSamModel:
@@ -308,14 +231,7 @@ class QGSamModelLoader:
 
     @classmethod
     def IS_CHANGED(cls, model_name, device="auto"):
-        path = _resolve_model_path(model_name)
-        if path is None:
-            return float("nan")
-        try:
-            stat = os.stat(path)
-            return "%s:%s" % (stat.st_mtime, stat.st_size)
-        except OSError:
-            return float("nan")
+        return _scan.file_signature(_resolve_model_path(model_name))
 
     def load_model(self, model_name, device="auto"):
         path = _resolve_model_path(model_name)

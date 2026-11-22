@@ -140,6 +140,13 @@ sq = M.render_preview(torch.zeros((1, 10, 10, 3)), torch.zeros((10, 10)),
                       show_index=False)[0]
 check("方形图 + 空遮罩不崩", tuple(sq.shape) == (1, 10, 10, 3))
 check("空遮罩输出原图（黑）", bool((sq == 0).all()))
+# 0 帧图像批次：给中文错误而不是 IndexError（用户要知道是哪个节点、为什么）
+try:
+    M.render_preview(torch.zeros((0, 10, 10, 3)), torch.zeros((10, 10)),
+                     show_index=False)
+    check("0 帧图像批次报中文错", False)
+except ValueError as exc:
+    check("0 帧图像批次报中文错", "空图像批次" in str(exc), str(exc))
 # RGBA 透明压黑
 rgba = torch.zeros((1, 10, 10, 4))
 rgba[..., :3] = 1.0
