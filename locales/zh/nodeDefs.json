@@ -1956,7 +1956,7 @@
     "inputs": {
       "model_name": {
         "name": "检测模型",
-        "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下，或用 QG_ULTRALYTICS_DIR 指定目录。"
+        "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下（支持子目录，最多 3 层），或用 QG_ULTRALYTICS_DIR 指定目录。"
       },
       "device": {
         "name": "推理设备",
@@ -1976,7 +1976,7 @@
     "inputs": {
       "model_name": {
         "name": "SAM 模型",
-        "tooltip": "本机 SAM 权重（models/sams）。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的按 HQ-SAM 后端加载（需另装 segment-anything-hq）。"
+        "tooltip": "本机 SAM 权重（models/sams，含子目录，最多 3 层）。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的按 HQ-SAM 后端加载（需另装 segment-anything-hq）。"
       },
       "device": {
         "name": "推理设备",
@@ -2124,7 +2124,7 @@
       },
       "index_ratio": {
         "name": "序号比例",
-        "tooltip": "字号 = 遮罩高度 × 该比例。"
+        "tooltip": "字号 = 遮罩高度 × 该比例。0.5 时字号约半身高，多人密集场景会互相压盖，建议 0.1~0.2。"
       },
       "index_font": {
         "name": "序号字体",

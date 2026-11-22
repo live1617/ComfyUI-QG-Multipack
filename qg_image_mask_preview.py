@@ -102,10 +102,13 @@ def load_font(name, size):
 
 
 def parse_color(value, fallback):
-    """把 #rgb/#rrggbb 解析成 0-255 三元组，非法回退 fallback。"""
+    """把 #rgb / #rrggbb / #rrggbbaa 解析成 0-255 三元组，非法回退 fallback。"""
     text = str(value if value is not None else "").strip().lstrip("#")
     if len(text) == 3:
         text = "".join(c * 2 for c in text)
+    elif len(text) == 8:
+        # 8 位是 #RRGGBBAA：本控件的透明度由单独的滑杆控制，这里只取 RGB。
+        text = text[:6]
     if len(text) == 6:
         try:
             return tuple(int(text[i:i + 2], 16) for i in (0, 2, 4))
@@ -187,7 +190,7 @@ def _bbox_center(plane):
 
 def render_preview(image, mask, mask_opacity=0.4, mask_color=DEFAULT_MASK_COLOR,
                    show_index=True, index_opacity=0.8, index_scale="跟随遮罩缩放",
-                   index_ratio=0.5, index_font=None, index_color=DEFAULT_INDEX_COLOR):
+                   index_ratio=0.15, index_font=None, index_color=DEFAULT_INDEX_COLOR):
     """把遮罩颜色与序号叠加到图像，返回 [1,H,W,3] float tensor。"""
     rgb = _image_frame(image)
     height, width = rgb.shape[:2]
@@ -274,8 +277,9 @@ class QGImageMaskPreview:
                     "tooltip": "序号缩放：跟随遮罩缩放按各自遮罩高度定字号；固定大小按最大遮罩高度统一定字号。",
                 }),
                 "index_ratio": ("FLOAT", {
-                    "default": 0.5, "min": 0.05, "max": 3.0, "step": 0.05,
-                    "tooltip": "序号比例：字号 = 遮罩高度 × 该比例。",
+                    "default": 0.15, "min": 0.05, "max": 3.0, "step": 0.05,
+                    "tooltip": "序号比例：字号 = 遮罩高度 × 该比例。0.5 时字号约半身高，"
+                               "多人密集场景会互相压盖，建议 0.1~0.2。",
                 }),
                 "index_font": (fonts, {
                     "default": default_font() if default_font() in fonts else _BANNED_FONT,
@@ -296,6 +300,7 @@ class QGImageMaskPreview:
         "on an image. Mask batch frames are treated as separate objects. "
         "Independent implementation; colors are plain hex strings, not GHCOLOR."
     )
+    SEARCH_ALIASES = ["遮罩预览", "图像遮罩预览", "Mask 预览", "遮罩可视化"]
 
     def preview(self, image, mask, mask_opacity, mask_color, show_index,
                 index_opacity, index_scale, index_ratio, index_font, index_color):

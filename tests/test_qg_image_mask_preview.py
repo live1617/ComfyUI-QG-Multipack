@@ -71,7 +71,10 @@ check("颜色控件是 STRING 不是 GHCOLOR",
 check("遮罩不透明默认 0.4", req["mask_opacity"][1]["default"] == 0.4)
 check("序号不透明默认 0.8", req["index_opacity"][1]["default"] == 0.8)
 check("序号缩放两项", req["index_scale"][0] == ["跟随遮罩缩放", "固定大小"])
-check("序号比例默认 0.5", req["index_ratio"][1]["default"] == 0.5)
+check("序号比例默认 0.15", req["index_ratio"][1]["default"] == 0.15)
+check("序号比例默认不会压盖半身",
+      req["index_ratio"][1]["default"] <= 0.2,
+      req["index_ratio"][1]["default"])
 check("布尔显示序号有 label_on/label_off",
       req["show_index"][0] == "BOOLEAN"
       and req["show_index"][1].get("label_on") and req["show_index"][1].get("label_off"))
@@ -158,6 +161,10 @@ one = M.render_preview(white(), torch.from_numpy(rect(40, 50, 5, 15, 5, 15)),
                        mask_opacity=1.0, mask_color="#0000ff",
                        show_index=False)[0][0].numpy()
 check("2D 单张遮罩可处理", np.allclose(one[6, 6], [0, 0, 1]))
+# 8 位色值 #RRGGBBAA：透明度由滑杆控制，这里只取 RGB，不能整串判非法回退
+check("8 位色值取 RGB",
+      M.parse_color("#c524ff80", "#000000") == (197, 36, 255),
+      str(M.parse_color("#c524ff80", "#000000")))
 # 三维一律按 [B,H,W]：不能因为最后一维是 1 就猜成 [H,W,1] 单帧
 # （那会把 [B,H,1] 批次压成一帧，帧数与尺寸全错）。
 check("[B,1,W] 保留批次不被压成一帧",

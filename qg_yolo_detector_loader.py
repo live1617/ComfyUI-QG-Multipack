@@ -102,38 +102,68 @@ def _candidate_roots(kind, fp=None):
 
 
 def _scan_models(kind, fp=None):
-    """扫描某类模型的相对文件名，排序去重。"""
+    """递归扫描某类（bbox/segm）权重，返回相对名（子目录用 / 分隔）。
+
+    不含 ``bbox/`` 前缀：调用方统一拼，避免与既有下拉格式重复。
+    子目录同样收录（``yolo11/xxx.pt``）：ultralytics 只按文件路径加载，
+    不限制层级，用户按型号建目录整理权重时不该整批消失。递归深度限制 3 层。
+    """
     if fp is None:
         fp = _folder_paths_module()
     exts = _model_extensions(fp)
     found = set()
     for root in _candidate_roots(kind, fp):
-        try:
-            names = os.listdir(root)
-        except OSError:
+        if not os.path.isdir(root):
             continue
-        for name in names:
-            if name.lower().endswith(exts) and os.path.isfile(os.path.join(root, name)):
-                found.add(name)
+        for dirpath, dirnames, filenames in os.walk(root):
+            rel_dir = os.path.relpath(dirpath, root)
+            depth = 0 if rel_dir in (".", "") else rel_dir.count(os.sep) + 1
+            dirnames[:] = [d for d in dirnames
+                           if not d.startswith(".") and d != "__pycache__"]
+            if depth >= 3:
+                dirnames[:] = []
+            for name in filenames:
+                if not name.lower().endswith(exts):
+                    continue
+                full = os.path.join(dirpath, name)
+                if not os.path.isfile(full):
+                    continue
+                if depth == 0:
+                    found.add(name)
+                else:
+                    found.add(os.path.relpath(full, root).replace(os.sep, "/"))
     return sorted(found)
 
 
 def _resolve_model_path(model_name, fp=None):
-    """把 bbox/xxx.pt、segm/xxx.pt 解析为绝对路径，找不到返回 None。"""
+    """把 bbox/xxx.pt、bbox/yolo11/xxx.pt 解析为绝对路径，找不到返回 None。
+
+    允许子目录（与递归扫描一致），但拒绝 ``..`` 上跳、绝对路径与盘符，
+    并校验结果仍在该候选根内，避免借下拉值读到模型目录之外的文件。
+    """
     if fp is None:
         fp = _folder_paths_module()
-    if model_name.startswith("bbox/"):
-        kind, rel = "bbox", model_name[5:]
-    elif model_name.startswith("segm/"):
-        kind, rel = "segm", model_name[5:]
+    text = str(model_name or "").strip().replace("\\", "/")
+    if text.startswith("bbox/"):
+        kind, rel = "bbox", text[5:]
+    elif text.startswith("segm/"):
+        kind, rel = "segm", text[5:]
     else:
         return None
-    if "/" in rel or "\\" in rel:
-        return None  # 不接受子目录跳转，避免路径穿越
+    parts = [p for p in rel.split("/") if p not in ("", ".")]
+    if not parts or any(p == ".." for p in parts) or ":" in rel:
+        return None
     for root in _candidate_roots(kind, fp):
-        path = os.path.join(root, rel)
+        path = os.path.normpath(os.path.join(root, *parts))
+        try:
+            base = os.path.normcase(os.path.abspath(root))
+            target = os.path.normcase(os.path.abspath(path))
+            if os.path.commonpath([base, target]) != base:
+                continue
+        except ValueError:
+            continue
         if os.path.isfile(path):
-            return os.path.normpath(path)
+            return path
     return None
 
 
@@ -229,7 +259,7 @@ class QGYoloDetectorLoader:
         return {
             "required": {
                 "model_name": (models, {
-                    "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下，或用 QG_ULTRALYTICS_DIR 指定目录。",
+                    "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下（支持子目录，最多 3 层），或用 QG_ULTRALYTICS_DIR 指定目录。",
                 }),
                 "device": (["auto", "cpu", "cuda"], {
                     "default": "auto",
@@ -245,6 +275,7 @@ class QGYoloDetectorLoader:
         "Load a local Ultralytics YOLO weight and return a self-contained QG_YOLO_DETECTOR "
         "object. Independent of Impact-Pack; requires the ultralytics package at runtime."
     )
+    SEARCH_ALIASES = ["YOLO 加载器", "检测模型", "目标检测", "bbox 检测"]
 
     @classmethod
     def IS_CHANGED(cls, model_name, device="auto"):

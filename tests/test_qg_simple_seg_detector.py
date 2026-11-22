@@ -140,12 +140,51 @@ check("扫到 segm 权重", segm_models == ["c.pt"], str(segm_models))
 check("解析 bbox 路径", YL._resolve_model_path("bbox/a.pt", fp).replace("\\", "/").endswith("ultralytics/bbox/a.pt"))
 check("拒绝目录穿越", YL._resolve_model_path("bbox/../evil.pt", fp) is None)
 check("未知前缀返回 None", YL._resolve_model_path("foo/a.pt", fp) is None)
+
+# YOLO 子目录：ultralytics 按路径加载、不限层级，按型号建目录时不该消失。
+os.makedirs(os.path.join(tmp, "ultralytics", "bbox", "yolo11"), exist_ok=True)
+open(os.path.join(tmp, "ultralytics", "bbox", "yolo11", "d.pt"), "wb").write(b"x")
+sub_bbox = YL._scan_models("bbox", fp)
+check("递归扫到 bbox 子目录权重", "yolo11/d.pt" in sub_bbox, str(sub_bbox))
+check("bbox 子目录用 / 分隔且不带 kind 前缀",
+      all(not n.startswith("bbox/") and "\\" not in n for n in sub_bbox), str(sub_bbox))
+check("解析 bbox 子目录权重",
+      (YL._resolve_model_path("bbox/yolo11/d.pt", fp) or "").replace("\\", "/")
+      .endswith("ultralytics/bbox/yolo11/d.pt"))
+check("bbox 子目录仍拒绝上跳",
+      YL._resolve_model_path("bbox/yolo11/../../evil.pt", fp) is None)
 sam_models = SL._scan_models(fp)
 check("扫到 SAM 权重", len(sam_models) == 3, str(sam_models))
 check("推断 vit_b", SL._guess_model_type("sam_vit_b_01ec64.pth") == "vit_b")
 check("推断 vit_h", SL._guess_model_type("sam_vit_h_4b8939.pth") == "vit_h")
 check("HQ 权重按 vit_h", SL._guess_model_type("sam_hq_vit_h.pth") == "vit_h")
 check("HQ vit_b 不被改写成 vit_h", SL._guess_model_type("sam_hq_vit_b.pth") == "vit_b")
+
+# ---- SAM 子目录递归扫描与解析 ----
+# 用户常按型号或来源分子目录；ComfyUI 自己的 get_filename_list 是递归的，
+# 这里必须同口径，否则整批权重在下载拉里消失。
+os.makedirs(os.path.join(tmp, "sams", "hq"), exist_ok=True)
+os.makedirs(os.path.join(tmp, "sams", "vit_b"), exist_ok=True)
+open(os.path.join(tmp, "sams", "hq", "sam_hq_vit_h.pth"), "wb").write(b"x")
+# 目录名含 vit_b、文件名是 vit_h：类型必须按文件名判断
+open(os.path.join(tmp, "sams", "vit_b", "sam_vit_h_4b8939.pth"), "wb").write(b"x")
+sub_models = SL._scan_models(fp)
+check("递归扫到子目录 SAM 权重",
+      "hq/sam_hq_vit_h.pth" in sub_models and "vit_b/sam_vit_h_4b8939.pth" in sub_models,
+      str(sub_models))
+check("子目录权重用 / 分隔", all("\\" not in n for n in sub_models), str(sub_models))
+check("子目录名不干扰类型推断",
+      SL._guess_model_type("vit_b/sam_vit_h_4b8939.pth") == "vit_h",
+      SL._guess_model_type("vit_b/sam_vit_h_4b8939.pth"))
+check("子目录 HQ 判定只看文件名",
+      SL._is_hq_model("hq/sam_hq_vit_h.pth") is True
+      and SL._is_hq_model("sam_hq/sam_vit_b_01ec64.pth") is False)
+check("解析子目录权重",
+      (SL._resolve_model_path("hq/sam_hq_vit_h.pth", fp) or "").replace("\\", "/")
+      .endswith("sams/hq/sam_hq_vit_h.pth"))
+check("SAM 拒绝 ../ 上跳", SL._resolve_model_path("../evil.pth", fp) is None)
+check("SAM 拒绝绝对路径", SL._resolve_model_path("C:/Windows/system32/x.pth", fp) is None)
+check("SAM 拒绝不存在的子目录", SL._resolve_model_path("nope/x.pth", fp) is None)
 check("只写 sam_hq 时回落 vit_h", SL._guess_model_type("sam_hq.pth") == "vit_h")
 check("认不出的类型返回 None", SL._guess_model_type("mystery.pth") is None)
 check("HQ 后端识别", SL._is_hq_model("sam_hq_vit_b.pth") is True
@@ -178,25 +217,59 @@ check("框元数据正确", found[0]["bbox"] == (2.0, 2.0, 12.0, 12.0)
       and found[0]["label"] == "person" and found[0]["cls"] == 0, str(found[0]))
 
 class FakePredictor:
+    """模拟官方 SamPredictor.predict 的真实返回值契约。
+
+    官方契约：``(masks, iou, low_res_masks)``
+        masks         —— C×H×W，H/W 是 **原图尺寸**；return_logits=True 时是 logits。
+        low_res_masks —— C×256×256，只能当下一次 mask_input。
+
+    这里第三个特意返回 256×256 的强前景 logits 当陷阱：实现若误取第三个，
+    遮罩会变成 256×256 的方形，再被主节点拉伸到非方图，比例与位置全错。
+    """
+
     def __init__(self):
         self.img_set = False
+        self.original_size = None
+
     def set_image(self, rgb):
         self.img_set = True
         self.h, self.w = rgb.shape[:2]
+        self.original_size = (int(self.h), int(self.w))
+
     def predict(self, box, multimask_output, return_logits):
         assert self.img_set and multimask_output is False and return_logits is True
         logits = np.full((1, self.h, self.w), -5.0, np.float32)
         x0, y0, x1, y1 = [int(v) for v in box]
         logits[0, y0:y1, x0:x1] = 5.0
-        return None, np.array([0.95]), logits
+        low_res = np.full((1, 256, 256), 5.0, np.float32)   # 陷阱：不可当输出
+        return logits, np.array([0.95]), low_res
+
 
 sam = SL.QGSamModel(FakePredictor(), "/fake.pth", "cpu", "vit_b")
 sam.set_image(np.zeros((20, 30, 3), np.uint8))
 # 阈值作用在 sigmoid 概率上：logits ±5 → 概率 0.993 / 0.0067，0.5 一刀切正确。
 mask, score = sam.predict_box([2, 2, 12, 12], 0.5)
-check("SAM 返回全图尺寸遮罩", mask.shape == (20, 30), str(mask.shape))
+check("SAM 返回全图尺寸遮罩（非 256x256 低分辨率）",
+      mask.shape == (20, 30), str(mask.shape))
 check("SAM 遮罩核心为 1", mask[5, 5] == 1.0 and mask[0, 0] == 0.0)
 check("SAM 打分返回", score == 0.95)
+
+
+class LowResOnlyPredictor(FakePredictor):
+    """第一个返回值就是 256×256（模拟异常后端）：必须明确报错而非静默缩放。"""
+
+    def predict(self, box, multimask_output, return_logits):
+        return (np.full((1, 256, 256), 5.0, np.float32), np.array([0.9]),
+                np.full((1, 256, 256), 5.0, np.float32))
+
+
+bad = SL.QGSamModel(LowResOnlyPredictor(), "/fake.pth", "cpu", "vit_b")
+bad.set_image(np.zeros((20, 30, 3), np.uint8))
+try:
+    bad.predict_box([2, 2, 12, 12], 0.5)
+    check("低分辨率返回值应被拒绝", False, "没有抛错")
+except RuntimeError as exc:
+    check("低分辨率返回值明确报错且提示 256x256", "256x256" in str(exc), str(exc)[:80])
 
 
 class FlatLogitPredictor(FakePredictor):
@@ -208,7 +281,7 @@ class FlatLogitPredictor(FakePredictor):
 
     def predict(self, box, multimask_output, return_logits):
         logits = np.full((1, self.h, self.w), self.value, np.float32)
-        return None, np.array([0.9]), logits
+        return logits, np.array([0.9]), np.full((1, 256, 256), self.value, np.float32)
 
 
 def flat_mask(value, threshold):
@@ -232,7 +305,7 @@ class OverScorePredictor(FlatLogitPredictor):
 
     def predict(self, box, multimask_output, return_logits):
         logits = np.full((1, self.h, self.w), 5.0, np.float32)
-        return None, np.array([1.007]), logits
+        return logits, np.array([1.007]), np.full((1, 256, 256), 5.0, np.float32)
 
 
 _p = OverScorePredictor(5.0)
@@ -334,6 +407,33 @@ dirty = np.zeros((1, 20, 20, 3), np.float32)
 dirty[0, 0, 0] = np.nan
 rgb = SD._to_uint8_rgb(dirty)
 check("图像 nan 兜底", np.isfinite(rgb).all() and rgb.dtype == np.uint8)
+
+# 膨胀/收缩：cv2 路径与纯 numpy 回退必须同口径（方形结构元）。
+# 旧回退是「十字邻域迭代 n 次」= 曼哈顿半径 n 的菱形，同样参数下面积只有
+# 方形的约 3/4，没装 cv2 的机器上遮罩会明显偏小。
+_blk = np.zeros((60, 60), np.float32)
+_blk[28:32, 28:32] = 1.0
+_cv_d = SD._dilate_mask(_blk, 3)
+_saved_cv2 = sys.modules.get("cv2", "MISSING")
+sys.modules["cv2"] = None            # 让 import cv2 抛 ImportError，强制走回退
+try:
+    _np_d = SD._dilate_mask(_blk, 3)
+    _hole = np.ones((60, 60), np.float32)
+    _hole[10:50, 10:50] = 0.0
+    _np_e = SD._dilate_mask(_hole, -3)
+finally:
+    if _saved_cv2 == "MISSING":
+        sys.modules.pop("cv2", None)
+    else:
+        sys.modules["cv2"] = _saved_cv2
+_cv_e = SD._dilate_mask(_hole, -3)
+check("膨胀 cv2 与 numpy 回退结果一致（方形核）",
+      np.array_equal(_cv_d, _np_d),
+      "cv2=%d numpy=%d" % (int(_cv_d.sum()), int(_np_d.sum())))
+check("膨胀 4x4 块 + 半径 3 → 10x10", int(_cv_d.sum()) == 100, int(_cv_d.sum()))
+check("收缩 cv2 与 numpy 回退结果一致",
+      np.array_equal(_cv_e, _np_e),
+      "cv2=%d numpy=%d" % (int(_cv_e.sum()), int(_np_e.sum())))
 
 
 # ---------- 六、词表覆盖 ----------

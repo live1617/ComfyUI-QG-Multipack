@@ -97,22 +97,31 @@ def _dilate_mask(mask, amount):
             out = cv2.erode(mask, kernel, iterations=1)
         return np.asarray(out, dtype=np.float32)
     except Exception:
-        # cv2 缺失时的纯 numpy 回退（方形结构元按行列分别极值滤波）。
-        out = mask
+        # cv2 缺失时的纯 numpy 回退。必须与 cv2 同口径：方形结构元
+        # （切比雪夫半径 n），不是「十字邻域迭代 n 次」——后者得到的是曼哈顿
+        # 半径 n 的菱形，同样参数下面积只有方形的约 3/4，两条路径结果不一致。
+        # 方形核可分离：先水平 1×k，再垂直 k×1，k = 2n+1。
         n = abs(amount)
-        for _ in range(n):
-            padded = np.pad(out, 1, mode="edge")
-            if amount > 0:
-                stacked = np.stack([padded[:-2, 1:-1], padded[1:-1, :-2],
-                                    padded[1:-1, 1:-1], padded[1:-1, 2:],
-                                    padded[2:, 1:-1]], axis=0)
-                out = stacked.max(axis=0)
-            else:
-                stacked = np.stack([padded[:-2, 1:-1], padded[1:-1, :-2],
-                                    padded[1:-1, 1:-1], padded[1:-1, 2:],
-                                    padded[2:, 1:-1]], axis=0)
-                out = stacked.min(axis=0)
-        return out.astype(np.float32)
+        k = 2 * n + 1
+        arr = np.asarray(mask, dtype=np.float32)
+        if amount > 0:
+            # 膨胀：取窗口最大值，边界外按 0（不额外扩大）。
+            pad_value = 0.0
+            reduce = np.max
+        else:
+            # 收缩：取窗口最小值，边界外按 +inf（不侵蚀边界），
+            # 与 cv2 morphologyDefaultBorderValue 对齐。
+            # 这里必须用 min + inf：上一版误用了 max，收缩实际变成膨胀。
+            pad_value = np.inf
+            reduce = np.min
+        padded = np.pad(arr, n, mode="constant", constant_values=pad_value)
+        horiz = reduce(np.lib.stride_tricks.sliding_window_view(padded, k, axis=1),
+                       axis=-1)
+        out = reduce(np.lib.stride_tricks.sliding_window_view(horiz, k, axis=0),
+                     axis=-1)
+        # inf 只可能出现在整幅图为空（或全 inf）的极端情况，回落到 0 更安全。
+        return np.nan_to_num(out.astype(np.float32), nan=0.0,
+                             posinf=0.0, neginf=0.0)
 
 
 def _to_uint8_rgb(image):
@@ -225,7 +234,9 @@ class QGSimpleSegDetector:
         bgr = np.ascontiguousarray(rgb[:, :, ::-1])
         raw = detector.detect(bgr, bbox_threshold)
         segs = []
-        if sam_model is not None:
+        # 没检出任何框时不必跑 SAM 的图像编码：vit_h 在 CPU 上一次 set_image
+        # 要几十秒，白等一轮没有意义。
+        if sam_model is not None and raw:
             sam_model.set_image(rgb)
 
         for item in raw:

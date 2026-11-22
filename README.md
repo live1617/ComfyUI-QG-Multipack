@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.6** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.22.7** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -1068,8 +1068,8 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 对标 Impact-Pack 的「简易 Seg 检测」：目标检测出框 → SAM 逐框把矩形细化成轮廓 → 打包成段集合。但**三个节点、三种类型全部自己造**：`QG_YOLO_DETECTOR` / `QG_SAM_MODEL` / `QG_SEGS` 都带本包前缀，推理只用 `ultralytics` 和 `segment_anything`（HQ 权重另用 `segment_anything_hq`）两个通用库，**不装 Impact-Pack 也能用**，也不会和 Impact 生态同名撞车。
 
-- **`QG_YoloDetectorLoader`**：扫描本机 `models/ultralytics/{bbox,segm}` 的权重（含 `extra_model_paths` 挂载；也可用环境变量 `QG_ULTRALYTICS_DIR` 指定），下拉项形如 `bbox/face_yolov8n.pt`。输出自造检测器对象；`bbox/` 只出框，`segm/` 是实例分割权重（本节点当前只用其框）。
-- **`QG_SamModelLoader`**：扫描 `models/sams`（或 `QG_SAMS_DIR`），按文件名自动识别 `vit_b` / `vit_l` / `vit_h`。普通 SAM 权重用 `segment_anything` 加载；文件名含 `sam_hq` 的走 HQ-SAM 后端（`segment_anything_hq`，需另装 `segment-anything-hq`），两种权重格式与库并不通用。输出自造 SAM 对象；SAM 权重体积大（vit_b 约 375 MB、vit_h 约 2.5 GB），显存小的机器建议用 `vit_b`。
+- **`QG_YoloDetectorLoader`**：扫描本机 `models/ultralytics/{bbox,segm}` 的权重（含 `extra_model_paths` 挂载；也可用环境变量 `QG_ULTRALYTICS_DIR` 指定），下拉项形如 `bbox/face_yolov8n.pt`；子目录同样收录（如 `bbox/yolo11/xxx.pt`，最多 3 层）。输出自造检测器对象；`bbox/` 只出框，`segm/` 是实例分割权重（本节点当前只用其框）。
+- **`QG_SamModelLoader`**：扫描 `models/sams`（或 `QG_SAMS_DIR`），子目录同样收录（下拉显示 `子目录/文件名`，最多 3 层），与 ComfyUI 自身 `get_filename_list` 的递归口径一致。按文件名自动识别 `vit_b` / `vit_l` / `vit_h`（只看文件名，不受目录名影响）。普通 SAM 权重用 `segment_anything` 加载；文件名含 `sam_hq` 的走 HQ-SAM 后端（`segment_anything_hq`，需另装 `segment-anything-hq`），两种权重格式与库并不通用。输出自造 SAM 对象；SAM 权重体积大（vit_b 约 375 MB、vit_h 约 2.5 GB），显存小的机器建议用 `vit_b`。
 - **`QG_SimpleSegDetector`**：接检测器 + 单张图，可选接 SAM 模型。不接 SAM 时直接用矩形框当遮罩；接了 SAM 就把框细化成轮廓。控件与参考节点一致：BBox 阈值 / 膨胀、裁剪系数、最小尺寸、次要阈值 / 膨胀 / BBox 扩展、SAM 遮挡检测阈值、扩张后。
 - **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 `QG_MaskOrderFilter` 等遮罩节点。过滤器筛选后同样回出 Segs + Mask 两路，可继续串接本包节点。
 - **模型放哪**：权重不随包，放本机模型库即可；两个加载器缺库时节点照常出现、照常列权重，只在真正运行时给中文安装提示。
