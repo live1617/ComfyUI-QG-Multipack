@@ -160,14 +160,17 @@ class QGYoloDetector:
         self.device = device
         self.kind = kind
 
-    def detect(self, image_rgb, conf):
-        """在单张 RGB uint8 [H,W,3] 图上检测，返回框 dict 列表。
+    def detect(self, image_bgr, conf):
+        """在单张 **BGR** uint8 [H,W,3] 图上检测，返回框 dict 列表。
+
+        调用方必须传 BGR：ultralytics 对 numpy 输入按 OpenCV 约定处理（内部会
+        再做 BGR→RGB），传 RGB 会导致红蓝通道互换。
 
         每项：{"bbox": (x0,y0,x1,y1), "conf": float, "label": str, "cls": int}。
         只调用 ultralytics 模型的公开 predict 接口。
         """
         results = self.model.predict(
-            source=image_rgb, conf=float(conf), device=self.device, verbose=False)
+            source=image_bgr, conf=float(conf), device=self.device, verbose=False)
         if not results:
             return []
         result = results[0]

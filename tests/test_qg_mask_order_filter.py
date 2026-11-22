@@ -242,9 +242,22 @@ check("Seg 输出是 QG_SEGS 兼容容器",
       repr(seg_out))
 check("Seg 段掩码与 Mask 输出一致",
       np.allclose(seg_out.mask_batch(), mask_out.numpy()), "seg/mask 不一致")
+check("Seg 容器 width/height 与输入一致（先宽后高）",
+      (seg_out.width, seg_out.height) == (40, 20),
+      "w=%d h=%d" % (seg_out.width, seg_out.height))
+check("Seg 容器合并遮罩形状 [H,W]",
+      tuple(seg_out.combined_mask().shape) == (20, 40),
+      str(seg_out.combined_mask().shape))
 check("Mask 输出仍是 Tensor", isinstance(mask_out, torch.Tensor), str(type(mask_out)))
 seg_one, _ = node().execute(single, "面积大小", "正序", 0, 1, 120, 0.0, True)
 check("合并遮罩打开时 Seg 仍保留独立段", len(seg_one) == 1, len(seg_one))
+# 空段容器的宽高最容易暴露 _build_segs 的 width/height 传反（非空时会被
+# 段自身的掩码尺寸掩盖）。
+seg_empty, _ = node().execute(torch.zeros(0, 20, 40), "面积大小", "正序", 0, 1, 120, 0.0, False)
+check("空段容器宽高不互换", (seg_empty.width, seg_empty.height) == (40, 20),
+      "w=%d h=%d" % (seg_empty.width, seg_empty.height))
+check("空段容器 mask_batch 形状", tuple(seg_empty.mask_batch().shape) == (0, 20, 40),
+      str(seg_empty.mask_batch().shape))
 
 class _MetaSegs(_FakeSegs):
     def __init__(self, planes):

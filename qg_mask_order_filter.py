@@ -221,8 +221,13 @@ def merge_segments(items, height, width, merge=True):
     return np.stack(planes, axis=0)
 
 
-def _build_segs(items, height, width):
-    """把筛选后的段打包成 QG_SEGS 兼容容器；有原段元数据时尽量保留。"""
+def _build_segs(items, width, height):
+    """把筛选后的段打包成 QG_SEGS 兼容容器；有原段元数据时尽量保留。
+
+    参数顺序与 ``_SegsContainer(segs, width, height)`` 一致：先宽后高。
+    传反了不会报错，只会在空段时暴露成 width/height 互换（combined_mask
+    的形状是 (height, width)，互换后尺寸就是错的）。
+    """
     parts = []
     for item in items:
         meta = item.get("meta")

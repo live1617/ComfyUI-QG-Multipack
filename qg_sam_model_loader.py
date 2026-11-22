@@ -6,9 +6,14 @@ segment_anything 的公开接口 sam_model_registry + SamPredictor 构建预测�
 包装成自造的 ``QGSamModel`` 对象输出。遮罩推理由该对象自己的 predict 方法
 提供，全程不引用 impact / impact_subpack 的任何代码或类型。
 
+两套后端按文件名自动分流（两者是不兼容的权重格式与包）：
+    * 文件名含 sam_hq / hq-sam → HQ-SAM，导入 ``segment_anything_hq``
+      （pip 包 segment-anything-hq）。HQ 权重多出 HQ 输出 token，
+      官方 segment_anything 直接加载会 key 不匹配。
+    * 其余 → Meta 官方 SAM，导入 ``segment_anything``。
+
 类型字符串 ``QG_SAM_MODEL`` 带本包前缀，与 Impact 生态的 SAM_MODEL 隔离。
-未装 segment_anything 时节点照常注册、下拉照常列出权重，只在执行加载时
-给出中文提示。
+未装对应库时节点照常注册、下拉照常列出权重，只在执行加载时给出中文提示。
 """
 from __future__ import annotations
 
@@ -17,10 +22,17 @@ import os
 SAM_TYPE = "QG_SAM_MODEL"
 
 _SAM_MISSING = (
-    "QG SAM 模型加载器需要本机安装 segment_anything：本节点用它加载 SAM 权重"
-    "并生成遮罩。请在 ComfyUI 的 Python 环境执行 "
+    "QG SAM 模型加载器需要本机安装 segment_anything（Meta 官方 SAM）：本节点用它"
+    "加载 SAM 权重并生成遮罩。请在 ComfyUI 的 Python 环境执行 "
     "python -m pip install git+https://github.com/facebookresearch/segment-anything.git "
     "后完整重启 ComfyUI。本节点不依赖 ComfyUI-Impact-Pack。"
+)
+
+_SAM_HQ_MISSING = (
+    "这个权重是 HQ-SAM（文件名含 sam_hq），需要单独安装 HQ-SAM 包：官方 "
+    "segment_anything 读不了 HQ 权重（结构多了 HQ 输出 token，会 key 不匹配）。"
+    "请在 ComfyUI 的 Python 环境执行 python -m pip install segment-anything-hq "
+    "后完整重启 ComfyUI。"
 )
 
 _FALLBACK_EXTS = (".pth", ".pt", ".ckpt", ".bin", ".safetensors")
@@ -28,8 +40,10 @@ _FALLBACK_EXTS = (".pth", ".pt", ".ckpt", ".bin", ".safetensors")
 # 文件名片段 -> sam_model_registry 的键。顺序重要：先长后短。
 _MODEL_TYPE_HINTS = (
     ("vit_h", "vit_h"), ("vit_l", "vit_l"), ("vit_b", "vit_b"),
-    ("sam_hq", "vit_h"),  # HQ 权重结构与 vit_h 一致，共用 vit_h 注册表
 )
+
+# HQ-SAM 权重常见的文件名标记。
+_HQ_MARKERS = ("sam_hq", "samhq", "hq_sam", "hq-sam")
 
 
 def _folder_paths_module():
@@ -108,12 +122,24 @@ def _resolve_model_path(model_name, fp=None):
     return None
 
 
+def _is_hq_model(model_name):
+    """文件名是否属于 HQ-SAM 权重（需 segment_anything_hq 后端）。"""
+    low = str(model_name).lower()
+    return any(marker in low for marker in _HQ_MARKERS)
+
+
 def _guess_model_type(model_name):
-    """从文件名推断 sam_model_registry 的键，认不出返回 None。"""
-    low = model_name.lower()
+    """从文件名推断 sam_model_registry 的键，认不出返回 None。
+
+    先按 vit_b/l/h 片段匹配；只写了 sam_hq 而没写骨干尺寸时，按 HQ-SAM
+    官方默认发布规格回落 vit_h（三个官方权重里 vit_h 最常见）。
+    """
+    low = str(model_name).lower()
     for needle, key in _MODEL_TYPE_HINTS:
         if needle in low:
             return key
+    if _is_hq_model(low):
+        return "vit_h"
     return None
 
 
@@ -134,11 +160,12 @@ def _resolve_device(device):
 class QGSamModel:
     """自造 SAM 对象：持有 SamPredictor，predict 返回单张遮罩。"""
 
-    def __init__(self, predictor, path, device, model_type):
+    def __init__(self, predictor, path, device, model_type, backend="sam"):
         self.predictor = predictor
         self.path = path
         self.device = device
         self.model_type = model_type
+        self.backend = backend      # "sam" 或 "sam_hq"
 
     def set_image(self, image_rgb):
         """设置 RGB uint8 [H,W,3] 图，SAM 会缓存图像嵌入。"""
@@ -147,8 +174,10 @@ class QGSamModel:
     def predict_box(self, box, threshold):
         """用矩形框 [x0,y0,x1,y1] 作提示，返回 ([H,W] float32 遮罩, 打分)。
 
-        只调用 SamPredictor.predict 的公开接口；threshold 用于把 logits
-        二值化（0.5 为 SAM 默认阈值）。打分来自 SAM 自身对该遮罩的置信度，
+        只调用 SamPredictor.predict 的公开接口。threshold 作用在 **sigmoid 后的
+        概率** 上（0.5 等同 SAM 默认的 logits > 0）：return_logits=True 拿到的是
+        raw logits（值域约 -20~20），直接拿它和 0~1 的阈值比较会让语义整体偏移
+        —— 用户设 0.5 时实际约等于 0.62 概率。打分来自 SAM 自身对该遮罩的置信度，
         供主节点做低质量段过滤。
         """
         import numpy as np  # noqa: PLC0415
@@ -158,11 +187,19 @@ class QGSamModel:
             return_logits=True,
         )
         if logits is None:
-            logits = masks[0]
-        logits = logits[0] if getattr(logits, "ndim", 2) == 3 else logits
-        mask = (logits > float(threshold)).astype(np.float32)
+            # 个别实现不返回 logits：退化为直接用二值遮罩，不再过 sigmoid。
+            mask = np.asarray(masks[0], dtype=np.float32)
+        else:
+            arr = np.asarray(logits, dtype=np.float32)
+            if arr.ndim == 3:
+                arr = arr[0]
+            arr = np.nan_to_num(arr, nan=-60.0, posinf=60.0, neginf=-60.0)
+            prob = 1.0 / (1.0 + np.exp(-np.clip(arr, -60.0, 60.0)))
+            mask = (prob > float(threshold)).astype(np.float32)
         try:
-            score = float(scores[0])
+            # SAM 的 iou 预测偶尔略超 1（实测 1.007），夹回 [0,1] 再给下游，
+            # 否则 seg.score 会突破控件上限、下游按分数做的判断会失真。
+            score = float(np.clip(float(scores[0]), 0.0, 1.0))
         except (TypeError, IndexError, ValueError):
             score = 1.0
         return mask, score
@@ -182,7 +219,7 @@ class QGSamModelLoader:
         return {
             "required": {
                 "model_name": (models, {
-                    "tooltip": "本机 SAM 权重（models/sams）。按文件名自动识别 vit_b/vit_l/vit_h；HQ 权重按 vit_h 加载。",
+                    "tooltip": "本机 SAM 权重（models/sams）。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的按 HQ-SAM 后端加载（需另装 segment-anything-hq）。",
                 }),
                 "device": (["auto", "cpu", "cuda"], {
                     "default": "auto",
@@ -195,9 +232,9 @@ class QGSamModelLoader:
     RETURN_NAMES = ("sam_model",)
     OUTPUT_TOOLTIPS = ("自造 SAM 对象 QG_SAM_MODEL，只能接本包的 QG 简易 Seg 检测节点。",)
     DESCRIPTION = (
-        "Load a local SAM weight with segment_anything and return a self-contained "
-        "QG_SAM_MODEL object. Independent of Impact-Pack; requires segment_anything "
-        "at runtime. Model type is inferred from the file name."
+        "Load a local SAM weight and return a self-contained QG_SAM_MODEL object. "
+        "Independent of Impact-Pack. Uses segment_anything for Meta SAM weights and "
+        "segment_anything_hq for HQ-SAM weights (sam_hq in the file name)."
     )
 
     @classmethod
@@ -225,10 +262,15 @@ class QGSamModelLoader:
             raise ValueError(
                 "QG SAM 模型加载器无法从文件名 %r 判断模型类型（vit_b/vit_l/vit_h）。"
                 "请把权重改名为包含 vit_b / vit_l / vit_h 的标准名称。" % model_name)
+        backend = "sam_hq" if _is_hq_model(model_name) else "sam"
         try:
-            from segment_anything import SamPredictor, sam_model_registry  # noqa: PLC0415
+            if backend == "sam_hq":
+                from segment_anything_hq import SamPredictor, sam_model_registry  # noqa: PLC0415
+            else:
+                from segment_anything import SamPredictor, sam_model_registry  # noqa: PLC0415
         except Exception as exc:
-            raise RuntimeError(_SAM_MISSING) from exc
+            raise RuntimeError(
+                _SAM_HQ_MISSING if backend == "sam_hq" else _SAM_MISSING) from exc
         try:
             sam = sam_model_registry[model_type](checkpoint=path)
             dev = _resolve_device(device)
@@ -236,9 +278,10 @@ class QGSamModelLoader:
             predictor = SamPredictor(sam)
         except Exception as exc:
             raise RuntimeError(
-                "QG SAM 模型加载器加载 %r 失败：%s。请确认权重与 "
-                "segment_anything 版本兼容。" % (path, exc)) from exc
-        return (QGSamModel(predictor, path, dev, model_type),)
+                "QG SAM 模型加载器加载 %r 失败：%s。请确认权重与 %s 版本兼容。"
+                % (path, exc, "segment_anything_hq" if backend == "sam_hq"
+                   else "segment_anything")) from exc
+        return (QGSamModel(predictor, path, dev, model_type, backend),)
 
 
 NODE_CLASS_MAPPINGS = {"QG_SamModelLoader": QGSamModelLoader}

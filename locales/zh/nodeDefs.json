@@ -1972,11 +1972,11 @@
   },
   "QG_SamModelLoader": {
     "display_name": "QG SAM 模型加载器",
-    "description": "扫描本机 SAM 权重并用 segment_anything 加载，输出自造 SAM 对象 QG_SAM_MODEL，供 QG 简易 Seg 检测把检测框细化成轮廓。按文件名自动识别 vit_b/vit_l/vit_h，不依赖 ComfyUI-Impact-Pack。",
+    "description": "扫描本机 SAM 权重并加载，输出自造 SAM 对象 QG_SAM_MODEL，供 QG 简易 Seg 检测把检测框细化成轮廓。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的走 HQ-SAM 后端（需另装 segment-anything-hq）。不依赖 ComfyUI-Impact-Pack。",
     "inputs": {
       "model_name": {
         "name": "SAM 模型",
-        "tooltip": "本机 SAM 权重（models/sams）。按文件名自动识别 vit_b/vit_l/vit_h；HQ 权重按 vit_h 加载。"
+        "tooltip": "本机 SAM 权重（models/sams）。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的按 HQ-SAM 后端加载（需另装 segment-anything-hq）。"
       },
       "device": {
         "name": "推理设备",

@@ -219,7 +219,11 @@ class QGSimpleSegDetector:
         rgb = _to_uint8_rgb(image)
         height, width = rgb.shape[:2]
 
-        raw = detector.detect(rgb, bbox_threshold)
+        # ultralytics 的 numpy 输入按 OpenCV 约定解释为 BGR：predict() 内部会把
+        # numpy 数组当成 BGR 再翻成 RGB，直接喂 RGB 会让红蓝通道互换，检出的
+        # 颜色/类别语义整体偏移。检测走 BGR，SAM 仍走 RGB（它的 set_image 要 RGB）。
+        bgr = np.ascontiguousarray(rgb[:, :, ::-1])
+        raw = detector.detect(bgr, bbox_threshold)
         segs = []
         if sam_model is not None:
             sam_model.set_image(rgb)

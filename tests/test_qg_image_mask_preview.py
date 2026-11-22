@@ -158,6 +158,16 @@ one = M.render_preview(white(), torch.from_numpy(rect(40, 50, 5, 15, 5, 15)),
                        mask_opacity=1.0, mask_color="#0000ff",
                        show_index=False)[0][0].numpy()
 check("2D 单张遮罩可处理", np.allclose(one[6, 6], [0, 0, 1]))
+# 三维一律按 [B,H,W]：不能因为最后一维是 1 就猜成 [H,W,1] 单帧
+# （那会把 [B,H,1] 批次压成一帧，帧数与尺寸全错）。
+check("[B,1,W] 保留批次不被压成一帧",
+      tuple(M._mask_frames(torch.zeros(3, 1, 8)).shape) == (3, 1, 8),
+      str(tuple(M._mask_frames(torch.zeros(3, 1, 8)).shape)))
+check("[B,H,1] 保留批次不被当单帧",
+      tuple(M._mask_frames(torch.zeros(4, 6, 1)).shape) == (4, 6, 1),
+      str(tuple(M._mask_frames(torch.zeros(4, 6, 1)).shape)))
+b1w = M.render_preview(white(10, 10), torch.zeros((3, 1, 8)), show_index=False)[0]
+check("[B,1,W] 端到端不崩", tuple(b1w.shape) == (1, 10, 10, 3), str(tuple(b1w.shape)))
 # 端到端节点调用
 res = cls().preview(white(), m, 1.0, "#ff0000", False, 0.8,
                     "跟随遮罩缩放", 0.5, None, "#ffffff")

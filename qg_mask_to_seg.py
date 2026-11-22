@@ -52,41 +52,47 @@ def _combine_frames(mask):
         "QG 遮罩到 Seg 只接受 [H,W] 或 [N,H,W] 的遮罩，收到 %d 维。" % arr.ndim)
 
 
-def _make_crop_region(width, height, bbox, crop_factor):
-    """ Crop 框：以 bbox 中心为心，按 crop_factor 放大，再夹到图像边界。
-
-    与参考节点 make_crop_region 同口径：框越大 → 裁剪区域越大（保留更多上下文）。
-    """
-    x0, y0, x1, y1 = bbox
-    factor = max(float(crop_factor), 1.0)
-    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
-    half_w = (x1 - x0) * factor / 2.0
-    half_h = (y1 - y0) * factor / 2.0
-    rx0 = int(max(0.0, cx - half_w))
-    ry0 = int(max(0.0, cy - half_h))
-    rx1 = int(min(float(width), cx + half_w))
-    ry1 = int(min(float(height), cy + half_h))
-    return (rx0, ry0, rx1, ry1)
-
-
 def _contours(mask_u8):
-    """从 uint8 遮罩取最外层连通域轮廓，返回 (轮廓列表, 每个轮廓的填充掩膜)。
+    """从 uint8 遮罩取每个前景连通区域的外轮廓，返回 (轮廓列表, 填充掩膜)。
 
-    cv2 可用时走 cv2.findContours(RETR_TREE) 并只保留 hierarchy 顶层（parent == -1），
-    与参考节点一致；缺 cv2 时用纯 numpy 的洪泛标记找连通域，逐域生成掩膜。
+    cv2 可用时走 cv2.findContours(RETR_TREE)，按 hierarchy 深度区分前景外轮廓
+    与孔洞：深度为偶数的是前景区域外边界，奇数的是它内部被挖掉的孔。只取
+    parent == -1 会漏掉「环形中间那块独立实心」（深度 4），而它本身是一个独立
+    连通区域，语义上必须单独成段。
+
+    缺 cv2 时用纯 numpy 的 4 邻域洪泛标记，逐连通域生成掩膜（天然不会漏）。
     """
     try:
         import cv2  # noqa: PLC0415
 
         contours, tree = cv2.findContours(mask_u8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         items = []
-        if tree is None:
+        if tree is None or len(contours) == 0:
             return items
+        hierarchy = tree[0]
+        # 每个轮廓到根的距离（深度）。奇偶决定它是不是孔。
+        depths = []
+        for j in range(len(contours)):
+            depth, parent = 0, int(hierarchy[j][3])
+            while parent != -1 and depth <= len(contours):
+                depth += 1
+                parent = int(hierarchy[parent][3])
+            depths.append(depth)
+        # 直接子轮廓索引：偶数深度（前景外轮廓）的奇数深度子轮廓就是它的孔。
+        children = [[] for _ in range(len(contours))]
+        for j in range(len(contours)):
+            parent = int(hierarchy[j][3])
+            if parent != -1:
+                children[parent].append(j)
         for j, contour in enumerate(contours):
-            if tree[0][j][3] != -1:   # 只要有父轮廓的（内孔），跳过
+            if depths[j] % 2:          # 奇数深度 = 孔洞内边界，跳过
                 continue
             filled = np.zeros_like(mask_u8)
             cv2.drawContours(filled, [contour], 0, 255, -1)
+            for child in children[j]:
+                # 填外轮廓会把孔一起填满，这里按颜色 0 把孔挖回去；
+                # 孔里的独立实体是另一个偶数深度轮廓，各自成段，不受影响。
+                cv2.drawContours(filled, [contours[child]], 0, 0, -1)
             items.append((contour, (filled / 255.0).astype(np.float32)))
         return items
     except ImportError:
@@ -137,11 +143,14 @@ def mask_to_segs(mask, combine=False, crop_factor=3.0, bbox_fill=False,
     if combine:
         ys, xs = np.nonzero(plane > 0)
         if len(xs) and len(ys):
-            bbox = (float(xs.min()), float(ys.min()),
-                    float(xs.max()) + 1.0, float(ys.max()) + 1.0)
+            x0, y0 = int(xs.min()), int(ys.min())
+            x1, y1 = int(xs.max()) + 1, int(ys.max()) + 1
+            bbox = (float(x0), float(y0), float(x1), float(y1))
+            # 合并模式同样遵守最小尺寸：整块太小就一段都不出，而不是绕过过滤。
+            if (x1 - x0) <= drop_size or (y1 - y0) <= drop_size:
+                return QGSegs([], width, height)
             seg_mask = plane.copy()
             if bbox_fill:
-                x0, y0, x1, y1 = [int(v) for v in bbox]
                 seg_mask[y0:y1, x0:x1] = 1.0
             segs.append(QGSeg(bbox, label, 1.0, seg_mask.astype(np.float32),
                               crop_factor))

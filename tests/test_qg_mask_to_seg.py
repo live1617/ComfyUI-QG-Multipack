@@ -91,6 +91,23 @@ check("每段是实心轮廓", all(set(np.unique(s.mask)) <= {0.0, 1.0} for s in
 check("mask_batch 形状 [N,H,W]", c.mask_batch().shape == (2, 50, 60))
 check("combined_mask 形状 [H,W]", c.combined_mask().shape == (50, 60))
 
+# 环形 + 洞中实体：洞里的实心块是独立前景连通区域，不能被当成孔一起吞掉。
+ring = np.zeros((60, 60), np.float32)
+ring[5:55, 5:55] = 1.0
+ring[15:45, 15:45] = 0.0
+ring[25:35, 25:35] = 1.0
+c_ring = M.mask_to_segs(ring, drop_size=3)
+check("环形 + 洞中实体出两段", len(c_ring) == 2, [s.bbox for s in c_ring])
+ring_outer = [s for s in c_ring if s.bbox[0] < 10]
+check("环形段挖掉孔与洞中实体",
+      bool(ring_outer) and float(ring_outer[0].mask[30, 30]) == 0.0
+      and float(ring_outer[0].mask[7, 7]) == 1.0,
+      "outer=%d" % len(ring_outer))
+inner = [s for s in c_ring if s.bbox[0] == 25.0]
+check("洞中实体段框正确",
+      bool(inner) and inner[0].bbox == (25.0, 25.0, 35.0, 35.0),
+      [s.bbox for s in c_ring])
+
 print("== 四、合并 / 最小尺寸 ==")
 c_all = M.mask_to_segs(plane, combine=True, drop_size=10)
 check("合并为一段", len(c_all) == 1, len(c_all))
@@ -100,6 +117,10 @@ check("drop_size=10 丢掉小块", len(M.mask_to_segs(small, drop_size=10)) == 0
 check("drop_size=5 保留小块", len(M.mask_to_segs(small, drop_size=5)) == 1)
 check("drop_size 下限夹到 1",
       len(M.mask_to_segs(small, drop_size=0)) == 1)
+# 合并模式也必须遵守 drop_size：整块太小就一段都不出（曾经绕过过滤直接出段）。
+check("合并模式同样丢小块", len(M.mask_to_segs(small, combine=True, drop_size=10)) == 0)
+check("合并模式 drop_size 放宽后保留",
+      len(M.mask_to_segs(small, combine=True, drop_size=5)) == 1)
 
 print("== 五、填充轮廓 / 填充 BBox ==")
 gray = rect(np.zeros((40, 40), np.float32), 5, 20, 5, 20, 0.5)
@@ -157,6 +178,9 @@ try:
           {(5.0, 5.0, 17.0, 17.0), (30.0, 25.0, 45.0, 40.0)},
           [s.bbox for s in c_np])
     check("回退遮罩实心", all(set(np.unique(s.mask)) <= {0.0, 1.0} for s in c_np))
+    c_ring_np = M.mask_to_segs(ring, drop_size=3)
+    check("回退：环形 + 洞中实体也是两段", len(c_ring_np) == 2,
+          [s.bbox for s in c_ring_np])
 finally:
     builtins.__import__ = real_import
 

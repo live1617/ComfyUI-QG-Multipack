@@ -145,12 +145,16 @@ def _image_frame(image):
 
 
 def _mask_frames(mask):
-    """遮罩规整成 [B,H,W] 的二值浮点列表。"""
+    """遮罩规整成 [B,H,W] 的二值浮点数组。
+
+    ComfyUI 的 MASK 契约就是 [B,H,W]，三维输入一律按批次处理。不再猜测
+    「最后一维为 1 就当单帧 [H,W,1]」：那个判断与 [B,H,1] 在数据上不可区分，
+    会把一个批次压成一帧（[B,H,1] → [1,B,H]），帧数与尺寸全错。非规范的
+    [H,W,1] 单帧会被当成 B=H 的批次，属于上游格式问题，不在这里猜。
+    """
     arr = _to_numpy(mask)
     if arr.ndim == 2:
         arr = arr[None, :, :]
-    elif arr.ndim == 3 and arr.shape[2] == 1 and arr.shape[0] != 1:
-        arr = arr[:, :, 0][None, :, :]
     elif arr.ndim != 3:
         raise ValueError(
             "QG 图像与遮罩预览：遮罩需为 [H,W] 或 [B,H,W]，收到 %d 维。" % arr.ndim)

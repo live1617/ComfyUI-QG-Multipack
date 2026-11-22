@@ -145,7 +145,15 @@ check("扫到 SAM 权重", len(sam_models) == 3, str(sam_models))
 check("推断 vit_b", SL._guess_model_type("sam_vit_b_01ec64.pth") == "vit_b")
 check("推断 vit_h", SL._guess_model_type("sam_vit_h_4b8939.pth") == "vit_h")
 check("HQ 权重按 vit_h", SL._guess_model_type("sam_hq_vit_h.pth") == "vit_h")
+check("HQ vit_b 不被改写成 vit_h", SL._guess_model_type("sam_hq_vit_b.pth") == "vit_b")
+check("只写 sam_hq 时回落 vit_h", SL._guess_model_type("sam_hq.pth") == "vit_h")
 check("认不出的类型返回 None", SL._guess_model_type("mystery.pth") is None)
+check("HQ 后端识别", SL._is_hq_model("sam_hq_vit_b.pth") is True
+      and SL._is_hq_model("hq-sam_vit_l.pth") is True
+      and SL._is_hq_model("sam_vit_h_4b8939.pth") is False)
+check("HQ 缺包提示指向 segment-anything-hq",
+      "segment-anything-hq" in SL._SAM_HQ_MISSING
+      and "segment_anything_hq" not in SL._SAM_MISSING)
 
 
 # ---------- 四、检测对象与 SAM 对象 ----------
@@ -184,10 +192,54 @@ class FakePredictor:
 
 sam = SL.QGSamModel(FakePredictor(), "/fake.pth", "cpu", "vit_b")
 sam.set_image(np.zeros((20, 30, 3), np.uint8))
-mask, score = sam.predict_box([2, 2, 12, 12], 0.0)
+# 阈值作用在 sigmoid 概率上：logits ±5 → 概率 0.993 / 0.0067，0.5 一刀切正确。
+mask, score = sam.predict_box([2, 2, 12, 12], 0.5)
 check("SAM 返回全图尺寸遮罩", mask.shape == (20, 30), str(mask.shape))
 check("SAM 遮罩核心为 1", mask[5, 5] == 1.0 and mask[0, 0] == 0.0)
 check("SAM 打分返回", score == 0.95)
+
+
+class FlatLogitPredictor(FakePredictor):
+    """所有像素同一个 logits，用来钉死「阈值作用在概率上」的语义。"""
+
+    def __init__(self, value):
+        super().__init__()
+        self.value = float(value)
+
+    def predict(self, box, multimask_output, return_logits):
+        logits = np.full((1, self.h, self.w), self.value, np.float32)
+        return None, np.array([0.9]), logits
+
+
+def flat_mask(value, threshold):
+    p = FlatLogitPredictor(value)
+    m = SL.QGSamModel(p, "/fake.pth", "cpu", "vit_b")
+    m.set_image(np.zeros((10, 10, 3), np.uint8))
+    return m.predict_box([0, 0, 10, 10], threshold)[0]
+
+
+# logits=0.5 → sigmoid≈0.6225：0.60 应保留、0.63 应丢弃。
+# 旧实现拿 raw logits 直接比，0.5>0.60 为假会把整块删掉。
+check("阈值 0.60 保留 prob=0.62", float(flat_mask(0.5, 0.60).sum()) == 100.0)
+check("阈值 0.63 丢弃 prob=0.62", float(flat_mask(0.5, 0.63).sum()) == 0.0)
+# logits=0 → prob=0.5：0.5 不是严格大于，丢弃；0.49 保留。
+check("边界：prob=0.5 在阈值 0.5 时丢弃", float(flat_mask(0.0, 0.5).sum()) == 0.0)
+check("边界：prob=0.5 在阈值 0.49 时保留", float(flat_mask(0.0, 0.49).sum()) == 100.0)
+
+
+class OverScorePredictor(FlatLogitPredictor):
+    """真机见过 SAM 打分为 1.007（略超 1）。"""
+
+    def predict(self, box, multimask_output, return_logits):
+        logits = np.full((1, self.h, self.w), 5.0, np.float32)
+        return None, np.array([1.007]), logits
+
+
+_p = OverScorePredictor(5.0)
+_m = SL.QGSamModel(_p, "/fake.pth", "cpu", "vit_b")
+_m.set_image(np.zeros((8, 8, 3), np.uint8))
+_, _s = _m.predict_box([0, 0, 8, 8], 0.5)
+check("SAM 打分夹到 0~1", _s == 1.0, _s)
 
 
 # ---------- 五、主节点双输出与参数行为 ----------
@@ -203,7 +255,7 @@ img = np.zeros((1, 100, 120, 3), np.float32)
 node = SD.QGSimpleSegDetector()
 
 def run(sam_model=None, drop_size=10, hint_threshold=0.0, dilation=0):
-    return node.detect(TwoBoxDet(), img, 0.6, 0, 3.0, drop_size, 0.0,
+    return node.detect(TwoBoxDet(), img, 0.6, 0, 3.0, drop_size, 0.5,
                        0, 0, hint_threshold, dilation, sam_model)
 
 segs, mask = run()
@@ -247,6 +299,29 @@ class EmptyDet:
 s4, m4 = node.detect(EmptyDet(), img, 0.6, 0, 3.0, 10, 0.0, 0, 0, 0.0, 0, None)
 check("空结果 MASK 形状", len(s4) == 0 and m4.shape == (0, 100, 120))
 check("空结果合并遮罩全 0", s4.combined_mask().sum() == 0)
+
+
+# 检测器必须收到 BGR：ultralytics 把 numpy 输入当 OpenCV 图（内部再翻 RGB）。
+class _CaptureDet:
+    def __init__(self):
+        self.seen = None
+
+    def detect(self, image, conf):
+        self.seen = np.array(image, copy=True)
+        return []
+
+
+_rgb_in = np.zeros((1, 4, 4, 3), np.float32)
+_rgb_in[0, :, :, 0] = 0.0     # R
+_rgb_in[0, :, :, 2] = 1.0     # B
+_cap = _CaptureDet()
+node.detect(_cap, _rgb_in, 0.6, 0, 3.0, 10, 0.5, 0, 0, 0.0, 0, None)
+check("检测器收到 BGR（红蓝通道反序）",
+      int(_cap.seen[0, 0, 0]) == 255 and int(_cap.seen[0, 0, 2]) == 0,
+      str(_cap.seen[0, 0, :]))
+check("检测器输入是 uint8 连续数组",
+      _cap.seen.dtype == np.uint8 and _cap.seen.shape == (4, 4, 3),
+      "%s %s" % (_cap.seen.dtype, _cap.seen.shape))
 
 # 框扩展
 box = SD._expand_box((20, 20, 40, 40), 5, 3, 100, 100)

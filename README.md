@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.5** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.22.6** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -145,7 +145,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
 | `QG_ImageComposite` | ✅ 原创（参照规格） | 功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0）；坐标求交、遮罩混合、批次补齐自写，并修掉上游负坐标走负索引贴错位置、只处理右下越界、目标帧被截短三个问题，未复制上游源码 | 0% |
 | `QG_YoloDetectorLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Subpack 的检测加载器；模型扫描、路径解析、软依赖提示、自造类型全自写，只调 ultralytics 的公开 `YOLO(path)` 接口，类型不与 Impact 互通，未复制上游源码 | 0% |
-| `QG_SamModelLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Pack 的 SAM 加载器；权重扫描、类型推断、设备解析、自造类型全自写，只调 segment_anything 的公开 `sam_model_registry` / `SamPredictor` 接口，未复制上游源码 | 0% |
+| `QG_SamModelLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Pack 的 SAM 加载器；权重扫描、类型推断、后端分流（`segment_anything` / `segment_anything_hq`）、设备解析、自造类型全自写，只调它们的公开 `sam_model_registry` / `SamPredictor` 接口，未复制上游源码 | 0% |
 | `QG_SimpleSegDetector` | ✅ 原创（参照规格） | 控件与数据流参考 Impact-Pack「简易 Seg 检测」；出框/逐框 SAM 精修/膨胀/质量过滤/自造 QG_SEGS 容器全部自写，类型不与 Impact 互通，另出原生 MASK，未复制上游源码 | 0% |
 | `QG_MaskToSeg` | ✅ 原创（参照规格） | 控件语义参考 Impact-Pack「MaskToSeg」；连通域提取/合并/填充 BBox/最小尺寸/填充轮廓/自造 QG_SEGS 全部自写，类型不与 Impact 互通，缺 cv2 有纯 numpy 回退，未复制上游源码 | 0% |
 | `QG_ImageMaskPreview` | ✅ 原创（参照规格） | 控件与用途参考 Goohaitools「图像与遮罩预览」（GPL-3.0）；上色/序号/bbox/字体发现全部自写，颜色用本包 STRING 色块而非 GHCOLOR，字体走本包 OFL/models/fonts/系统字体发现，未复制上游源码 | 0% |
@@ -1066,10 +1066,10 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 
 ## 简易 Seg 检测三件套（`QG_YoloDetectorLoader` / `QG_SamModelLoader` / `QG_SimpleSegDetector`）
 
-对标 Impact-Pack 的「简易 Seg 检测」：目标检测出框 → SAM 逐框把矩形细化成轮廓 → 打包成段集合。但**三个节点、三种类型全部自己造**：`QG_YOLO_DETECTOR` / `QG_SAM_MODEL` / `QG_SEGS` 都带本包前缀，推理只用 `ultralytics` 和 `segment_anything` 两个通用库，**不装 Impact-Pack 也能用**，也不会和 Impact 生态同名撞车。
+对标 Impact-Pack 的「简易 Seg 检测」：目标检测出框 → SAM 逐框把矩形细化成轮廓 → 打包成段集合。但**三个节点、三种类型全部自己造**：`QG_YOLO_DETECTOR` / `QG_SAM_MODEL` / `QG_SEGS` 都带本包前缀，推理只用 `ultralytics` 和 `segment_anything`（HQ 权重另用 `segment_anything_hq`）两个通用库，**不装 Impact-Pack 也能用**，也不会和 Impact 生态同名撞车。
 
 - **`QG_YoloDetectorLoader`**：扫描本机 `models/ultralytics/{bbox,segm}` 的权重（含 `extra_model_paths` 挂载；也可用环境变量 `QG_ULTRALYTICS_DIR` 指定），下拉项形如 `bbox/face_yolov8n.pt`。输出自造检测器对象；`bbox/` 只出框，`segm/` 是实例分割权重（本节点当前只用其框）。
-- **`QG_SamModelLoader`**：扫描 `models/sams`（或 `QG_SAMS_DIR`），按文件名自动识别 `vit_b` / `vit_l` / `vit_h`（HQ 权重按 `vit_h` 加载）。输出自造 SAM 对象；SAM 权重体积大（vit_b 约 375 MB、vit_h 约 2.5 GB），显存小的机器建议用 `vit_b`。
+- **`QG_SamModelLoader`**：扫描 `models/sams`（或 `QG_SAMS_DIR`），按文件名自动识别 `vit_b` / `vit_l` / `vit_h`。普通 SAM 权重用 `segment_anything` 加载；文件名含 `sam_hq` 的走 HQ-SAM 后端（`segment_anything_hq`，需另装 `segment-anything-hq`），两种权重格式与库并不通用。输出自造 SAM 对象；SAM 权重体积大（vit_b 约 375 MB、vit_h 约 2.5 GB），显存小的机器建议用 `vit_b`。
 - **`QG_SimpleSegDetector`**：接检测器 + 单张图，可选接 SAM 模型。不接 SAM 时直接用矩形框当遮罩；接了 SAM 就把框细化成轮廓。控件与参考节点一致：BBox 阈值 / 膨胀、裁剪系数、最小尺寸、次要阈值 / 膨胀 / BBox 扩展、SAM 遮挡检测阈值、扩张后。
 - **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 `QG_MaskOrderFilter` 等遮罩节点。过滤器筛选后同样回出 Segs + Mask 两路，可继续串接本包节点。
 - **模型放哪**：权重不随包，放本机模型库即可；两个加载器缺库时节点照常出现、照常列权重，只在真正运行时给中文安装提示。
@@ -1097,7 +1097,17 @@ Bingsu/adetailer 的单文件直链格式：`https://huggingface.co/Bingsu/adeta
 | `vit_l` | ~1.2 GB | <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth> |
 | `vit_h`（最大） | ~2.5 GB | <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth> |
 
-以上三个来自 Meta 官方 `facebookresearch/segment-anything` 仓库 [Model Checkpoints](https://github.com/facebookresearch/segment-anything#model-checkpoints) 一节的原始直链。可选的 HQ 权重在 <https://huggingface.co/lkeab/hq-sam>（如 `sam_hq_vit_b.pth`，加载器按 `vit_h` 注册表读取）；显存有限优先用 `vit_b`。
+以上三个来自 Meta 官方 `facebookresearch/segment-anything` 仓库 [Model Checkpoints](https://github.com/facebookresearch/segment-anything#model-checkpoints) 一节的原始直链。显存有限优先用 `vit_b`。
+
+**可选：HQ-SAM 权重** → 同在 `models/sams/`，地址 <https://huggingface.co/lkeab/hq-sam>（`sam_hq_vit_b.pth` / `sam_hq_vit_l.pth` / `sam_hq_vit_h.pth`）。HQ 权重**不能用官方 `segment_anything` 读**（结构多了 HQ 输出 token，会 key 不匹配），必须先装 HQ-SAM 包：
+
+```
+python -m pip install segment-anything-hq
+```
+
+文件名里带骨干尺寸（`vit_b` / `vit_l` / `vit_h`）就按该尺寸注册；只写 `sam_hq.pth` 时按官方默认的 `vit_h` 处理。
+
+> **提示值口径**：`次要阈值`（sub_threshold）作用在 SAM 输出的 **sigmoid 概率** 上，0.5 等同 SAM 默认的 `logits > 0`；数值越大遮罩越保守。
 
 ### `QG_MaskToSeg` 遮罩到 Seg
 
@@ -1222,7 +1232,7 @@ Bingsu/adetailer 的单文件直链格式：`https://huggingface.co/Bingsu/adeta
 | `QG_PromptOptimize` | 对话模型 API（共用服务商配置，无需图像能力） | 没配地址/Key 时运行报错，原因同时画在节点下方 |
 | `QG_QwenPromptOptimizer` | pip：`llama-cpp-python>=0.3.48`（JamePeng fork）+ `diskcache`；`models/LLM` 下自备 Qwen Image 2.1 GGUF（T2I / I2I / mmproj 三个文件） | 缺依赖时节点能拖出来、能连线，运行报「llama-cpp-python 不可用」；节点上会出现「点击查看安装说明」按钮，给出匹配 wheel 后缀与发布页地址，**需手动下载安装**（Registry 合规，不自动装），装完要完全重启 ComfyUI |
 | `QG_YoloDetectorLoader` | pip：`ultralytics`；`models/ultralytics/{bbox,segm}` 下自备 YOLO 权重（或 `QG_ULTRALYTICS_DIR`） | 缺库时节点能拖出来、照常列权重，运行报中文安装提示；缺权重时下拉给出占位说明 |
-| `QG_SamModelLoader` | pip：`segment_anything`（facebookresearch 官方仓库）；`models/sams` 下自备 SAM 权重（或 `QG_SAMS_DIR`） | 同上，缺库运行时提示；权重体积大，显存小建议用 vit_b |
+| `QG_SamModelLoader` | pip：`segment_anything`（facebookresearch 官方仓库）；HQ-SAM 权重另需 `segment-anything-hq`；`models/sams` 下自备 SAM 权重（或 `QG_SAMS_DIR`） | 同上，缺库运行时提示；HQ 权重缺对应包时给中文安装指引；权重体积大，显存小建议用 vit_b |
 | `QG_SimpleSegDetector` | 无额外 pip 依赖；但要接前两个加载器的输出才有意义 | 缺检测器直接报中文提示；不接 SAM 时退化为矩形框遮罩 |
 | `QG_MaskToSeg` | 无额外 pip 依赖；用 `cv2.findContours` 提取连通域，缺 cv2 时纯 numpy 回退 | 空遮罩返回 0 段空容器，不报错；自造 QG_SEGS 只能接本包下游 |
 | `QG_ImageMaskPreview` | 无额外 pip 依赖，只用 torch / numpy / PIL | 颜色走本包 STRING 色块不依赖 GHCOLOR；字体缺文件回退 PIL 默认字体；空遮罩输出原图 |
