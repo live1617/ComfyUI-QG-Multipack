@@ -89,9 +89,9 @@ def output_pixels(preset, unit, custom_w, custom_h, dpi):
 
     if width_px < MIN_SIDE or height_px < MIN_SIDE:
         raise ValueError(
-            "target size works out to %dx%d px - check the custom width/height "
-            "and the unit (unit %s, %d dpi); a size below %d px cannot be a "
-            "photo" % (width_px, height_px, use_unit, use_dpi, MIN_SIDE))
+            "自定义尺寸算出来只有 %dx%d 像素（单位 %s、%d dpi），"
+            "小于 %d 像素做不出照片。把宽高调大或换单位。"
+            % (width_px, height_px, use_unit, use_dpi, MIN_SIDE))
 
     # 超过上限时按长边**等比**缩。原来宽高各自独立钳到 MAX_SIDE，
     # 100cm x 50cm @300dpi 会变成 8192x5906（比例 1.39 而不是 2.0），
@@ -151,14 +151,15 @@ def plan_frame(face, out_w, out_h, face_ratio, eye_line, rotate):
             "输出尺寸是 %r x %r，宽高都必须大于 0。接「证件照参数」节点能保证这一点。"
             % (out_w, out_h))
     if face.width < 8:
-        raise ValueError("face box is only %.1f px wide - the picture is too "
-                         "small" % face.width)
+        raise ValueError("检测到的人脸只有 %.1f 像素宽，图片太小或人脸太远，"
+                         "没法按证件照构图。" % face.width)
 
     width = face.width / ratio
     height = width * float(out_h) / float(out_w)
     if width < 16 or height < 16:
-        raise ValueError("crop works out to %.0f x %.0f px - check the face "
-                         "ratio" % (width, height))
+        raise ValueError("按当前人脸比例算出的取景框只有 %.0f x %.0f 像素，"
+                         "太小了。把「人脸占比」调大或换更清晰的照片。"
+                         % (width, height))
 
     tilt = float(face.tilt) if rotate else 0.0
     cos, sin = math.cos(tilt), math.sin(tilt)

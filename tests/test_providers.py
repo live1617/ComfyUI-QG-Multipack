@@ -147,7 +147,7 @@ try:
     mod.translate("x", "custom", "", "", "", "auto", "english")
     check("应当抛错", False)
 except ValueError as e:
-    check("提示指向设置面板", "settings panel" in str(e), str(e)[:60])
+    check("提示指向设置面板", "设置面板" in str(e), str(e)[:60])
 
 print("\n=== L. config 缓存会因写盘失效 ===")
 mod.save_config({"providers": [{"id": "g", "name": "第一次", "api_url": "u", "model": "m"}]})

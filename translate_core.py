@@ -141,13 +141,12 @@ CACHE_MAX = 256
 _CACHE: dict = {}
 
 MISSING_TEXT = (
-    "QG Translate: there is no text to translate. Type something into the "
-    "text field, or wire a text output into it."
+    "QG 翻译：没有可翻译的文字。在文本框里输入内容，或接一个文字输出进来。"
 )
 BAD_REPLY = (
-    "QG Translate: the API answered but not in the OpenAI chat format "
-    "(no choices[0].message.content). Check that api_url points at a "
-    "chat/completions endpoint and that model exists on that service."
+    "QG 翻译：接口有响应，但不是 OpenAI 对话格式（找不到 "
+    "choices[0].message.content）。检查接口地址是不是 chat/completions，"
+    "以及这个模型在服务上是否存在。"
 )
 
 
@@ -741,7 +740,7 @@ def call_api(url: str, key: str, model: str, messages: list, meta=None) -> str:
         except Exception:  # noqa: BLE001 - the body is best effort
             pass
         raise RuntimeError(
-            f"QG Translate: the API answered HTTP {error.code}. {detail}"
+            f"QG 翻译：接口返回 HTTP {error.code}。{detail}"
         ) from error
     try:
         choice = payload["choices"][0]
@@ -785,9 +784,8 @@ def translate(
     url = str(api_url or "").strip() or entry["api_url"]
     if not url:
         raise ValueError(
-            "QG Translate: no API address. Pick a provider in the settings "
-            "panel (or on the node), or fill an OpenAI-compatible "
-            "chat/completions endpoint."
+            "QG 翻译：没有接口地址。在设置面板（或节点上）选一个服务商，"
+            "或填一个兼容 OpenAI 的 chat/completions 地址。"
         )
     used_model = str(model or "").strip() or entry["model"]
 

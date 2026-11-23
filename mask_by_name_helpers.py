@@ -120,12 +120,14 @@ def split_by_frame(masks: torch.Tensor, counts: list) -> list:
     wrong mask.
     """
     if not isinstance(masks, torch.Tensor) or masks.ndim != 3:
-        raise ValueError("QG Mask by Name expected the detector's masks as one N x H x W stack.")
+        raise ValueError("QG 按名称取遮罩：检测器的遮罩应是 N x H x W 的三维堆叠，"
+                         "实际收到的不是。检查检测器节点的连线。")
     total = sum(int(c) for c in counts)
     if total != int(masks.shape[0]):
         raise ValueError(
-            f"QG Mask by Name got {int(masks.shape[0])} masks for {total} matches; "
-            "the detector's answer does not add up."
+            "QG 按名称取遮罩：检测器给了 %d 张遮罩，但目标数量是 %d，"
+            "两者对不上。检查检测器是否被改动过。"
+            % (int(masks.shape[0]), total)
         )
     frames = []
     start = 0

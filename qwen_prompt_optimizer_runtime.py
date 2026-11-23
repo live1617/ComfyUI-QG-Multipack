@@ -81,7 +81,7 @@ def _load_resource_module(name: str, filename: str):
     path = root / filename
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
-        raise ImportError(f"Unable to load embedded prompt resource: {path}")
+        raise ImportError(f"无法加载内置提示词资源：{path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

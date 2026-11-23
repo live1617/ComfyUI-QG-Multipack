@@ -244,8 +244,8 @@ def layout_plan(layout_key, dpi, fit_to_paper=True):
             scale *= 0.98
     elif overflow_w or overflow_h:
         raise ValueError(
-            "layout %r does not fit: %dx%d px needed, %dx%d px available "
-            "(dpi=%d). Lower the dpi or enable fit_to_paper."
+            "「%s」版式放不进相纸：需要 %dx%d 像素，可用 %dx%d 像素（%d dpi）。"
+            "把 dpi 调低，或打开「自动适应相纸」。"
             % (layout_key, geo["total_w"], geo["total_h"],
                avail_w, avail_h, dpi))
 

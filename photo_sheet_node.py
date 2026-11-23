@@ -275,12 +275,13 @@ def build_sheet(photo: Image.Image, caption, font_name, font_size,
                                          margin_cm, caption_h)
         if not auto_fit:
             raise ValueError(
-                "a %dx%d px photo does not fit on a %.1fx%.1f cm sheet at %d "
-                "dpi (usable %dx%d px after a %.2f cm margin and %.2f cm "
-                "spacing) and auto-fit is off. Shrink the photo, enlarge the "
-                "paper, lower the margin, or turn auto-fit on."
+                "这张照片 %dx%d 像素放不进 %.1fx%.1f 厘米、%d dpi 的相纸："
+                "扣掉 %.2f 厘米边距、%.2f 厘米间距后只剩 %dx%d 像素可用，"
+                "而「自动缩小」是关的。把相纸调大、dpi 调低、边距/间距调小，"
+                "或打开「自动缩小」。"
                 % (photo.width + pad, photo.height + pad, paper_w_cm,
-                   paper_h_cm, dpi, usable_w, usable_h, margin_cm, spacing_cm))
+                   paper_h_cm, dpi, margin_cm, spacing_cm,
+                   usable_w, usable_h))
 
         fitted = shrink_to_fit(photo.width + pad, photo.height + pad,
                                paper_w_cm, paper_h_cm, dpi, margin_cm,
@@ -288,11 +289,10 @@ def build_sheet(photo: Image.Image, caption, font_name, font_size,
                                auto_orient=auto_orient)
         if fitted is None:
             raise ValueError(
-                "no photo of any size fits on a %.1fx%.1f cm sheet at %d dpi: "
-                "the %.2f cm margin%s leaves %dx%d px of usable area. Lower "
-                "the margin or enlarge the paper."
+                "缩小到最小尺寸后仍放不进 %.1fx%.1f 厘米、%d dpi 的相纸："
+                "%.2f 厘米边距%s只剩 %dx%d 像素可用。把边距调小或把相纸调大。"
                 % (paper_w_cm, paper_h_cm, dpi, margin_cm,
-                   " plus the caption" if caption_h else "",
+                   "加文字说明" if caption_h else "",
                    usable_w, usable_h))
 
         inner_w = max(1, fitted.width - pad)

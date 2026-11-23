@@ -315,5 +315,36 @@ _rejects_0frame(
     "QG_IDCardSheet")
 
 # --------------------------------------------------------------------------
+print("=== I. 第六轮：用户可见错误须中文 ===")
+# 这些报错此前是英文，用户看不懂也搜不到；改为中文后固化，防回退。
+_chinese_errors = {
+    "photo_sheet_node.py": ["这张照片", "缩小到最小尺寸后仍放不进"],
+    "photo_sheet_mixed_node.py": ["版式放不进相纸"],
+    "_id_photo_helpers.py": ["自定义尺寸算出来只有", "检测到的人脸只有",
+                             "按当前人脸比例算出的取景框"],
+    "mask_by_name_helpers.py": ["检测器的遮罩应是", "两者对不上"],
+    "translate_core.py": ["没有可翻译的文字", "不是 OpenAI 对话格式",
+                          "没有接口地址", "接口返回 HTTP"],
+    "qwen_prompt_optimizer_runtime.py": ["无法加载内置提示词资源"],
+}
+for _f, _keys in _chinese_errors.items():
+    _src = js(_f) if _f.endswith(".js") else open(
+        os.path.join(PKG, _f), encoding="utf-8").read()
+    check(_f + " 错误文案已中文化",
+          all(k in _src for k in _keys),
+          "缺: " + ",".join(k for k in _keys if k not in _src))
+
+# 不应再残留旧的英文长句
+for _f in _chinese_errors:
+    _src = open(os.path.join(PKG, _f), encoding="utf-8").read()
+    check(_f + " 无残留英文报错",
+          not any(old in _src for old in (
+              "does not fit on", "works out to", "face box is only",
+              "no API address", "the API answered HTTP",
+              "check the face ratio", "does not fit:",
+              "expected the detector")),
+          "仍有英文报错")
+
+# --------------------------------------------------------------------------
 print("\n===== 合计 PASS %d / FAIL %d =====" % (ok, fail))
 sys.exit(1 if fail else 0)
