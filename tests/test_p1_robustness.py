@@ -222,8 +222,13 @@ qwen_js = js("qg_qwen_prompt_optimizer.js")
 check("6 个生命周期 hook 都接收原返回值",
       qwen_js.count("const result = original") == 6,
       qwen_js.count("const result = original"))
-check("6 个 hook 都把返回值传下去", qwen_js.count("return result;") == 6,
-      qwen_js.count("return result;"))
+# 除了上面 6 个原型 hook，还有实例级包装（onResize / onSerialize）也接住原实现，
+# 因此这里按「接了就必须传」的守恒关系断言，而不是写死 6。
+qwen_wrapped = qwen_js.count("const result = original") + qwen_js.count("const result = own?.apply")
+qwen_returned = qwen_js.count("return result;")
+check("所有包装都把返回值传下去（接住数 == 返回数）",
+      qwen_wrapped == qwen_returned and qwen_wrapped >= 6,
+      "%d / %d" % (qwen_wrapped, qwen_returned))
 check("skill 槽排在图像槽之后并修正连线归属",
       "syncSkillInput(node)" in qwen_js
       and 'const SKILL_INPUT_NAME = "自定义skill"' in qwen_js

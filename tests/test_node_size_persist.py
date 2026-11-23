@@ -125,9 +125,31 @@ def main():
     check("该节点仍然没有无条件 setSize 覆盖用户尺寸",
           not re.search(r"onResize[\s\S]{0,80}setSize\(\[", text_enc))
 
+    print("\n== 五、QG_QwenPromptOptimizer（提示词高度记录，实例钩子） ==")
+
+    opt = read("web/qg_qwen_prompt_optimizer.js")
+    # 新版前端 node.size 是 Float64Array，Array.isArray 恒 false → 判据失灵
+    check("尺寸判据不依赖 Array.isArray（兼容类型化数组）",
+          "Array.isArray(node.size)" not in opt
+          and "function sizePair(value)" in opt
+          and "typeof value.length !== \"number\"" in opt)
+    # addDOMWidget 会给实例挂 own onResize，只包原型会被整段屏蔽
+    check("onResize 挂在实例上（不是只包 nodeType.prototype）",
+          "function hookResize(node)" in opt
+          and "node.onResize = function (size)" in opt
+          and "hookResize(this)" in opt)
+    check("保存时兜底把高度写进 properties",
+          "function hookSerialize(node)" in opt
+          and "node.onSerialize = function (data)" in opt
+          and "data.properties[PROMPT_HEIGHT_PROPERTY]" in opt)
+    check("缺记录时先从当前节点高度反推，不直接压回半高",
+          "derivedHeight" in opt
+          and "currentSize[1] - layout.fixedNodeHeight" in opt)
+    check("该节点没有无条件 setSize 覆盖宽度",
+          "node.setSize?.([currentSize ? Math.max(1, currentSize[0]) : 1, expectedHeight])" in opt)
+
     print("\n===== 合计 %d 项，FAIL %d =====" % (TOTAL, FAILED))
     return 1 if FAILED else 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

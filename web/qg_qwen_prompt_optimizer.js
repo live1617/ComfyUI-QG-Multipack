@@ -192,6 +192,16 @@ function asPromptHeight(value, fallback) {
     return Number.isFinite(number) ? Math.max(MIN_PROMPT_HEIGHT, Math.round(number)) : fallback;
 }
 
+// 新版前端把 node.size 存成 Float64Array，Array.isArray() 对它返回 false。
+// 用 length 判断才同时兼容普通数组与类型化数组。
+function sizePair(value) {
+    if (!value || typeof value.length !== "number" || value.length < 2) return null;
+    const width = Number(value[0]);
+    const height = Number(value[1]);
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+    return [width, height];
+}
+
 function measurePromptLayout(node, widget) {
     const originalWidgetComputeSize = node._qgOriginalWidgetComputeSize || widget.computeSize;
     const originalNodeComputeSize = node._qgOriginalNodeComputeSize || node.computeSize;
@@ -219,11 +229,17 @@ function applyPromptLayout(node, forceSize = false) {
     const layout = measurePromptLayout(node, widget);
     if (!layout) return;
 
+    const currentSize = sizePair(node.size);
     const hadSavedHeight = node.properties && Object.prototype.hasOwnProperty.call(node.properties, PROMPT_HEIGHT_PROPERTY);
     const initialHeight = Math.max(MIN_PROMPT_HEIGHT, Math.round(layout.naturalPromptHeight * 0.5));
-    const savedHeight = hadSavedHeight
-        ? asPromptHeight(node.properties[PROMPT_HEIGHT_PROPERTY], initialHeight)
+    // 没有记录时（旧工作流、或首次加载）先按当前节点高度反推提示词区高度，
+    // 保住用户已经拉过的尺寸；连尺寸都读不到才退回「自然高度的一半」。
+    const derivedHeight = currentSize
+        ? Math.max(MIN_PROMPT_HEIGHT, Math.round(currentSize[1] - layout.fixedNodeHeight))
         : initialHeight;
+    const savedHeight = hadSavedHeight
+        ? asPromptHeight(node.properties[PROMPT_HEIGHT_PROPERTY], derivedHeight)
+        : derivedHeight;
 
     node.properties = node.properties || {};
     node.properties[PROMPT_HEIGHT_PROPERTY] = savedHeight;
@@ -233,9 +249,11 @@ function applyPromptLayout(node, forceSize = false) {
     widget.computeSize = () => [0, node._qgPromptHeight];
 
     const expectedHeight = layout.fixedNodeHeight + savedHeight;
-    if (forceSize || !Array.isArray(node.size) || Math.abs(Number(node.size[1]) - expectedHeight) > 1) {
+    const needsResize = forceSize || !currentSize
+        || Math.abs(currentSize[1] - expectedHeight) > 1;
+    if (needsResize) {
         node._qgPromptInternalResize = true;
-        node.setSize?.([Math.max(1, Number(node.size?.[0]) || 1), expectedHeight]);
+        node.setSize?.([currentSize ? Math.max(1, currentSize[0]) : 1, expectedHeight]);
         node._qgPromptInternalResize = false;
     }
     node._qgPromptReady = true;
@@ -253,6 +271,44 @@ function updatePromptHeightFromNodeSize(node, size) {
     node.properties = node.properties || {};
     node.properties[PROMPT_HEIGHT_PROPERTY] = nextHeight;
     node.setDirtyCanvas?.(true, true);
+}
+
+function hookResize(node) {
+    // ComfyUI 前端在 addDOMWidget 里会给**实例**挂一个组合好的 onResize
+    // （实测 Object.hasOwnProperty(node, "onResize") === true）。只包
+    // nodeType.prototype 会被实例属性整段屏蔽，updatePromptHeightFromNodeSize
+    // 就永远不执行，properties 里记的高度停在初值，重开节点时按旧值还原。
+    if (!node || node._qgPromptResizeHooked) return;
+    node._qgPromptResizeHooked = true;
+    const own = node.onResize;
+    node.onResize = function (size) {
+        const result = own?.apply(this, arguments);
+        updatePromptHeightFromNodeSize(this, size ?? this.size);
+        return result;
+    };
+}
+
+function hookSerialize(node) {
+    // 保存时再以当前高度算一次并写进 properties：某些扩展会整体替换 onResize，
+    // 只靠拖拽回调会漏记。this.properties 与 data.properties 都写，覆盖
+    // 「核心先写 properties 再调 onSerialize」和反过来的两种顺序。
+    if (!node || node._qgPromptSerializeHooked) return;
+    node._qgPromptSerializeHooked = true;
+    const own = node.onSerialize;
+    node.onSerialize = function (data) {
+        const result = own?.apply(this, arguments);
+        const pair = sizePair(this.size);
+        const fixed = Number(this._qgPromptFixedNodeHeight);
+        if (pair && Number.isFinite(fixed) && fixed > 0) {
+            const height = asPromptHeight(pair[1] - fixed, this._qgPromptHeight || MIN_PROMPT_HEIGHT);
+            this.properties = this.properties || {};
+            this.properties[PROMPT_HEIGHT_PROPERTY] = height;
+            if (data && data.properties && typeof data.properties === "object") {
+                data.properties[PROMPT_HEIGHT_PROPERTY] = height;
+            }
+        }
+        return result;
+    };
 }
 
 function sync(node) {
@@ -334,6 +390,8 @@ app.registerExtension({
                 });
             };
             this._qgImageScheduleSync();
+            hookResize(this);
+            hookSerialize(this);
             requestAnimationFrame(() => applyPromptLayout(this, false));
             return result;
         };
