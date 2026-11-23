@@ -96,6 +96,35 @@ def main():
         check("%s 不在 setTimeout 里 setSize" % name.rsplit("/", 1)[-1],
               not re.search(r"setTimeout\([^)]*setSize", src))
 
+    print("\n== 四、QG_QwenTextEncode（尺寸自带一份记录兜底） ==")
+
+    text_enc = read("web/qg_qwen_text_encode.js")
+    check("声明了尺寸记录属性名",
+          'SIZE_PROPERTY = "qg_qwen_text_size"' in text_enc)
+    check("保存时把尺寸写进节点数据（onSerialize，不是 onResize）",
+          "onSerialize = function (data)" in text_enc
+          and "data.properties[SIZE_PROPERTY]" in text_enc)
+    check("onSerialize 包装在实例上（原型会被实例属性屏蔽）",
+          "function hookSerialize(node)" in text_enc
+          and "node.onSerialize = function (data)" in text_enc)
+    check("加载后延迟校验并恢复尺寸",
+          "function restoreSize(node)" in text_enc
+          and "scheduleRestore(this)" in text_enc)
+    check("恢复注册在 image 口同步之后（同帧内顺序固定）",
+          text_enc.find("scheduleSync(this);\n            scheduleRestore(this);") >= 0
+          or text_enc.find("scheduleSync(this);") < text_enc.find("scheduleRestore(this);"))
+    # 新版前端把 size 存成类型化数组，Array.isArray 会漏判
+    check("尺寸解析不依赖 Array.isArray（兼容类型化数组）",
+          "Array.isArray(value)" not in text_enc
+          and "typeof value.length !== \"number\"" in text_enc)
+    check("恢复时不小于内容所需尺寸",
+          "node.computeSize?.([saved[0], saved[1]])" in text_enc
+          and "Math.max(targetW, pair[0])" in text_enc)
+    check("恢复过程有重入保护",
+          "node._qgRestoringSize = true" in text_enc)
+    check("该节点仍然没有无条件 setSize 覆盖用户尺寸",
+          not re.search(r"onResize[\s\S]{0,80}setSize\(\[", text_enc))
+
     print("\n===== 合计 %d 项，FAIL %d =====" % (TOTAL, FAILED))
     return 1 if FAILED else 0
 
