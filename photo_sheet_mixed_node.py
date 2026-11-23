@@ -301,6 +301,19 @@ def parse_color(value):
 
 def _to_pil(frame):
     array = (frame.detach().cpu().numpy() * 255.0).clip(0, 255).astype(np.uint8)
+    if array.ndim == 2:
+        return Image.fromarray(array, "L").convert("RGB")
+    if array.ndim != 3:
+        return Image.fromarray(array).convert("RGB")
+    # 4 通道不能直接切前 3 个：透明区域的 RGB 通常是 0，切出来就是黑底。
+    # 先按 alpha 合成到白底，与「拼到白纸上」的语义一致。
+    if array.shape[2] >= 4:
+        rgba = Image.fromarray(array[..., :4], "RGBA")
+        flat = Image.new("RGB", rgba.size, (255, 255, 255))
+        flat.paste(rgba, (0, 0), rgba)
+        return flat
+    if array.shape[2] == 2:
+        return Image.fromarray(array, "LA").convert("RGB")
     return Image.fromarray(array[..., :3], "RGB").copy()
 
 
@@ -429,6 +442,12 @@ class QGPhotoSheetMixed:
                 caption, font, font_size, fit_to_paper=True):
         plan = layout_plan(layout, dpi, bool(fit_to_paper))
         batch = image if image.dim() == 4 else image.unsqueeze(0)
+        if int(batch.shape[0]) == 0:
+            # 0 帧时 first_size 一直是 None，日志那行 first_size[0] 直接
+            # TypeError；torch.stack([]) 也会抛。按本包约定给中文错误。
+            raise ValueError(
+                "QG 照片拼版（混合版式）：没有收到任何图像帧（输入 batch 为 0 帧）。"
+                "检查上游是否把照片全部过滤掉了。")
         sheets = []
         first_size = None
         for index in range(int(batch.shape[0])):

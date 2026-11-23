@@ -193,6 +193,14 @@ class QGPortraitMatte:
         model_name = os.path.basename(model_path) if model_path else "无（只裁剪）"
 
         batch = image if image.dim() == 4 else image.unsqueeze(0)
+        if int(batch.shape[0]) == 0:
+            # 空 batch：循环一次都不执行，末尾的 print 会引用循环内的 pil，
+            # np.stack([]) 也会抛。与 QG_BiRefNet 一致返回空张量。
+            return (
+                torch.empty((0, out_h, out_w, 3), dtype=torch.float32),
+                torch.empty((0, out_h, out_w), dtype=torch.float32),
+                torch.empty((0, out_h, out_w, 3), dtype=torch.float32),
+            )
         outs, masks, hds = [], [], []
         misses = 0
         first_note = ""

@@ -33,6 +33,7 @@ let loaded = false;
 
 async function loadConfig(force) {
   if (loaded && !force) return CONFIG;
+  let ok = false;
   try {
     const res = await api.fetchApi(API_BASE + "/config");
     if (res.ok) {
@@ -48,10 +49,16 @@ async function loadConfig(force) {
         // 规则摘要（只有名字），图像反推节点的 rule 下拉照它同步
         rules: data.rules || { order: [], groups: {}, node_rules: [] },
       };
+      ok = true;
+    } else {
+      console.warn("[QG-Translate] 读取服务商配置失败：HTTP " + res.status);
     }
   } catch (error) {
     console.warn("[QG-Translate] 读取服务商配置失败:", error);
   }
+  // 只有真拿到配置才记住「已加载」。之前失败也置 true，节点下拉就只剩
+  // custom 并一直报「服务已失效」，必须手动动一次设置面板才恢复。
+  if (!ok) return CONFIG;
   loaded = true;
   syncAllNodes();
   return CONFIG;

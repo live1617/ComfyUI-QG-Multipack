@@ -32,8 +32,11 @@ function syncImageInputs(node) {
     let inputs = imageInputs(node);
 
     // 上限保护：存档里可能带超过 24 个槽，先收掉末尾未连接的。
+    // 遇到已连接的槽就停 —— 原来的写法不看连接状态直接删，带 25 个以上
+    // 已连线输入的工作流会被静默砍掉末尾的图，执行时少图且没有任何提示。
     while (inputs.length > MAX_IMAGES) {
         const last = inputs[inputs.length - 1];
+        if (connected(last.slot)) break;
         node.removeInput(last.index);
         inputs = imageInputs(node);
     }

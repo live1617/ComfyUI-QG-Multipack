@@ -42,6 +42,7 @@ DEFAULT_FILL_COLOR = "#364254"
 DEFAULT_CONFIDENCE = 0.3
 _MAX_SCALE = 16.0   # 面积比异常时的缩放上限，防极端数值把内存打爆
 _MIN_SCALE = 0.05
+_MAX_CANVAS = 8192  # 旋转画布边长上限；再大就是 RGB 几 GB，必 MemoryError
 
 
 def _tensor_to_rgb(image):
@@ -136,6 +137,12 @@ class QGFaceAlign:
               reference_image=None, custom_fill_color=DEFAULT_FILL_COLOR):
         if fill_mode not in MODE_CHOICES:
             fill_mode = MODE_CHOICES[1]
+        if target_image is None or len(target_image) == 0:
+            # _tensor_to_rgb 里是 numpy()[0]，0 帧直接 IndexError；
+            # reference 那边本来就有 len() 判断，target 漏了。
+            raise ValueError(
+                "QG 人脸对齐：目标图像是空的（batch 为 0 帧），"
+                "检查上游是否把帧全部过滤掉了。")
         target_rgb = _tensor_to_rgb(target_image)
         target_pil = Image.fromarray(target_rgb)
 
@@ -176,7 +183,14 @@ class QGFaceAlign:
 
             fill = _resolve_fill(fill_mode, custom_fill_color, target_rgb)
             diagonal = int(math.hypot(new_w, new_h))
+            # 参考脸很小、目标脸很大时 scale 顶到 16 倍，diagonal 能到十万像素级，
+            # expanded 再乘 2 就是几十万平方的画布（RGB 几十 GB）→ 直接 OOM。
+            # 裁到 _MAX_CANVAS 后极端情况会略微裁偏，但不会中断工作流。
             expanded = max(ref_w, ref_h, diagonal) * 2
+            if expanded > _MAX_CANVAS:
+                expanded = max(_MAX_CANVAS, ref_w, ref_h)
+                print("[Face Align] 旋转画布超过 %d px，已收缩到 %d px（目标图被放大了 "
+                      "%.1f 倍，输出会以参考图中心为准）" % (_MAX_CANVAS, expanded, scale))
             canvas = Image.new("RGB", (expanded, expanded), fill)
             paste_x = (expanded - new_w) // 2
             paste_y = (expanded - new_h) // 2

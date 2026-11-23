@@ -337,8 +337,15 @@ class QG_QwenTextEncode:
                 device=comfy.model_management.intermediate_device(),
             )
         latent = {"samples": primary_latent}
-        if prepared_mask is not None and primary_matches_target and vae is not None:
-            latent["noise_mask"] = prepared_mask
+        if prepared_mask is not None:
+            if primary_matches_target and vae is not None:
+                latent["noise_mask"] = prepared_mask
+            else:
+                # 遮罩接进来了却被丢掉，用户会以为在做局部重绘，实际是整图重绘。
+                reason = ("没有接 VAE（遮罩需要编码到 latent 空间）" if vae is None
+                          else "主参考图与画布比例差异较大，遮罩映射不到 latent 画布")
+                print("[Qwen 文本编码] 遮罩没有生效：%s —— 本次会按整图重绘处理。"
+                      % reason)
         return positive, negative, latent, restore_info
 
 

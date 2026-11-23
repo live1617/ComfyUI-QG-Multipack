@@ -700,11 +700,16 @@ def build_messages(text: str, from_lang: str, to_lang: str, rule_text: str = "")
     ]
 
 
-def call_api(url: str, key: str, model: str, messages: list) -> str:
+def call_api(url: str, key: str, model: str, messages: list, meta=None) -> str:
     """One chat-completions call, the answer's text back.
 
     Errors carry the vendor's own message where there is one - a 401 from a
     wrong key or a 404 from a wrong url should be named, not disguised.
+
+    ``meta`` 是可选出参：塞入 ``{"truncated": bool, "finish_reason": str}``，
+    调用方据此决定要不要缓存（被截断的译文不能进缓存，否则重跑拿到同一份
+    坏结果）。之前这里既不传 ``max_tokens`` 也不看 ``finish_reason``，长段落
+    译文后半句消失且被当成功缓存。
     """
     body = {
         "model": model,
@@ -739,9 +744,17 @@ def call_api(url: str, key: str, model: str, messages: list) -> str:
             f"QG Translate: the API answered HTTP {error.code}. {detail}"
         ) from error
     try:
-        content = payload["choices"][0]["message"]["content"]
+        choice = payload["choices"][0]
+        content = choice["message"]["content"]
     except (KeyError, IndexError, TypeError) as error:
         raise RuntimeError(BAD_REPLY) from error
+    finish = str(choice.get("finish_reason") or "")
+    if isinstance(meta, dict):
+        meta["finish_reason"] = finish
+        meta["truncated"] = finish == "length"
+    if finish == "length":
+        print("[QG Translate] 译文被服务端按长度上限截断了（model=%s）—— 后半段可能"
+              "缺失，长段落建议拆成几次翻；这份结果不会进缓存。" % model)
     # 原样返回：清洗交给 clean_answer 统一做（它要先剥围栏再剥引号，
     # 这里先剥一层反引号会让围栏正则永远匹配不上）。
     return str(content)
@@ -787,9 +800,13 @@ def translate(
     if hit is not None:
         return hit
 
+    meta = {}
     answer = clean_answer(call_api(
         url, key, used_model,
-        build_messages(text, from_lang, to_lang, rule_text)))
+        build_messages(text, from_lang, to_lang, rule_text), meta=meta))
+    if meta.get("truncated"):
+        # 截断的译文可能是半句，缓存它等于把坏结果钉死。
+        return answer
     if len(_CACHE) >= CACHE_MAX:
         _CACHE.clear()
     _CACHE[cache_key] = answer

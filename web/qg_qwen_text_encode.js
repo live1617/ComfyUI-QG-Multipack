@@ -165,27 +165,33 @@ app.registerExtension({
     async beforeRegisterNodeDef(nodeType, nodeData) {
         if (nodeData?.name !== NODE_NAME) return;
 
+        // 包装生命周期钩子必须把原实现的返回值传下去：ComfyUI 的其它扩展会
+        // 把链式 hook 的返回值当成「是否继续 / 已处理」的依据，丢掉会让它们
+        // 静默失效（本包开发规范已把这条列为硬约定）。
         const originalCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
-            originalCreated?.apply(this, arguments);
+            const result = originalCreated?.apply(this, arguments);
             labelReferenceSize(this);
             hookSerialize(this);
             scheduleSync(this);
+            return result;
         };
 
         const originalConnections = nodeType.prototype.onConnectionsChange;
         nodeType.prototype.onConnectionsChange = function () {
-            originalConnections?.apply(this, arguments);
+            const result = originalConnections?.apply(this, arguments);
             labelReferenceSize(this);
             scheduleSync(this);
+            return result;
         };
 
         const originalConfigure = nodeType.prototype.onConfigure;
         nodeType.prototype.onConfigure = function () {
-            originalConfigure?.apply(this, arguments);
+            const result = originalConfigure?.apply(this, arguments);
             labelReferenceSize(this);
             scheduleSync(this);
             scheduleRestore(this);
+            return result;
         };
     },
 });

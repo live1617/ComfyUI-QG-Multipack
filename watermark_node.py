@@ -104,6 +104,12 @@ class QGWatermark:
                   "把 ttf/ttc 丢进 ComfyUI/models/fonts/ 再选一次")
 
         batch = image if image.dim() == 4 else image.unsqueeze(0)
+        if int(batch.shape[0]) == 0:
+            # 空 batch 是上游的常规输出（过滤后为空）。原实现在循环外取
+            # outs[0]，0 帧时直接 IndexError，与本包其它图像节点的约定相反。
+            return (torch.empty(
+                (0, int(batch.shape[1]), int(batch.shape[2]), int(batch.shape[3])),
+                dtype=torch.float32),)
         outs = []
         for index in range(int(batch.shape[0])):
             pil = _to_pil(batch[index].cpu().numpy())
@@ -111,7 +117,6 @@ class QGWatermark:
                                      int(opacity), int(spacing), int(angle))
             outs.append(np.asarray(marked).astype(np.float32) / 255.0)
 
-        first = outs[0]
         print("[Watermark] %d 帧 | 文字 %r | 字体 %s | %d px | 角度 %d° | 不透明度 %d%%"
               % (len(outs), str(text).splitlines()[:1][0] if str(text) else "",
                  used, int(size), int(angle), int(opacity)))

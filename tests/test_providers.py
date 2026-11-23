@@ -118,8 +118,12 @@ mod.save_config({"providers": [
 seen = {}
 
 
-def fake_call(url, key, model, messages):
+def fake_call(url, key, model, messages, meta=None):
+    # translate() 会传 meta 用来判断译文是否被截断（截断结果不进缓存），
+    # 替身必须接受这个形参，否则契约一改测试就假失败。
     seen.update({"url": url, "key": key, "model": model})
+    if isinstance(meta, dict):
+        meta["truncated"] = False
     return "translated"
 
 

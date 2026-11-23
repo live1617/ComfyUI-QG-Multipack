@@ -371,6 +371,12 @@ class QGRemoveBackgroundV2:
         detail_range = max(1, int(detail_erode)) + max(1, int(detail_dilate))
         out_images, out_masks = [], []
 
+        # 上游偶尔给 3 维 [H,W,C]（没有 batch 维）。直接 for 会按行迭代，
+        # 静默产出 H 张 2 像素高的图并「成功」返回。本包其它节点都补维。
+        # 用 ndim 而不是 dim()：单元测试会直接喂 numpy 数组。
+        if int(getattr(image, "ndim", 4)) == 3:
+            image = image.unsqueeze(0) if hasattr(image, "unsqueeze") else image[None, ...]
+
         for frame in image:
             rgb = _frame_to_rgb(frame)
             coarse = _BR._runner.predict(rgb, model_name, process_res)

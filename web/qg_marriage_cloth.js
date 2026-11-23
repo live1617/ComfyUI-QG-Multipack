@@ -71,10 +71,21 @@ app.registerExtension({
 
         const origOnCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
-            origOnCreated?.apply(this, arguments);
+            const result = origOnCreated?.apply(this, arguments);
             this.color = COLOR_NODE;
             this.bgcolor = COLOR_NODE_BG;
             buildPanel(this);
+            return result;
+        };
+
+        // buildPanel 是 async，中间 await 过素材清单 —— 它恢复默认尺寸那一步
+        // 一定晚于 configure。没有这个标记的话，宽度小于 320 的工作流一打开
+        // 就被重置成 660×880，用户调好的尺寸直接丢掉。
+        const origOnConfigure = nodeType.prototype.onConfigure;
+        nodeType.prototype.onConfigure = function () {
+            const result = origOnConfigure?.apply(this, arguments);
+            this._qgSizeFromWorkflow = true;
+            return result;
         };
     },
 });
@@ -346,8 +357,13 @@ async function buildPanel(node) {
         applySelection(cur, item ? item.name : "");
     }
 
-    if (!node.size || node.size[0] < 320) {
+    if (!node.size) {
         node.setSize?.([NODE_W, NODE_H]);
+    } else if (node.size[0] < 320) {
+        // 太窄显示不全网格，但要补的只是宽度：来自工作流的节点高度是用户
+        // 亲手拉的，不能被一起重置回 NODE_H。
+        const keepH = node._qgSizeFromWorkflow ? (node.size[1] || NODE_H) : NODE_H;
+        node.setSize?.([NODE_W, keepH]);
     }
     relayout();
 }

@@ -52,7 +52,7 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.22.10"
+__version__ = "2.22.11"
 
 import asyncio
 import time

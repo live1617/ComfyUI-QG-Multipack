@@ -144,7 +144,25 @@ def _text_width(font, text: str) -> int:
 
 def _to_pil(frame: torch.Tensor) -> Image.Image:
     array = (frame.clamp(0.0, 1.0).cpu().numpy() * 255.0).round().astype(np.uint8)
-    return Image.fromarray(array)
+    if array.ndim == 3 and array.shape[2] == 1:
+        array = array[..., 0]
+    if array.ndim == 2:
+        # 灰度：先转 RGB。后面 ImageOps.expand(fill=(0,0,0)) 对 L 模式会抛
+        # TypeError，转成 RGB 之后边框才画得上去。
+        return Image.fromarray(array, "L").convert("RGB")
+    if array.ndim != 3:
+        return Image.fromarray(array).convert("RGB")
+    channels = array.shape[2]
+    if channels == 2:
+        return Image.fromarray(array, "LA").convert("RGB")
+    if channels >= 4:
+        # RGBA：先按 alpha 合成到白底。直接 paste 到 RGB 画布会丢掉 alpha，
+        # 透明区域（RGB 通常是 0）会被印成黑块 —— 抠图节点的输出接进来就中招。
+        rgba = Image.fromarray(array[..., :4], "RGBA")
+        flat = Image.new("RGB", rgba.size, (255, 255, 255))
+        flat.paste(rgba, (0, 0), rgba)
+        return flat
+    return Image.fromarray(array[..., :3], "RGB")
 
 
 def _to_tensor(image: Image.Image) -> torch.Tensor:
@@ -284,12 +302,13 @@ def build_sheet(photo: Image.Image, caption, font_name, font_size,
             photo = photo.resize((inner_w, inner_h), Image.Resampling.LANCZOS)
         plan = plan_for(photo.width + pad, photo.height + pad)
         if plan.total == 0:
+            # 纸太小、边距/边框太大时能走到这里（都是控件的合法值）。原来的
+            # 「please report these numbers」把可调参数的后果说成了内部 bug。
             raise ValueError(
-                "could not fit even after scaling to %dx%d px on a %.1fx%.1f "
-                "cm sheet - please report these numbers, the fit search and "
-                "the layout disagree"
+                "这张照片 %dx%d 像素连一张都放不进 %.1fx%.1f 厘米、%d dpi 的相纸"
+                "（边距 %.2f 厘米）。把相纸调大、dpi 调低，或把边距/边框调小。"
                 % (photo.width + pad, photo.height + pad, paper_w_cm,
-                   paper_h_cm))
+                   paper_h_cm, dpi, margin_cm))
 
     if frame:
         photo = ImageOps.expand(photo, border=frame, fill=(0, 0, 0))
@@ -428,6 +447,12 @@ class QGPhotoSheet:
                 cut_marks, auto_orient, caption, font, font_size,
                 auto_fit=True, photo_dpi=0):
         batch = image if image.dim() == 4 else image.unsqueeze(0)
+        if int(batch.shape[0]) == 0:
+            # 图像空批次按本包约定报中文错误：torch.stack([]) 与 last_plan.cols
+            # 都会抛裸异常，用户看不出是哪个节点、为什么空。
+            raise ValueError(
+                "QG 照片拼版：没有收到任何图像帧（输入 batch 为 0 帧）。"
+                "检查上游是否把照片全部过滤掉了。")
 
         sheets = []
         last_plan = None

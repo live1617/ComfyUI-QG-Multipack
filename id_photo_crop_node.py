@@ -159,7 +159,12 @@ def parse_color(value, source="fill_color"):
             numbers = []
         if numbers:
             if len(numbers) == 1:
-                numbers = numbers * 3
+                # tooltip 明确支持 "0.5" 这种 0~1 写法；当 0~255 灰度取整会得到
+                # 0（纯黑）。只看带小数点的写法，避免把 "1" 误判成归一化。
+                if "." in parts[0] and 0.0 <= numbers[0] <= 1.0:
+                    numbers = [numbers[0] * 255.0] * 3
+                else:
+                    numbers = numbers * 3
             return tuple(max(0, min(255, int(round(n)))) for n in numbers)
 
     try:

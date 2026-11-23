@@ -93,7 +93,24 @@ def output_pixels(preset, unit, custom_w, custom_h, dpi):
             "and the unit (unit %s, %d dpi); a size below %d px cannot be a "
             "photo" % (width_px, height_px, use_unit, use_dpi, MIN_SIDE))
 
-    return min(width_px, MAX_SIDE), min(height_px, MAX_SIDE), use_dpi
+    # 超过上限时按长边**等比**缩。原来宽高各自独立钳到 MAX_SIDE，
+    # 100cm x 50cm @300dpi 会变成 8192x5906（比例 1.39 而不是 2.0），
+    # 成品形变且日志一句话都没有。
+    longest = max(width_px, height_px)
+    if longest > MAX_SIDE:
+        ratio = MAX_SIDE / float(longest)
+        new_w = int(round(width_px * ratio))
+        new_h = int(round(height_px * ratio))
+        if new_w < MIN_SIDE or new_h < MIN_SIDE:
+            raise ValueError(
+                "target size %dx%d px 超过上限 %d，等比缩下来会变成 %dx%d px，"
+                "其中一边低于最小边长 %d —— 请调小尺寸或调整宽高比。"
+                % (width_px, height_px, MAX_SIDE, new_w, new_h, MIN_SIDE))
+        print("[ID Photo] 目标尺寸 %dx%d px 超过上限 %d，已等比缩到 %dx%d（比例不变）"
+              % (width_px, height_px, MAX_SIDE, new_w, new_h))
+        return new_w, new_h, use_dpi
+
+    return width_px, height_px, use_dpi
 
 
 class Frame(NamedTuple):
@@ -122,11 +139,22 @@ def plan_frame(face, out_w, out_h, face_ratio, eye_line, rotate):
     """Build the frame for one face. Pure arithmetic, no pixels touched."""
     if face is None:
         raise ValueError("no face")
+    # 控件是 min=0.15，但连线和 API 能绕过控件下限；0 会让下面直接除零，
+    # 抛出的是看不懂的 ZeroDivisionError。out_w 为 0 同理（130 行拿它做除数）。
+    ratio = float(face_ratio)
+    if not (ratio > 0.0):
+        raise ValueError(
+            "取景比例（face_ratio）是 %r，必须大于 0 —— 常用范围 0.15~0.9。"
+            % (face_ratio,))
+    if not (float(out_w) > 0.0 and float(out_h) > 0.0):
+        raise ValueError(
+            "输出尺寸是 %r x %r，宽高都必须大于 0。接「证件照参数」节点能保证这一点。"
+            % (out_w, out_h))
     if face.width < 8:
         raise ValueError("face box is only %.1f px wide - the picture is too "
                          "small" % face.width)
 
-    width = face.width / float(face_ratio)
+    width = face.width / ratio
     height = width * float(out_h) / float(out_w)
     if width < 16 or height < 16:
         raise ValueError("crop works out to %.0f x %.0f px - check the face "

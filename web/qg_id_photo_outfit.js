@@ -776,13 +776,23 @@ app.registerExtension({
             // ==================== 初始渲染 ====================
 
             if (!restoreState()) {
-                // 全新节点：默认选中第一个分类的第 5 个模板（与孤海一致）
-                const defaultList = allTemplates[defaultCat] || [];
-                if (defaultList.length > 0) {
-                    selectedCategory = defaultCat;
-                    const idx = Math.min(4, defaultList.length - 1);
-                    selectedFilename = defaultList[idx].filename;
-                    selectedPrompt = defaultList[idx].prompt;
+                const existing = String(promptWidget?.value || "").trim();
+                if (existing) {
+                    // 工作流里带着提示词，但记录的模板已经不在了（改名 / 删除 /
+                    // 换了机器）。保留用户这段文本，只把选择状态清空 —— 直接套
+                    // 「第一个分类的第 5 个模板」会把它静默换成另一件衣服的提示词。
+                    selectedCategory = "";
+                    selectedFilename = "";
+                    selectedPrompt = existing;
+                } else {
+                    // 全新节点：默认选中第一个分类的第 5 个模板（与孤海一致）
+                    const defaultList = allTemplates[defaultCat] || [];
+                    if (defaultList.length > 0) {
+                        selectedCategory = defaultCat;
+                        const idx = Math.min(4, defaultList.length - 1);
+                        selectedFilename = defaultList[idx].filename;
+                        selectedPrompt = defaultList[idx].prompt;
+                    }
                 }
                 syncPrompt();
                 saveSelectionState();
