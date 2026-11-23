@@ -158,6 +158,13 @@ class QGIDCardSheet:
         bg_rgb = parse_color(bg_color, "ID Card Sheet bg_color")
 
         batch = front_image if front_image.dim() == 4 else front_image.unsqueeze(0)
+        # 空批次：batch[0] 和 _mask_frame 里的 arr[-1] 都会越界。
+        # 0 帧拼不出卡片，按本包约定报中文错误。
+        if (int(batch.shape[0]) == 0
+                or (front_mask.dim() == 3 and int(front_mask.shape[0]) == 0)):
+            raise ValueError(
+                "没有收到任何图像帧或蒙版帧（输入 batch 为 0 帧），无法拼证件卡。"
+                "检查上游是不是把照片全部过滤掉了。")
         if int(batch.shape[0]) > 1:
             print("[ID Card Sheet] 输入有 %d 帧，只拼第一帧 —— 一张纸只放一组卡片；"
                   "要批量请用「重复」类节点分别排" % int(batch.shape[0]))
@@ -167,6 +174,11 @@ class QGIDCardSheet:
         has_back = back_image is not None and back_mask is not None
         if has_back:
             back_batch = back_image if back_image.dim() == 4 else back_image.unsqueeze(0)
+            if (int(back_batch.shape[0]) == 0
+                    or (back_mask.dim() == 3 and int(back_mask.shape[0]) == 0)):
+                raise ValueError(
+                    "背面图或背面蒙版是 0 帧，无法拼证件卡。"
+                    "检查上游是不是把背面照片全部过滤掉了。")
             images.append(back_batch[0])
             masks.append((_mask_frame(back_mask, 0), "背面"))
         elif (back_image is None) != (back_mask is None):

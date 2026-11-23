@@ -223,6 +223,10 @@ class QGMultiPhotoSheet:
                 spacing_cm, fit_to_paper, bg_color="#FFFFFF",
                 border_px=0, border_color="#000000"):
         batch = image if image.dim() == 4 else image.unsqueeze(0)
+        if int(batch.shape[0]) == 0:
+            raise ValueError(
+                "没有收到任何图像帧（输入 batch 为 0 帧），无法拼版。"
+                "检查上游是不是把照片全部过滤掉了。")
         frames = [_to_pil(batch[i]) for i in range(int(batch.shape[0]))]
         aspect = frames[0].width / float(frames[0].height)
         plan = plan_multi_sheet(len(frames), aspect, paper_w, paper_h, dpi,

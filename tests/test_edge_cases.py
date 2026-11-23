@@ -282,5 +282,38 @@ check("qg_image_batch_builder 上限裁剪前判连接",
           ebb.find("while (inputs.length > MAX_IMAGES)") + 400])
 
 # --------------------------------------------------------------------------
+print("=== H. 第五轮真机 fuzz 补出的空批次 ===")
+_empty_img = torch.zeros(0, 48, 48, 3)
+_empty_mask = torch.zeros(0, 48, 48)
+
+def _rejects_0frame(fn, label):
+    try:
+        fn()
+    except ValueError as error:
+        check(label + " 空批次报中文错误",
+              "0 帧" in str(error), str(error)[:80])
+    except Exception as error:
+        check(label + " 空批次报中文错误", False,
+              type(error).__name__ + ": " + str(error)[:80])
+    else:
+        check(label + " 空批次报中文错误", False, "未抛异常")
+
+_rejects_0frame(
+    lambda: load("qg_dominant_color").QGDominantColor().extract(
+        _empty_img, 8, 15),
+    "QG_DominantColor")
+
+_rejects_0frame(
+    lambda: load("qg_multi_photo_sheet").QGMultiPhotoSheet().execute(
+        _empty_img, 10, 15, 300, 3, 0.3, 0.2, True),
+    "QG_MultiPhotoSheet")
+
+_rejects_0frame(
+    lambda: load("id_card_sheet_node").QGIDCardSheet().execute(
+        _empty_img, _empty_mask, 10, 15, 300, 0.2, 8.5, 5.4, 3,
+        False, 0, 0, 0, False, False, False, "#FFFFFF"),
+    "QG_IDCardSheet")
+
+# --------------------------------------------------------------------------
 print("\n===== 合计 PASS %d / FAIL %d =====" % (ok, fail))
 sys.exit(1 if fail else 0)

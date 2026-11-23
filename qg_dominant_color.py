@@ -141,10 +141,16 @@ class QGDominantColor:
         tolerance = max(TOLERANCE_MIN, min(int(tolerance), TOLERANCE_MAX))
 
         if isinstance(image, torch.Tensor):
-            frame = image.detach().cpu().numpy()[0]
+            array = image.detach().cpu().numpy()
         else:
-            frame = np.asarray(image)[0] if np.asarray(image).ndim == 4 \
-                else np.asarray(image)
+            array = np.asarray(image)
+        # 空批次：0 帧没有「主色」概念，按本包约定给中文错误，
+        # 不静默返回默认色（那会让下游以为真的提取到了）。
+        if array.ndim == 4 and array.shape[0] == 0:
+            raise ValueError(
+                "没有收到任何图像帧（输入 batch 为 0 帧），无法提取主色。"
+                "检查上游是不是把照片全部过滤掉了。")
+        frame = array[0] if array.ndim == 4 else array
         rgb = _frame_to_rgb_uint8(frame)
         rgb = _downsample(rgb, factor)
 
