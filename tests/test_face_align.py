@@ -330,9 +330,12 @@ check("nodeDefs 下拉 options 中文",
 print()
 print("== [9] README 登记 ==")
 readme = read("README.md")
+# 2026-11-25：来源/搬运表已从 README 抽到 SOURCE-NOTES.md（README 只留引用）
+source_notes = read("SOURCE-NOTES.md")
 check("一览表有行", "| `QG_FaceAlign` | QG 面部对齐 |" in readme)
 check("覆盖节点数与包内一致", "覆盖全部 30 个节点" in readme)
-check("原创表有行", "| `QG_FaceAlign` | ✅ 原创（参照规格） |" in readme)
+check("原创表有行", "| `QG_FaceAlign` | ✅ 原创（参照规格） |" in source_notes)
+check("README 引用 SOURCE-NOTES", "SOURCE-NOTES.md" in readme)
 check("概括句与包内一致", "30 个节点里 28 个" in readme)
 check("前端作用表有行", "`web/qg_face_align.js`" in readme)
 check("取色器说明含新控件", "QG_FaceAlign` 的 `custom_fill_color" in readme)

@@ -101,47 +101,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 
 ### 来源：哪些是原创，哪些是搬运
 
-先给结论。**相似度口径**：把两边文件的空行、纯注释行去掉后逐行比对，只统计「连续 2 行以上完全一致」的块，再除以本包该文件的行数——即「有多少比例的代码是成段照抄的」。只零散碰巧命名相同、或调用同样的 LiteGraph 样板接口，不算。对照对象是本机已安装的同类插件（ComfyUI-RMBG / Goohaitools / Xinbao / ComfyUI-Prompt-Assistant / ComfyUI_essentials）；`QG_MaskByName` 的上游包不在本机，用 `THIRD-PARTY-NOTICES.md` 里对上游 v2.14.0 的实测值。
-
-**「原创」只指代码实现，不指功能概念**：本包多个节点的功能规格 / 控件布局 / 交互形态对齐了第三方插件（见下表「上游 / 参考对象」列），代码是读懂行为后自行编写的。换句话说，这些是「参照规格的独立实现（兼容实现）」，不是自主发明的新功能。唯一复制了第三方代码的是 `QG_MaskByName`（MIT，已署名）。
-
-| 节点 | 来源 | 上游 / 参考对象 | 逐行相似度 |
-| --- | --- | --- | --- |
-| `QG_MaskByName` | ⚠️ **部分搬运** | ComfyUI-AusBoss「Mask by Name」，MIT / ausboss | **81%**（主文件 225/279 行；helpers 73%） |
-| `QG_QwenTextEncode` / `QG_QwenRestore` | ⚠️ GPL 逐行移植 | 功能对齐 Goohaitools「Qwen Image 2.1 文本编码 GH」+「Restore Qwen Image 2.1 GH」（GPL-3.0） | **92.26%**（见下方小节说明：该节点深度依赖 comfy 条件注入内部行为，逐行移植是唯一能保证行为可互换的方式；本包与参考同为 GPL-3.0，已按协议要求在 NOTICES 声明来源） |
-| `QG_QwenPromptOptimizer` | ⚠️ GPL 逐行移植 | 功能对齐 Goohaitools「Qwen image 2.1 提示词优化」（`QwenImagePromptOptimizer`，GPL-3.0，后端 + llama-cpp 运行时 + 前端） | runtime **98.94%**（937/947） / 节点 **95.65%**（308/322） / 前端 **84.54%**（257/304）：提示词组装、语言锁、透明背景改写、内存管理与 LLM 采样参数直接决定模型输出与显存行为，逐行移植保证与原版可互换；差异为 qg 前缀标识、路由前缀与中文注释。217 组对照零差异，见下方小节 |
-| `QG_FaceRectify` | ✅ 原创 | 思路参考 Goohaitools「Face Rectify」 | 1% |
-| `QG_BiRefNet` | ✅ 原创 | 行为对齐 1038lab/ComfyUI-RMBG | 1% |
-| `QG_Translate` | ✅ 原创 | — | 1% |
-| `QG_ImageToPrompt` | ✅ 原创 | 控件顺序参考 ComfyUI-Prompt-Assistant | 0% |
-| `QG_PromptOptimize` | ✅ 原创 | 面板形态参考 ComfyUI-Prompt-Assistant「提示词优化」 | 新建，未比对（HTTP 层与反推节点同源） |
-| `QG_PromptTranslate` | ✅ 原创 | — | 0% |
-| `QG_IDPhotoParams` | ✅ 原创 | 参数规格参考 HivisionIDPhotos（Apache-2.0） | 0% |
-| `QG_PortraitMatte` | ✅ 原创 | 美白 LUT 与参数划分参考 HivisionIDPhotos（Apache-2.0） | 0% |
-| `QG_IDPhotoCrop` | ✅ 原创 | 裁剪几何对齐孤海工具箱口径（自实现） | 1% |
-| `QG_PhotoSheet` | ✅ 原创 | 排版几何自实现 | 0% |
-| `QG_MultiPhotoSheet` | ✅ 原创 | 多人各占一格的拼版几何自实现（纯整数规划），与「一张照片复制多份」的排版节点正交 | 0% |
-| `QG_GoogleTranslate` | ⚠️ **MIT 移植** | 思路与实现来自 AlekPet「GoogleTranslateTextNode」（MIT），经自有插件 ComfyUI-QG-tools 中转后移植；免费/官方双通道、分片、双跳重试逻辑逐字保留，V3 节点外壳改写为本包统一的 V1 风格 | **72%**（语言表 106 项与网络层逐字保留；节点外壳与路由新写/改写） |
-| `QG_RemoveBackgroundV2` | ✅ 原创（参照规格） | 功能规格参考 LayerStyle「RmBgUltra V2」；粗分割复用本包 BiRefNet，trimap / ViTMatte 推理 / PyMatting / 引导滤波全部独立实现，未复制上游源码 | 0% |
-| `QG_IDCardSheet` | ⚠️ GPL 参考后重写 | Goohaitools「身份证自动扶正拼版」（GPL-3.0），三处核心算法已替换 | 未逐项统计（结构/命名沿用） |
-| `QG_Watermark` | ✅ 原创 | 斜向水印自实现 | 0% |
-| `QG_FaceAlign` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-面部对齐」（GPL-3.0）；几何与统计自写，人脸检测复用本包 `_face_helpers`（上游只支持 mediapipe），未复制上游源码 | 0% |
-| `QG_IDPhotoOutfit` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照服装发型」（GPL-3.0）；扫描与提示词解析逻辑自写，**内置素材取自孤海公开素材库**（7 分类 200 张，见 THIRD-PARTY-NOTICES），前端界面形态与其一致，未复制上游代码 | 0%（代码）/ 素材 100% 同源 |
-| `QG_MarriageCloth` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-结婚登记照服装」（GPL-3.0）；扫描 / 缩放 / 路径清洗自写，**内置素材取自孤海公开素材库**（81 张，见 THIRD-PARTY-NOTICES），未复制上游代码 | 0%（代码）/ 素材 100% 同源 |
-| `QG_MaskTopExpand` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-头顶遮罩」（GPL-3.0）；矩形计算自写，并修掉上游丢原遮罩、只处理单帧两个问题，未复制上游代码 | 0% |
-| `QG_IDPhotoPrompt` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照简易提示词」（GPL-3.0）；13 维选项中文词条取自公开规格（属数据），组装 / 随机 / 值映射自写，未复制上游代码；修掉上游 `random.seed()` 污染进程全局随机与「简单背景」重复叠加 | 0% |
-| `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
-| `QG_YoloDetectorLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Subpack 的检测加载器；模型扫描、路径解析、软依赖提示、自造类型全自写，只调 ultralytics 的公开 `YOLO(path)` 接口，类型不与 Impact 互通，未复制上游源码 | 0% |
-| `QG_SamModelLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Pack 的 SAM 加载器；权重扫描、类型推断、后端分流（`segment_anything` / `segment_anything_hq`）、设备解析、自造类型全自写，只调它们的公开 `sam_model_registry` / `SamPredictor` 接口，未复制上游源码 | 0% |
-| `QG_SimpleSegDetector` | ✅ 原创（参照规格） | 控件与数据流参考 Impact-Pack「简易 Seg 检测」；出框/逐框 SAM 精修/膨胀/质量过滤/自造 QG_SEGS 容器全部自写，类型不与 Impact 互通，另出原生 MASK，未复制上游源码 | 0% |
-| `QG_MaskToSeg` | ✅ 原创（参照规格） | 控件语义参考 Impact-Pack「MaskToSeg」；连通域提取/合并/填充 BBox/最小尺寸/填充轮廓/自造 QG_SEGS 全部自写，类型不与 Impact 互通，缺 cv2 有纯 numpy 回退，未复制上游源码 | 0% |
-
-一句话概括：**30 个节点里 28 个自行实现或按 GPL 移植并声明，2 个按 MIT 移植**（`QG_MaskByName` 为 MIT 代码的部分改编、`QG_GoogleTranslate` 为 MIT 实现的移植），且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
-
-几个容易误会的点：
-
-- **「参考了某个插件」不等于搬运**。`QG_FaceRectify`、`QG_ImageToPrompt`、`QG_PromptOptimize` 都是「先读懂它怎么做的，再自己写」，所以逐行相似度都在 10% 以下，但做的是同一个功能。README 和文件头都如实写明了参考对象。
-- **`QG_MaskByName` 是本包里唯一需要特别说明的**。它改编自 AusBoss 的 MIT 代码，节点类、`INPUT_TYPES`、`_detect`、`cut_out` 等成段保留；本包新增的是 SAM 3 权重下拉与加载缓存、权重文件头校验、四步遮罩精修、预览保存。许可证允许这么用，但**必须署名**——所以 `THIRD-PARTY-NOTICES.md` 里那份声明不是可选项。
+30 个节点里 28 个自行实现或按 GPL 移植并声明，2 个按 MIT 移植（`QG_MaskByName` 为 MIT 代码的部分改编、`QG_GoogleTranslate` 为 MIT 实现的移植）。逐节点的上游/参考对象、逐行相似度口径与数值、以及几个容易误会的点，见 **[SOURCE-NOTES.md](SOURCE-NOTES.md)**；作者、许可证全文与逐项代码拆分见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
 ### `QG_FaceRectify` 人脸自动矫正
 
@@ -1154,56 +1114,9 @@ HF_ENDPOINT=https://hf-mirror.com
 
 `BiRefNet-HR` / `BiRefNet-HR-matting` / `BiRefNet_lite-2K` 是 2048 输入，比上表还要慢数倍，没逐个计时。日常建议 `BiRefNet_lite-matting`（速度与质量的最佳折中）；要极致发丝用 `BiRefNet-matting`；贴纯色背景要硬边用 `BiRefNet_lite`。同一个模型重复运行时不会重新加载，第二次起省掉加载时间；切换模型会先卸载上一个，不会叠加占用。
 
-## 目录结构
+## 目录结构与汉化词表（开发向）
 
-```
-ComfyUI-QG-Multipack/
-├── __init__.py                 节点注册、翻译服务商接口（/qg_translate/*）
-├── birefnet_node.py            QG_BiRefNet
-├── mask_by_name_node.py        QG_MaskByName（+ mask_by_name_helpers.py）
-├── translate_core.py           翻译核心：服务商预设与多模型、config.json、HTTP、缓存
-├── translate_node.py           QG_Translate（外壳，可单独删除）
-├── prompt_translate_node.py    QG_PromptTranslate（+ 百度翻译通道）
-├── image_to_prompt_node.py     QG_ImageToPrompt（图像反推，复用服务商配置）
-├── prompt_optimize_node.py     QG_PromptOptimize（提示词优化，复用上面那套 HTTP/流式层）
-├── prompt_rules.py             规则库：四组规则的内置默认 + rules.json 读写
-├── qwen_text_encode_node.py    QG_QwenTextEncode + QG_QwenRestore（GPL 移植）
-├── qwen_prompt_optimizer_node.py     QG_QwenPromptOptimizer（GPL 移植，llama-cpp 提示词优化）
-├── qwen_prompt_optimizer_runtime.py  上面的运行时：模型加载/卸载 + 提示词组装（GPL 移植）
-├── qwen_image_system_prompt_t2i.py / _i2i.py / _reverse.py  提示词优化的 system prompt 资产（GPL，原样复制）
-├── face_rectify_node.py        QG_FaceRectify
-├── qg_id_photo_prompt.py       QG_IDPhotoPrompt（13 维提示词，选项表是 JS/词表单一真源）
-├── photo_sheet_mixed_node.py   QG_PhotoSheetMixed（13 版式数据表 + 统一排版引擎）
-├── qg_id_photo_size_picker.py  QG_IDPhotoSizePicker（尺寸选择，preset 可连裁剪/参数节点的下拉）
-├── qg_multi_photo_sheet.py     QG_MultiPhotoSheet（多人各占一格拼到同一张纸，统一格居中裁切）
-├── qg_remove_background_v2.py  QG_RemoveBackgroundV2（BiRefNet 粗分割 + ViTMatte/PyMatting/GuidedFilter 细节精修）
-├── web/                        前端脚本（逐个说明见「前端增强」一章）
-├── workflows/                  两份可直接加载的证件照示例工作流 json
-├── models/id_photo/            内置证件照服装/发型素材（7 分类 200 张 + 提示词 JSON）
-├── models/marriage_cloth/      内置结婚登记照服装素材（81 张）
-├── assets/fonts/               随包开放许可字体：Noto Sans SC (OFL 1.1) + OFL.txt
-├── locales/zh/nodeDefs.json    中文界面文案与 tooltip（ComfyUI 官方前端 i18n 标准）
-├── translations/zh-CN/         交给汉化插件的词表（Nodes/Menus，见「汉化词表」一节）
-├── tests/                      纯函数单测（python -m pytest tests）
-├── shape_predictor_5_face_landmarks.dat  人脸 5 点模型
-├── config.example.json         config.json（在 ComfyUI/user/ComfyUI-QG-Multipack/）的空字段模板
-├── .gitignore                  排除 config.json / rules.json / 运行产物 / 商业字体 fonts/
-├── rules.json                  规则库（运行时生成于 user 目录；插件目录可能残留旧副本）
-└── THIRD-PARTY-NOTICES.md      第三方代码与模型许可
-```
-
-## 汉化词表（两套标准，各自独立）
-
-本包的中文文案有两套词表，对应两个不同生态，**不要合并、也不要互相套用字段**：
-
-| 文件 | 标准 | 谁在读 | 字段口径 |
-|---|---|---|---|
-| `locales/zh/nodeDefs.json` | ComfyUI 官方前端 i18n | ComfyUI 前端自动加载 | 节点 key → `display_name` / `description` / `inputs`({name,tooltip}) / `outputs`（**输出索引字符串** "0"/"1"…） |
-| `translations/zh-CN/Nodes/`、`Menus/ComfyUI-QG-Multipack.json` | ComfyUI-Global-Translation（原 AIGODLIKE 系） | 汉化插件按需加载 | 节点 key → `title` / `description` / `inputs` / `widgets` / `outputs`（**槽名/控件参数名**）；Menus 是全局下拉值映射 |
-
-- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 30 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
-- **规范约定**：`widgets` 键用源码里的真实参数名，不用界面显示名；**不写恒等翻译**（键==值的条目无意义，还会污染插件的「已翻译文本」判定）；`ui` 字段用于翻译节点内嵌 DOM 面板的英文原文——本包面板文案本身就是中文，暂不需要 `ui` 词条。分类也不用 `Categories` 词表（本包 category 已是「QG 工具」）。
-- 新增/改名节点、增删控件或输出槽时，两套词表都要同步；`tests/test_i18n_standard.py` 会校验节点数、需汉化项覆盖、无恒等翻译、description 齐全。
+插件文件树逐文件说明、以及两套汉化词表（ComfyUI 官方前端 i18n / Global-Translation）的字段口径与同步约定，见 **[DEVELOPMENT.md](DEVELOPMENT.md)**。
 
 ## 已知限制
 
