@@ -150,6 +150,10 @@ class QGMaskTopExpand:
                 center_mode="top_center", feather=0, keep_original=True):
         batch, was_2d = _as_bhw(mask)
         device = mask.device
+        if int(batch.shape[0]) == 0:
+            # 空批次（上游 QG 简易 Seg 检测没检出目标时输出 [0,H,W]）按本包
+            # 约定原样返回：np.stack([]) 会抛 ValueError，把整条队列炸掉。
+            return (mask,)
         frames = []
         for i in range(batch.shape[0]):
             plane = batch[i].detach().cpu().numpy().astype(np.float32, copy=False)

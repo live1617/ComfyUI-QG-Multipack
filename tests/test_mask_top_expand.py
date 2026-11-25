@@ -172,6 +172,12 @@ res3d = node.execute(single3d, 30, 20, "top_center", 0, True)[0]
 check("形状：三维输入返回三维", tuple(res3d.shape) == (1, 100, 200),
       tuple(res3d.shape))
 
+# 空批次 [0,H,W]：上游 Seg 检测没检出目标时的常态输入，应原样返回不崩
+empty_batch = torch.zeros((0, 100, 200), dtype=torch.float32)
+res_empty = node.execute(empty_batch, 15, 10, "top_center", 0, True)[0]
+check("批次：空批次 [0,H,W] 原样返回不崩",
+      tuple(res_empty.shape) == (0, 100, 200), tuple(res_empty.shape))
+
 # ---------- 8. 不改输入 / 保持 dtype ----------
 before = batch.clone()
 node.execute(batch, 15, 10, "top_center", 0, True)
