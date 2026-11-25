@@ -60,6 +60,21 @@ const LANG_CAP = {
   Russian: "俄文",
 };
 
+// QG_GoogleTranslate 的语言码（BCP-47，存档值是码本身）。只映射常用的，
+// 其余码按「未收录的值原样显示」约定直接显示码。
+const GOOGLE_LANG = {
+  "zh-cn": "中文（简体）",
+  "zh-tw": "中文（繁体）",
+  en: "英文",
+  ja: "日文",
+  ko: "韩文",
+  fr: "法文",
+  de: "德文",
+  es: "西班牙文",
+  ru: "俄文",
+};
+const GOOGLE_LANG_FROM = { auto: "自动", ...GOOGLE_LANG };
+
 const IF_FAIL = {
   "output original": "输出原文",
   "stop the run": "终止运行",
@@ -99,6 +114,10 @@ const LABELS = {
   },
   QG_PromptOptimize: {
     llm_service: PROVIDER,
+  },
+  QG_GoogleTranslate: {
+    from_translate: GOOGLE_LANG_FROM,
+    to_translate: GOOGLE_LANG,
   },
   QG_FaceRectify: {
     enable_fix: {

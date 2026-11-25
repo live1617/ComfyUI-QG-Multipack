@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.22.13** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.23.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -48,6 +48,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_SimpleSegDetector` | QG 简易 Seg 检测 | 检测器出框 → 可选 SAM 逐框精修 → 膨胀/质量过滤，自造类型 QG_SEGS + 原生 MASK 双输出 | `segs` / `MASK` |
 | `QG_MaskToSeg` | QG 遮罩到 Seg | 把 MASK 按连通域逐段转成自造 QG_SEGS：合并/裁剪系数/填充 BBox/最小尺寸/填充轮廓五个控件；批次先取最大值合成再分段 | `segs` |
 | `QG_ImageMaskPreview` | QG 图像与遮罩预览 | 在图像上叠加遮罩区域颜色与序号：每帧遮罩分别上色、中心画序号（可跟随遮罩缩放或固定大小）；颜色走本包色块，不依赖孤海 GHCOLOR | `image` |
+| `QG_GoogleTranslate` | QG 谷歌翻译 | Google 免费通道文本翻译，零额外依赖、不需要 API Key（设 `GOOGLE_TRANSLATION_API_KEY` 环境变量自动改走官方接口）；节点上带「手动翻译」按钮，失败时原文通过 | `translated_text` |
 
 ## 示例工作流
 
@@ -65,7 +66,7 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后四个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 38 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点）。
+本节覆盖全部 39 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点，以及自 QG-tools 中转移植的谷歌翻译）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -128,6 +129,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_PhotoSheet` | ✅ 原创 | 排版几何自实现 | 0% |
 | `QG_MultiPhotoSheet` | ✅ 原创 | 多人各占一格的拼版几何自实现（纯整数规划），与「一张照片复制多份」的排版节点正交 | 0% |
 | `QG_ImageBatchBuilder` | ✅ 原创 | 多输入槽汇总成 batch 的收集/对齐逻辑自实现，独立于核心 `ImageBatch` | 0% |
+| `QG_GoogleTranslate` | ⚠️ **MIT 移植** | 思路与实现来自 AlekPet「GoogleTranslateTextNode」（MIT），经自有插件 ComfyUI-QG-tools 中转后移植；免费/官方双通道、分片、双跳重试逻辑逐字保留，V3 节点外壳改写为本包统一的 V1 风格 | **72%**（语言表 106 项与网络层逐字保留；节点外壳与路由新写/改写） |
 | `QG_RemoveBackgroundV2` | ✅ 原创（参照规格） | 功能规格参考 LayerStyle「RmBgUltra V2」；粗分割复用本包 BiRefNet，trimap / ViTMatte 推理 / PyMatting / 引导滤波全部独立实现，未复制上游源码 | 0% |
 | `QG_MaskOrderFilter` | ✅ 原创（参照规格） | 控件与行为参考 Goohaitools「Seg次序过滤」（GPL-3.0）；排序/分组/索引筛选/IoU 去重/合并全部独立实现，吃原生 MASK 或本包 QG_SEGS，出本包自造 QG_SEGS + 原生 MASK，不碰 Impact-Pack 的 SEGS，未复制上游源码 | 0% |
 | `QG_IDCardSheet` | ⚠️ GPL 参考后重写 | Goohaitools「身份证自动扶正拼版」（GPL-3.0），三处核心算法已替换 | 未逐项统计（结构/命名沿用） |
@@ -150,7 +152,7 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_MaskToSeg` | ✅ 原创（参照规格） | 控件语义参考 Impact-Pack「MaskToSeg」；连通域提取/合并/填充 BBox/最小尺寸/填充轮廓/自造 QG_SEGS 全部自写，类型不与 Impact 互通，缺 cv2 有纯 numpy 回退，未复制上游源码 | 0% |
 | `QG_ImageMaskPreview` | ✅ 原创（参照规格） | 控件与用途参考 Goohaitools「图像与遮罩预览」（GPL-3.0）；上色/序号/bbox/字体发现全部自写，颜色用本包 STRING 色块而非 GHCOLOR，字体走本包 OFL/models/fonts/系统字体发现，未复制上游源码 | 0% |
 
-一句话概括：**38 个节点里 37 个自行实现或按 GPL 移植并声明，1 个（`QG_MaskByName`）是 MIT 代码的部分改编**，且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**39 个节点里 37 个自行实现或按 GPL 移植并声明，2 个按 MIT 移植**（`QG_MaskByName` 为 MIT 代码的部分改编、`QG_GoogleTranslate` 为 MIT 实现的移植），且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -456,6 +458,36 @@ MASK(可选) ──▶ mask       latent_width ──▶│                     
 **和 `QG_PromptTranslate` 的分工**：这个是通用翻译器，什么都能翻；那个是固定链路快捷版。翻译核心（服务商预设、`config.json` 读写、HTTP、缓存）共用 `translate_core.py`。
 
 **注意**：和反推节点一样**不要挑视觉模型**。`glm-4.6v-flash` 这类高峰期限流 429，纯翻译用 `glm-4-flash` 或 `glm-4.5`。
+
+### `QG_GoogleTranslate` 谷歌翻译
+
+> **来源：MIT 移植**。思路与实现来自 AlekPet/ComfyUI_Custom_Nodes_AlekPet 的 `GoogleTranslateTextNode`（MIT），经 ComfyUI-QG-tools 中转后移植；免费/官方双通道、按行分片、双跳重试（常规网络栈 → 绕代理直连）逻辑逐字保留，节点外壳从 ComfyUI V3 schema 改写为本包统一的 V1 风格。逐行相似度 72%。
+
+**作用**：Google 免费通道的文本翻译，**零额外依赖**——免费通道走 ComfyUI 核心自带的 `requests`，不需要装任何包、不需要 API Key。
+
+**接线**：
+
+```
+文本来源 ──▶ text   QG_GoogleTranslate   translated_text ──▶ 下游
+```
+
+**控件**：
+
+| 控件 | 默认 | 说明 |
+| --- | --- | --- |
+| `from_translate` | `auto` | 源语言，BCP-47 语言码（`zh-cn` / `en` …），auto 让 Google 自动识别；存档里存的是码，不随界面语言变 |
+| `to_translate` | `en` | 目标语言。默认英文——SAM 3 这类检测模型只认英文 |
+| `manual_translate` | 关 | 开启后排队运行时文本原样通过，用「手动翻译」按钮就地翻译 |
+| `text` | 空 | 多行文本框，可右键转输入口 |
+
+**输出**：`translated_text`（STRING）。
+
+**要点**：
+
+- **双通道自动选择**：设了环境变量 `GOOGLE_TRANSLATION_API_KEY` 就走官方接口（不限量、按纯文本翻译，换行和引号原样保留）；没设走免费通道（Google 可能对部分 IP 段限流 429）。
+- **超长自动分片**：超过免费端点单次上限（约 4500 字符）按换行切分、句末标点优先断开，译完按 `\n` 拼回。
+- **双跳重试**：每次调用先走常规网络栈（保留你配置的代理），失败自动绕代理直连重试；两跳都失败**原样返回原文**，流水线不断。
+- **手动翻译按钮**：请求走本包专属路由 `/qgmp/translate/manual`，与 QG-tools 的同名功能互不干扰（两个插件同时安装时各调各的）。
 
 ## 提示词翻译（`QG_PromptTranslate`）
 

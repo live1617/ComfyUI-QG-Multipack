@@ -52,7 +52,7 @@
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.22.13"
+__version__ = "2.23.0"
 
 import asyncio
 import time
@@ -90,6 +90,20 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] 提示词翻译节点导入失败（上面的 traceback 是原因），"
+          "其余节点不受影响。")
+
+# 谷歌翻译：免费通道零依赖（AlekPet 思路，经 QG-tools 中转移植），单独 try/except。
+# 手动翻译路由 /qgmp/translate/manual 也在该模块导入时挂载。
+try:
+    from . import qg_google_translate as _google_translate
+
+    NODE_CLASS_MAPPINGS.update(_google_translate.NODE_CLASS_MAPPINGS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_google_translate.NODE_DISPLAY_NAME_MAPPINGS)
+except Exception:
+    import traceback
+
+    traceback.print_exc()
+    print("[QG-Multipack] 谷歌翻译节点导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 # 图像反推提示词：同样复用 translate_core 的服务商配置，单独 try/except。

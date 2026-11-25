@@ -201,7 +201,7 @@ with open(os.path.join(PKG, "locales/zh/nodeDefs.json"), encoding="utf-8") as fh
 with open(os.path.join(PKG, "translations/zh-CN/Nodes/ComfyUI-QG-Multipack.json"),
           encoding="utf-8") as fh:
     tr = json.load(fh)
-check("两套词表 38 节点", len(nd) == len(tr) == 38, "%d/%d" % (len(nd), len(tr)))
+check("两套词表 39 节点", len(nd) == len(tr) == 39, "%d/%d" % (len(nd), len(tr)))
 key = "QG_ImageMaskPreview"
 check("nodeDefs 有新节点", key in nd and nd[key]["display_name"] == "QG 图像与遮罩预览")
 check("nodeDefs 10 输入全覆盖",
@@ -217,7 +217,7 @@ check("translations 无恒等翻译",
 rd = open(os.path.join(PKG, "README.md"), encoding="utf-8").read()
 check("README 节点表登记", "`QG_ImageMaskPreview`" in rd)
 check("README 专章登记", "### `QG_ImageMaskPreview` 图像与遮罩预览" in rd)
-check("README 节点数 38", "本节覆盖全部 38 个节点" in rd)
+check("README 节点数 39", "本节覆盖全部 39 个节点" in rd)
 js = open(os.path.join(PKG, "web/qg_color_picker.js"), encoding="utf-8").read()
 check("色块三处登记",
       "QG_ImageMaskPreview: [\"mask_color\", \"index_color\"]" in js

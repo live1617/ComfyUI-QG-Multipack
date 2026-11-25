@@ -1,5 +1,37 @@
 # Third-party notices
 
+## AlekPet/ComfyUI_Custom_Nodes_AlekPet — GoogleTranslateTextNode (ported via ComfyUI-QG-tools)
+
+This pack's `QG_GoogleTranslate` node (`qg_google_translate.py` +
+`web/qg_google_translate.js`) is a **ported** version of AlekPet's
+`GoogleTranslateTextNode` (MIT License). The code reached this pack through
+`ComfyUI-QG-tools` — the user's own plugin, which had already localized and
+reworked the upstream node on 2026-10-24; this pack ported it again on
+2026-11-25.
+
+Measured with this pack's line-similarity metric (non-empty, non-comment
+lines, blocks of 2+ identical lines / this pack's line count): **72%** of
+`qg_google_translate.py` (267/369 lines).
+
+Kept, verbatim or near-verbatim: the embedded `LANGUAGES` table (106 entries —
+deliberately one fewer than `googletrans`, see the compliance note in the
+source), `normalize_text`, `split_chunks`, `_split_line`, `_free_translate`,
+`_key_translate`, `_translate_chunk`, `translate`, the dual-backend
+(auto-select free endpoint vs. official API via `GOOGLE_TRANSLATION_API_KEY`),
+the two-path retry (normal network stack, then a direct no-proxy session), and
+the pass-through-original-text-on-failure behaviour.
+
+Written or rewritten for this pack: the node shell converted from the ComfyUI
+V3 `io.Schema` API to this pack's uniform V1 style (`INPUT_TYPES` /
+`RETURN_TYPES` / Chinese tooltips), the manual-translate route moved to this
+pack's own `/qgmp/translate/manual` path (the QG-tools original stays on
+`/qg/translate/manual`; both plugins can coexist), the inlined
+`_safe_route_error` path-scrubbing helper, and the front-end button code
+re-targeted to the new route and this pack's toast helper.
+
+Upstream: https://github.com/AlekPet/ComfyUI_Custom_Nodes_AlekPet (MIT).
+The MIT license text applies to the ported portions; see LICENSE in this pack.
+
 ## ComfyUI-AusBoss — Mask by Name (partly adapted)
 
 This pack's `QG_MaskByName` node is **partly adapted** from AusBoss's "Mask by
