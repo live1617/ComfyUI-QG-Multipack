@@ -101,21 +101,22 @@ shell = types.ModuleType("qg_pack_p2")
 shell.__path__ = [PKG]
 sys.modules["qg_pack_p2"] = shell
 
-# 27 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
-# 所以共 27 个后端注册 key）。
+# 22 个后端注册节点所在的模块（qwen_text_encode 一个模块注册两个 key，
+# 所以共 23 个后端注册 key）。
+# 2026-11-25：9 个节点（颜色五件套 / 图像批次组合 / 图像合成 / 遮罩次序过滤 /
+# 图像与遮罩预览）已迁去 ComfyUI-QG-tools，从本清单移除。
 MODULES = [
     "translate_node", "prompt_translate_node",
     "image_to_prompt_node", "prompt_optimize_node",
     "mask_by_name_node", "face_rectify_node",
     "birefnet_node", "qwen_text_encode_node",
-    "qwen_prompt_optimizer_node", "qg_dual_color_picker", "qg_color_convert",
-    "qg_custom_color", "qg_dominant_color", "face_align_node",
+    "qwen_prompt_optimizer_node", "face_align_node",
     "qg_id_photo_outfit", "qg_marriage_cloth", "mask_top_expand_node",
-    "qg_id_photo_prompt", "photo_sheet_mixed_node", "qg_image_composite",
-    "qg_id_photo_size_picker", "qg_color_picker", "qg_multi_photo_sheet",
-    "qg_image_batch_builder", "qg_remove_background_v2", "qg_mask_order_filter",
+    "qg_id_photo_prompt", "photo_sheet_mixed_node",
+    "qg_id_photo_size_picker", "qg_multi_photo_sheet",
+    "qg_remove_background_v2",
     "qg_yolo_detector_loader", "qg_sam_model_loader", "qg_simple_seg_detector",
-    "qg_mask_to_seg", "qg_image_mask_preview",
+    "qg_mask_to_seg",
 ]
 
 # 此前审查点名「完全没有节点级测试」的模块，本文件对它们做真调用。
@@ -123,8 +124,7 @@ RUNTIME_MODULES = [
     "face_rectify_node", "birefnet_node",
     "prompt_translate_node", "translate_node", "mask_by_name_node",
     "qwen_prompt_optimizer_node", "qwen_text_encode_node",
-    "qg_dual_color_picker", "qg_color_convert", "qg_custom_color",
-    "qg_dominant_color", "face_align_node", "qg_id_photo_outfit",
+    "face_align_node", "qg_id_photo_outfit",
     "qg_marriage_cloth", "mask_top_expand_node",
     "qg_id_photo_prompt", "photo_sheet_mixed_node",
 ]
@@ -156,9 +156,9 @@ def safe(name, fn, *args, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# 一、静态契约：31 个后端模块 / 32 个注册 key
+# 一、静态契约：22 个后端模块 / 23 个注册 key
 # ---------------------------------------------------------------------------
-print("== 一、静态契约（31 个模块 / 32 个 key） ==")
+print("== 一、静态契约（22 个模块 / 23 个 key） ==")
 
 all_keys = []
 class_info = {}
@@ -181,7 +181,7 @@ for module_name in MODULES:
         all_keys.append(key)
         class_info[key] = (module_name, path, cls, tree)
 
-check("后端注册 32 个 key", len(all_keys) == 32, "实际 %d" % len(all_keys))
+check("后端注册 23 个 key", len(all_keys) == 23, "实际 %d" % len(all_keys))
 check("后端 key 无重复", len(all_keys) == len(set(all_keys)))
 check("后端 key 全部 QG_ 前缀",
       all(k.startswith("QG_") for k in all_keys))
@@ -238,7 +238,7 @@ for key, (module_name, path, cls_name, tree) in sorted(class_info.items()):
           isinstance(func, str) and func in methods, str(func))
     check("%s CATEGORY=QG 工具" % key, cat == "QG 工具", str(cat))
 
-check("32 个节点全部纳入检查", len(all_keys) == 32)
+check("23 个节点全部纳入检查", len(all_keys) == 23)
 
 # ---------------------------------------------------------------------------
 # 二、运行时：此前无节点级测试的模块

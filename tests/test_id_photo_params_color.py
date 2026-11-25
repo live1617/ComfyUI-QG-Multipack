@@ -117,7 +117,7 @@ def main():
           and "<span class=\"qgcp-title\">描边颜色</span>" not in js)
     check("applyColor 调用了联动", "applyLinkedCombo(node, widget)" in js)
 
-    print("\n[3b] 全包取色器覆盖（13 节点 / 17 控件）")
+    print("\n[3b] 全包取色器覆盖（9 节点 / 10 控件）")
     # 从 COLOR_WIDGETS 字面量里解析出注册项，与预期清单逐一核对。
     block = js.split("const COLOR_WIDGETS = {", 1)[1].split("};", 1)[0]
     import re as _re
@@ -125,8 +125,6 @@ def main():
     got = {k: _re.findall(r'"([^"]+)"', v) for k, v in registered}
     expect = {
         "QG_BiRefNet": ["background_color"],
-        "QG_DualColorPicker": ["primary_color", "secondary_color"],
-        "QG_CustomColor": ["color1", "color2"],
         "QG_FaceAlign": ["custom_fill_color"],
         "QG_IDPhotoParams": ["bg_custom"],
         "QG_IDPhotoCrop": ["fill_color"],
@@ -134,13 +132,11 @@ def main():
         "QG_IDCardSheet": ["bg_color"],
         "QG_MarriageCloth": ["pad_color"],
         "QG_Watermark": ["color"],
-        "QG_ColorPicker": ["color"],
         "QG_MultiPhotoSheet": ["bg_color", "border_color"],
-        "QG_ImageMaskPreview": ["mask_color", "index_color"],
     }
-    check("取色器注册 13 个节点", len(got) == 13, str(sorted(got)))
+    check("取色器注册 9 个节点", len(got) == 9, str(sorted(got)))
     check("取色器注册清单与预期完全一致", got == expect, str(got))
-    check("注册 17 个颜色控件", sum(len(v) for v in got.values()) == 17)
+    check("注册 10 个颜色控件", sum(len(v) for v in got.values()) == 10)
     check("每控件都有面板标题",
           all(c in js.split("const PANEL_TITLE = {", 1)[1].split("};", 1)[0]
               for v in expect.values() for c in v))

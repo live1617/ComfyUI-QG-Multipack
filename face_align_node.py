@@ -34,7 +34,28 @@ import torch
 from PIL import Image
 
 from . import _face_helpers
-from .qg_dual_color_picker import normalize_hex
+# 🔴 2026-11-25：qg_dual_color_picker.py 已随颜色节点搬去 ComfyUI-QG-tools。
+# 本节点只借它的 normalize_hex，这里把那一份内联进来，避免为了一个函数
+# 保留整个模块（也避免导入失败把本节点一起带走）。
+_HEX_DIGITS = frozenset("0123456789abcdef")
+
+
+def normalize_hex(value, fallback="#000000"):
+    """把多种写法统一成小写 #rrggbb；非法输入回退 fallback。"""
+    if isinstance(value, (tuple, list)) and len(value) >= 3:
+        try:
+            channels = [max(0, min(255, int(v))) for v in value[:3]]
+            return "#%02x%02x%02x" % tuple(channels)
+        except (TypeError, ValueError):
+            return fallback
+    text = str(value if value is not None else "").strip().lower()
+    if text.startswith("#"):
+        text = text[1:]
+    if len(text) == 3 and all(c in _HEX_DIGITS for c in text):
+        text = "".join(c * 2 for c in text)
+    if len(text) >= 6 and all(c in _HEX_DIGITS for c in text[:6]):
+        return "#" + text[:6]
+    return fallback
 
 # 模块级常量不写类型标注：开发规范 §5（AST 扫描器只收 ast.Assign）
 MODE_CHOICES = ["custom_color", "border_color"]

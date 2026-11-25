@@ -204,8 +204,8 @@ print("== 十、词表与文档登记 ==")
 nd = json.load(open(os.path.join(PKG, "locales/zh/nodeDefs.json"), encoding="utf-8"))
 tr = json.load(open(os.path.join(PKG, "translations/zh-CN/Nodes/ComfyUI-QG-Multipack.json"),
                     encoding="utf-8"))
-check("nodeDefs 39 节点", len(nd) == 39, str(len(nd)))
-check("translations 39 节点", len(tr) == 39, str(len(tr)))
+check("nodeDefs 30 节点", len(nd) == 30, str(len(nd)))
+check("translations 30 节点", len(tr) == 30, str(len(tr)))
 check("两套都登记 QG_MaskToSeg", "QG_MaskToSeg" in nd and "QG_MaskToSeg" in tr)
 e = nd["QG_MaskToSeg"]
 check("nodeDefs 有 display_name", e.get("display_name") == "QG 遮罩到 Seg")
@@ -219,7 +219,7 @@ check("translations 无恒等翻译",
 readme = open(os.path.join(PKG, "README.md"), encoding="utf-8").read()
 check("README 节点表登记", "| `QG_MaskToSeg` | QG 遮罩到 Seg |" in readme)
 check("README 专章", "### `QG_MaskToSeg` 遮罩到 Seg" in readme)
-check("README 节点数 39", "本节覆盖全部 39 个节点" in readme)
+check("README 节点数 30", "本节覆盖全部 30 个节点" in readme)
 init_src = open(os.path.join(PKG, "__init__.py"), encoding="utf-8").read()
 check("__init__ 注册新节点", "from . import qg_mask_to_seg as _mask_to_seg" in init_src)
 

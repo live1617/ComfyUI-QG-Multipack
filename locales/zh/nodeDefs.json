@@ -1,2195 +1,1775 @@
 {
- "QG_Translate": {
-  "display_name": "LLM 翻译",
-  "description": "调用大模型 API 做翻译，支持 DeepSeek、Kimi、通义千问、智谱 GLM、SiliconFlow、OpenRouter、本地 Ollama 等所有 OpenAI 兼容接口。服务商（地址 / 模型 / Key）统一在 设置 → QG 工具 里配置，可以存多条，节点上只选名字；Key 存在本机 ComfyUI/user 目录，插件目录和工作流都不含密钥。翻译失败时默认把原文传下去不挡生图（可改为报错终止）。同一句话有缓存，重复运行不重复扣费。英文为默认目标语言，因为 SAM 3 等检测模型只认英文。",
-  "inputs": {
-   "text": {
-    "name": "文本",
-    "tooltip": "要翻译的文字。直接在这里输入，或把上游文本接到这个口上（右键字段可转换为输入口）。"
-   },
-   "provider": {
-    "name": "服务商",
-    "tooltip": "调用哪一条服务商。列表 = 内置厂商 + 你在 设置 → QG 工具 里添加的条目；只写服务商名就用它的默认模型，写成「服务商/模型」可以指名某个模型。地址、模型、Key 都跟着设置面板那条配置走。",
-    "options": {
-     "DeepSeek": "DeepSeek",
-     "Moonshot Kimi": "月之暗面 Kimi",
-     "Alibaba Qwen": "阿里通义千问",
-     "Zhipu GLM": "智谱 GLM",
-     "SiliconFlow": "硅基流动",
-     "OpenRouter": "OpenRouter",
-     "Ollama (local)": "Ollama（本地）",
-     "DeepSeek/deepseek-reasoner": "DeepSeek/deepseek-reasoner",
-     "Moonshot Kimi/kimi-k2-turbo-preview": "月之暗面 Kimi/kimi-k2-turbo-preview",
-     "Alibaba Qwen/qwen-max": "阿里通义千问/qwen-max",
-     "Alibaba Qwen/qwen-turbo": "阿里通义千问/qwen-turbo",
-     "Zhipu GLM/glm-4.5": "智谱 GLM/glm-4.5",
-     "SiliconFlow/deepseek-ai/DeepSeek-V3": "硅基流动/deepseek-ai/DeepSeek-V3",
-     "OpenRouter/google/gemini-2.5-flash": "OpenRouter/google/gemini-2.5-flash"
+  "QG_Translate": {
+    "display_name": "LLM 翻译",
+    "description": "调用大模型 API 做翻译，支持 DeepSeek、Kimi、通义千问、智谱 GLM、SiliconFlow、OpenRouter、本地 Ollama 等所有 OpenAI 兼容接口。服务商（地址 / 模型 / Key）统一在 设置 → QG 工具 里配置，可以存多条，节点上只选名字；Key 存在本机 ComfyUI/user 目录，插件目录和工作流都不含密钥。翻译失败时默认把原文传下去不挡生图（可改为报错终止）。同一句话有缓存，重复运行不重复扣费。英文为默认目标语言，因为 SAM 3 等检测模型只认英文。",
+    "inputs": {
+      "text": {
+        "name": "文本",
+        "tooltip": "要翻译的文字。直接在这里输入，或把上游文本接到这个口上（右键字段可转换为输入口）。"
+      },
+      "provider": {
+        "name": "服务商",
+        "tooltip": "调用哪一条服务商。列表 = 内置厂商 + 你在 设置 → QG 工具 里添加的条目；只写服务商名就用它的默认模型，写成「服务商/模型」可以指名某个模型。地址、模型、Key 都跟着设置面板那条配置走。",
+        "options": {
+          "DeepSeek": "DeepSeek",
+          "Moonshot Kimi": "月之暗面 Kimi",
+          "Alibaba Qwen": "阿里通义千问",
+          "Zhipu GLM": "智谱 GLM",
+          "SiliconFlow": "硅基流动",
+          "OpenRouter": "OpenRouter",
+          "Ollama (local)": "Ollama（本地）",
+          "DeepSeek/deepseek-reasoner": "DeepSeek/deepseek-reasoner",
+          "Moonshot Kimi/kimi-k2-turbo-preview": "月之暗面 Kimi/kimi-k2-turbo-preview",
+          "Alibaba Qwen/qwen-max": "阿里通义千问/qwen-max",
+          "Alibaba Qwen/qwen-turbo": "阿里通义千问/qwen-turbo",
+          "Zhipu GLM/glm-4.5": "智谱 GLM/glm-4.5",
+          "SiliconFlow/deepseek-ai/DeepSeek-V3": "硅基流动/deepseek-ai/DeepSeek-V3",
+          "OpenRouter/google/gemini-2.5-flash": "OpenRouter/google/gemini-2.5-flash"
+        }
+      },
+      "to_lang": {
+        "name": "目标语言",
+        "tooltip": "翻译成什么语言。默认英文——SAM 3 这类检测模型只认英文。",
+        "options": {
+          "auto": "自动",
+          "chinese": "中文",
+          "english": "英文",
+          "japanese": "日文",
+          "korean": "韩文",
+          "french": "法文",
+          "german": "德文",
+          "spanish": "西班牙文",
+          "russian": "俄文"
+        }
+      },
+      "from_lang": {
+        "name": "源语言",
+        "tooltip": "原文是什么语言。auto 让模型自己判断；原文很短且有歧义时建议指定。",
+        "options": {
+          "auto": "自动",
+          "chinese": "中文",
+          "english": "英文",
+          "japanese": "日文",
+          "korean": "韩文",
+          "french": "法文",
+          "german": "德文",
+          "spanish": "西班牙文",
+          "russian": "俄文"
+        }
+      },
+      "api_url": {
+        "name": "接口地址",
+        "tooltip": "服务商接口地址，已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。"
+      },
+      "model": {
+        "name": "模型",
+        "tooltip": "翻译用哪个模型，已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。"
+      },
+      "api_key": {
+        "name": "API 密钥",
+        "tooltip": "已移到系统设置，一般不用填。Key 存在 ComfyUI/user/ComfyUI-QG-Multipack/config.json，插件目录和工作流都不含密钥。这里填的只在本次会话有效，不会写进工作流。"
+      },
+      "if_fail": {
+        "name": "翻译失败时",
+        "tooltip": "API 连不上或拒绝时怎么办。输出原文：继续运行，文字原样传下去。终止运行：工作流在此停止并给出服务商的报错信息。",
+        "options": {
+          "output original": "输出原文",
+          "stop the run": "终止运行"
+        }
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "文本",
+        "tooltip": "翻译后的文字。"
+      }
     }
-   },
-   "to_lang": {
-    "name": "目标语言",
-    "tooltip": "翻译成什么语言。默认英文——SAM 3 这类检测模型只认英文。",
-    "options": {
-     "auto": "自动",
-     "chinese": "中文",
-     "english": "英文",
-     "japanese": "日文",
-     "korean": "韩文",
-     "french": "法文",
-     "german": "德文",
-     "spanish": "西班牙文",
-     "russian": "俄文"
+  },
+  "QG_PromptTranslate": {
+    "display_name": "提示词翻译",
+    "description": "把中文提示词翻成英文（或其它目标语言）后直接喂给文本编码器。原文从左侧输入口进来，节点上不显示文本框——提示词通常由上游节点产生。翻译服务 = 两条百度通道 + 设置面板里配好的全部 OpenAI 兼容服务商：百度只要一对 appid 与密钥（按字符计费，有免费额度）；「百度翻译（大模型）」翻提示词更准，会保持逗号短语结构与括号权重，未开通时自动回落到普通百度通道。源语言自动判断（含中文算中文、纯 ASCII 算英文），目标语言与源语言相同时直接跳过、不发起请求。翻译失败时控制台打一行警告并把原文传下去，不中断工作流。同一段文字有缓存，重复运行不重复扣费。",
+    "inputs": {
+      "source_text": {
+        "name": "原文",
+        "tooltip": "要翻译的提示词，从左侧接进来。为空时原样输出空串，不发起请求。"
+      },
+      "target_language": {
+        "name": "目标语言",
+        "tooltip": "翻成什么语言。默认 English——SAM 3、CLIP 这类编码器只认英文。原文已经是目标语言时直接跳过，不花一次请求。",
+        "options": {
+          "English": "英文",
+          "Chinese": "中文",
+          "Japanese": "日文",
+          "Korean": "韩文",
+          "French": "法文",
+          "German": "德文",
+          "Spanish": "西班牙文",
+          "Russian": "俄文"
+        }
+      },
+      "translate_service": {
+        "name": "翻译服务",
+        "tooltip": "用哪条通道翻译。「百度翻译」填一对 appid 与密钥就能用；「百度翻译（大模型）」会按逗号短语结构翻、保留括号权重与 LoRA 标签，但要在控制台单独开通，没开通时自动回落到普通百度翻译。其余条目是 设置 → QG 工具 里配好的服务商，地址与模型跟着那条配置走。",
+        "options": {
+          "百度翻译": "百度翻译（appid + 密钥，按字符计费）",
+          "百度翻译（大模型）": "百度翻译·大模型（翻提示词更准，需在控制台单独开通，没开通自动回落）",
+          "DeepSeek": "DeepSeek",
+          "Moonshot Kimi": "月之暗面 Kimi",
+          "Alibaba Qwen": "阿里通义千问",
+          "Zhipu GLM": "智谱 GLM",
+          "SiliconFlow": "硅基流动",
+          "OpenRouter": "OpenRouter",
+          "Ollama (local)": "Ollama（本地）",
+          "DeepSeek/deepseek-reasoner": "DeepSeek/deepseek-reasoner",
+          "Moonshot Kimi/kimi-k2-turbo-preview": "月之暗面 Kimi/kimi-k2-turbo-preview",
+          "Alibaba Qwen/qwen-max": "阿里通义千问/qwen-max",
+          "Alibaba Qwen/qwen-turbo": "阿里通义千问/qwen-turbo",
+          "Zhipu GLM/glm-4.5": "智谱 GLM/glm-4.5",
+          "SiliconFlow/deepseek-ai/DeepSeek-V3": "硅基流动/deepseek-ai/DeepSeek-V3",
+          "OpenRouter/google/gemini-2.5-flash": "OpenRouter/google/gemini-2.5-flash"
+        }
+      },
+      "auto_unload": {
+        "name": "自动释放显存",
+        "tooltip": "翻译完立刻把本地 Ollama 的模型请出显存，给后面的采样器腾地方。云端服务商忽略这个开关。"
+      },
+      "seed": {
+        "name": "随机种子",
+        "tooltip": "不影响翻译结果。作用只是让节点重新执行一次（对措辞不满意时换个种子重翻），已有缓存仍会复用，不会重复扣费。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示词输出",
+        "tooltip": "译好的提示词；翻译失败时是原文。"
+      }
     }
-   },
-   "from_lang": {
-    "name": "源语言",
-    "tooltip": "原文是什么语言。auto 让模型自己判断；原文很短且有歧义时建议指定。",
-    "options": {
-     "auto": "自动",
-     "chinese": "中文",
-     "english": "英文",
-     "japanese": "日文",
-     "korean": "韩文",
-     "french": "法文",
-     "german": "德文",
-     "spanish": "西班牙文",
-     "russian": "俄文"
+  },
+  "QG_ImageToPrompt": {
+    "display_name": "图像反推提示词",
+    "description": "给一张图，用视觉模型反推成能复现它的提示词。规则在 设置 → QG 工具 → 提示词规则 里管理（可增删改、也能改默认项），决定输出形态：像素级描述出 200~400 字长段落，Tag 标签流出 30~60 个带权重的逗号标签，自然语言短描述出 60~90 词英文段落（喂 SDXL / Flux），图像编辑指令配合 user prompt 出单条编辑指令，视频动态提示词出首帧描述加运动。视觉服务按「服务商/模型」选，地址与 Key 取自 设置 → QG 工具 → API 服务商，工作流文件里不落密钥；一个服务商可以配多个模型，下拉里会逐个列出来。图片先压到长边 1024 再发，batch 逐帧独立反推、合并文本用 --- 分隔、另一个输出口给逐帧列表。执行时节点下方会实时显示已经收到的文字，不用干等。服务商不认某个参数时自动降级重试，思考链在请求和输出两端各关一次。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要反推的图片。接 batch 时逐帧独立反推，合成文本用 --- 分隔，第二个输出口给出逐帧结果。"
+      },
+      "rule": {
+        "name": "规则预设",
+        "tooltip": "反推规则，来自 设置 → QG 工具 → 提示词规则（规则管理器）：那里能改措辞、加新规则、改默认项，节点下拉会自动跟着变，不用重启。改名不会打断老工作流——旧名会自动记成别名，下游照常命中。不同规则观察的重点和成文格式完全不同：像素级描述出长段落，Tag 标签流出逗号标签，图像编辑指令配合 user prompt 出改动指令。语言：像素级描述、图像编辑指令、视频动态提示词默认中文（跟着 user prompt 走）；Tag 标签流默认英文（SD 生态通用）；自然语言短描述固定英文。",
+        "options": {
+          "像素级描述": "像素级描述——长段落，主体/服装/构图/环境/光线/色彩/风格",
+          "像素级描述（by:阿丹）": "像素级描述（旧名，已改名）——长段落，主体/服装/构图/环境/光线/色彩/风格",
+          "Tag 标签流": "Tag 标签流——30~60 个逗号标签，带 (tag:1.2) 权重，英文",
+          "自然语言短描述": "自然语言短描述——60~90 词英文段落，面向 SDXL / Flux",
+          "图像编辑指令": "图像编辑指令——配合 user prompt 说明要改什么，出一条指令",
+          "视频动态提示词": "视频动态提示词——首帧静态描述 + 运动 / 镜头 / 环境动态"
+        }
+      },
+      "custom_rule": {
+        "name": "自定义规则",
+        "tooltip": "打开后用下面的「自定义规则」整段替换上面的预设规则（不是追加）。适合固定一种输出格式反复使用。"
+      },
+      "custom_rule_content": {
+        "name": "自定义规则内容",
+        "tooltip": "自定义规则内容，只在「自定义规则」打开时生效。写清观察顺序和输出格式，比如「只输出英文标签，逗号分隔，不要句子」。"
+      },
+      "user_prompt": {
+        "name": "附加要求",
+        "tooltip": "附加要求，会拼在规则后面一起发给模型。比如「重点描述服装材质」「这是要换成夜景」。「图像编辑指令」规则靠它说明要改什么。"
+      },
+      "vlm_service": {
+        "name": "视觉服务",
+        "tooltip": "用哪家的视觉模型。列表是「服务商/模型」：地址与 Key 取自 设置 → QG 工具 → API 服务商，节点上只选名字。想用清单外的模型，就在设置面板里加一个服务商条目，填上模型名，它会出现在这里。",
+        "options": {
+          "智谱/glm-4.6v-flash": "智谱 GLM-4.6V-Flash（免费，推荐）",
+          "智谱/glm-4.5v": "智谱 GLM-4.5V",
+          "智谱/glm-4v-flash": "智谱 GLM-4V-Flash（免费）",
+          "智谱/glm-4v-plus": "智谱 GLM-4V-Plus",
+          "通义/qwen3-vl-plus": "通义千问 Qwen3-VL-Plus",
+          "通义/qwen-vl-max-latest": "通义千问 Qwen-VL-Max",
+          "通义/qwen-vl-plus-latest": "通义千问 Qwen-VL-Plus",
+          "通义/qwen2.5-vl-72b-instruct": "通义千问 Qwen2.5-VL-72B",
+          "硅基/Qwen/Qwen2.5-VL-7B-Instruct": "硅基流动 Qwen2.5-VL-7B",
+          "OpenRouter/openai/gpt-4o-mini": "OpenRouter · GPT-4o mini",
+          "OpenRouter/google/gemini-2.5-flash": "OpenRouter · Gemini 2.5 Flash",
+          "Ollama/qwen2.5vl:7b": "本地 Ollama · Qwen2.5-VL 7B",
+          "Ollama/llama3.2-vision:11b": "本地 Ollama · Llama 3.2 Vision 11B",
+          "Ollama/llava:7b": "本地 Ollama · LLaVA 7B"
+        }
+      },
+      "auto_unload": {
+        "name": "自动释放显存",
+        "tooltip": "反推完立刻把本地 Ollama 的视觉模型请出显存，给后面的采样器腾地方。云端服务忽略这个开关。"
+      },
+      "seed": {
+        "name": "随机种子",
+        "tooltip": "不影响确定性，只控制节点要不要重跑。固定时同一张图复用上次结果、不重复扣费；切成 randomize 就每跑一次重新反推，用来换一种措辞。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示词输出",
+        "tooltip": "反推得到的提示词；batch 时是各帧结果用 --- 连接。"
+      },
+      "1": {
+        "name": "提示词列表",
+        "tooltip": "逐帧结果列表；单张时只有一个元素。"
+      }
     }
-   },
-   "api_url": {
-    "name": "接口地址",
-    "tooltip": "服务商接口地址，已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。"
-   },
-   "model": {
-    "name": "模型",
-    "tooltip": "翻译用哪个模型，已移到系统设置，一般不用填。老工作流里如果还留着值，会优先生效。"
-   },
-   "api_key": {
-    "name": "API 密钥",
-    "tooltip": "已移到系统设置，一般不用填。Key 存在 ComfyUI/user/ComfyUI-QG-Multipack/config.json，插件目录和工作流都不含密钥。这里填的只在本次会话有效，不会写进工作流。"
-   },
-   "if_fail": {
-    "name": "翻译失败时",
-    "tooltip": "API 连不上或拒绝时怎么办。输出原文：继续运行，文字原样传下去。终止运行：工作流在此停止并给出服务商的报错信息。",
-    "options": {
-     "output original": "输出原文",
-     "stop the run": "终止运行"
+  },
+  "QG_PromptOptimize": {
+    "display_name": "提示词优化",
+    "description": "一段粗糙的提示词进去，一段能直接出图的出来。规则在 设置 → QG 工具 → 提示词规则 的「提示词优化规则」页管理：扩写-通用在不换题材的前提下补主体、服装、构图、环境、光线、画质；润色-精炼只去重调序、不加新元素；扩写-细节质感专攻材质与光影的微观描写；改写-英文输出逗号短语，喂 SDXL / Flux。原文写进文本框，或者接上游的文本输出（两路会合在一起）；执行时节点下方实时显示模型已经吐出来的字。括号权重 (word:1.2)、[word]、LoRA 标签 <lora:name:0.8> 会原样保留——规则里写明，输出端再兜一层。LLM 服务按「服务商」或「服务商/模型」选，地址与 Key 取自 设置 → QG 工具 → API 服务商，工作流文件里不落密钥。纯文本任务，任何对话模型都能跑；失败直接报错、不原样输出，免得下游以为优化生效了。",
+    "inputs": {
+      "text": {
+        "name": "原文输入",
+        "tooltip": "要优化的提示词，直接写在这里。也可以右键这个输入框转成输入口，接上游的文本；或者用下面的 extra_text 口，两路会合在一起处理。"
+      },
+      "rule": {
+        "name": "规则预设",
+        "tooltip": "优化规则，来自 设置 → QG 工具 → 提示词规则（规则管理器）的「提示词优化规则」页：能改措辞、加新规则、改默认项，节点下拉自动跟着变，不用重启。改名不会打断老工作流——旧名会记成别名，下游照常命中。只列这一组：反推规则写的是「怎么看图」，套到纯文本上会让模型开始描述一段文字「看起来像什么」。",
+        "options": {
+          "扩写-通用": "扩写-通用——补主体/服装/构图/环境/光线/画质，长度 150~300 字",
+          "润色-精炼": "润色-精炼——只去重、修语病、调顺序，长度不超过原文 1.2 倍",
+          "扩写-细节质感": "扩写-细节质感——专攻材质、高光形状、阴影软硬、镜头味",
+          "改写-英文": "改写-英文——逗号短语，供 SDXL / Flux / SD3 使用"
+        }
+      },
+      "custom_rule": {
+        "name": "自定义规则",
+        "tooltip": "打开后用下面的「自定义规则」整段替换上面的预设规则（不是追加）。追加会让两套互相矛盾的格式要求打架。"
+      },
+      "custom_rule_content": {
+        "name": "自定义规则内容",
+        "tooltip": "自定义规则正文，只在「自定义规则」打开时生效。写清任务、要补什么、禁止什么、输出形态——四段缺一段，模型就容易自由发挥。"
+      },
+      "llm_service": {
+        "name": "LLM 服务",
+        "tooltip": "用哪家的哪个模型。列表是「服务商」或「服务商/模型」：地址与 Key 取自 设置 → QG 工具 → API 服务商，节点上只选名字。一个服务商配了多个模型时会逐个列出来。纯文本任务，任何对话模型都能干，不必挑视觉模型。",
+        "options": {
+          "DeepSeek": "DeepSeek · deepseek-chat（默认模型）",
+          "DeepSeek/deepseek-reasoner": "DeepSeek · deepseek-reasoner（推理模型，慢但稳）",
+          "Moonshot Kimi": "月之暗面 Kimi · 默认模型",
+          "Alibaba Qwen": "通义千问 · qwen-plus（默认模型）",
+          "Zhipu GLM": "智谱 GLM-4-Flash（免费，推荐）",
+          "Zhipu GLM/glm-4.5": "智谱 GLM-4.5",
+          "SiliconFlow": "硅基流动 · 默认模型",
+          "OpenRouter": "OpenRouter · GPT-4o mini",
+          "Ollama (local)": "本地 Ollama · qwen2.5:7b",
+          "Moonshot Kimi/kimi-k2-turbo-preview": "月之暗面 Kimi/kimi-k2-turbo-preview",
+          "Alibaba Qwen/qwen-max": "阿里通义千问/qwen-max",
+          "Alibaba Qwen/qwen-turbo": "阿里通义千问/qwen-turbo",
+          "SiliconFlow/deepseek-ai/DeepSeek-V3": "硅基流动/deepseek-ai/DeepSeek-V3",
+          "OpenRouter/google/gemini-2.5-flash": "OpenRouter/google/gemini-2.5-flash"
+        }
+      },
+      "auto_unload": {
+        "name": "自动释放显存",
+        "tooltip": "优化完立刻把本地 Ollama 的模型请出显存，给后面的采样器腾地方。云端服务忽略这个开关。"
+      },
+      "seed": {
+        "name": "随机种子",
+        "tooltip": "不参与推理，只控制节点要不要重跑。固定时同一段原文复用上次结果、不重复扣费；切成 randomize 就每跑一次换一种写法，用来挑一版最喜欢的。"
+      },
+      "extra_text": {
+        "name": "另一路文本",
+        "tooltip": "接上游节点用（比如图像反推出来的提示词）。连上就和「原文输入」合在一起优化；不接时忽略。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示词输出",
+        "tooltip": "优化后的提示词，可直接接采样器的正向提示词。"
+      }
     }
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "文本",
-    "tooltip": "翻译后的文字。"
-   }
-  }
- },
- "QG_PromptTranslate": {
-  "display_name": "提示词翻译",
-  "description": "把中文提示词翻成英文（或其它目标语言）后直接喂给文本编码器。原文从左侧输入口进来，节点上不显示文本框——提示词通常由上游节点产生。翻译服务 = 两条百度通道 + 设置面板里配好的全部 OpenAI 兼容服务商：百度只要一对 appid 与密钥（按字符计费，有免费额度）；「百度翻译（大模型）」翻提示词更准，会保持逗号短语结构与括号权重，未开通时自动回落到普通百度通道。源语言自动判断（含中文算中文、纯 ASCII 算英文），目标语言与源语言相同时直接跳过、不发起请求。翻译失败时控制台打一行警告并把原文传下去，不中断工作流。同一段文字有缓存，重复运行不重复扣费。",
-  "inputs": {
-   "source_text": {
-    "name": "原文",
-    "tooltip": "要翻译的提示词，从左侧接进来。为空时原样输出空串，不发起请求。"
-   },
-   "target_language": {
-    "name": "目标语言",
-    "tooltip": "翻成什么语言。默认 English——SAM 3、CLIP 这类编码器只认英文。原文已经是目标语言时直接跳过，不花一次请求。",
-    "options": {
-     "English": "英文",
-     "Chinese": "中文",
-     "Japanese": "日文",
-     "Korean": "韩文",
-     "French": "法文",
-     "German": "德文",
-     "Spanish": "西班牙文",
-     "Russian": "俄文"
+  "QG_MaskByName": {
+    "display_name": "文字取蒙版",
+    "description": "输入一句文字描述（如「红色夹克」「那只狗」），SAM 3 在图里找到对应物体，输出蒙版和透明背景抠图，节点上直接显示染色预览。什么都没找到时默认报错终止流水线（可改为输出空蒙版继续跑）。检测复用 ComfyUI 原生 SAM3_Detect 节点；SAM 3 检查点直接在节点下拉框里选（sam3.1_multiplex_fp16.safetensors，放 models/checkpoints），节点内部加载，无需再摆一个检查点加载器，也无需单独下载 CLIP。「查找」只运行本节点，可先看蒙版再跑全图。多个匹配可选全部合并或只取最大；自动剔除蒙版里不属于目标的零碎噪点（面积占比可调），支持填补内部孔洞、外扩、边缘软化，找不到的小物体可以调低「确信度」再试。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要搜索的图片。"
+      },
+      "checkpoint": {
+        "name": "检查点",
+        "tooltip": "SAM 3 检查点：sam3.1_multiplex_fp16.safetensors（放 models/checkpoints，或 extra_model_paths.yaml 里配置的 checkpoints 目录）。节点内部加载，无需检查点加载器；文件里的文字读取器负责读名称，无需单独的 CLIP。"
+      },
+      "name": {
+        "name": "名称",
+        "tooltip": "要找什么，几个普通词即可，如「那只狗」「红色夹克」。要找多个物体就用逗号隔开。"
+      },
+      "several": {
+        "name": "多个匹配",
+        "tooltip": "匹配到多个物体时：全部合并成一个蒙版，或只取面积最大的那个。",
+        "options": {
+          "all matches": "全部合并",
+          "largest only": "只取最大"
+        }
+      },
+      "grow": {
+        "name": "外扩",
+        "tooltip": "蒙版向外扩多少像素。0 保持精确轮廓。"
+      },
+      "soften": {
+        "name": "软化",
+        "tooltip": "蒙版边缘软化多少像素。0 保持硬边。"
+      },
+      "if_nothing": {
+        "name": "找不到时",
+        "tooltip": "没有任何匹配时怎么办。终止运行：工作流在此停止并给出提示，本节点之后一律不跑。空蒙版：继续运行，输出一张全黑蒙版。",
+        "options": {
+          "stop the run": "终止运行",
+          "empty mask": "输出空蒙版"
+        }
+      },
+      "preview": {
+        "name": "预览",
+        "tooltip": "在节点上显示染色+描边的找到区域。关掉可省去写临时预览文件。"
+      },
+      "drop_small": {
+        "name": "剔除碎块",
+        "tooltip": "剔除搜索偶尔在目标旁边留下的零碎小白斑——蒙版里独立、不属于目标的小岛。面积最大的一块永远保留。"
+      },
+      "small_size": {
+        "name": "碎块面积",
+        "tooltip": "多小的一块算零碎噪点：以最大块面积的百分比计。仅在「剔除碎块」开启时生效。"
+      },
+      "threshold": {
+        "name": "确信度",
+        "tooltip": "SAM 3 判定「匹配」所需的最低确信度。小物体被漏掉就调低；把不是目标的东西框进来了就调高。"
+      },
+      "fill_holes": {
+        "name": "填补孔洞",
+        "tooltip": "填补完全位于蒙版内部的空隙（分割在头发、布料上常留的洞）。开启后得到实心形状。"
+      },
+      "free_vram": {
+        "name": "释放显存",
+        "tooltip": "搜索结束后立刻把 SAM 3 移出显存。后面还要加载大模型的工作流建议开启；关闭则下一次搜索稍快。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "蒙版",
+        "tooltip": "物体处为白色。每张图一个蒙版。"
+      },
+      "1": {
+        "name": "抠图",
+        "tooltip": "蒙版作为透明通道的 RGBA 图，蒙版外全透明。"
+      },
+      "2": {
+        "name": "找到数量",
+        "tooltip": "第一张图里匹配该名称的物体个数。"
+      }
     }
-   },
-   "translate_service": {
-    "name": "翻译服务",
-    "tooltip": "用哪条通道翻译。「百度翻译」填一对 appid 与密钥就能用；「百度翻译（大模型）」会按逗号短语结构翻、保留括号权重与 LoRA 标签，但要在控制台单独开通，没开通时自动回落到普通百度翻译。其余条目是 设置 → QG 工具 里配好的服务商，地址与模型跟着那条配置走。",
-    "options": {
-     "百度翻译": "百度翻译（appid + 密钥，按字符计费）",
-     "百度翻译（大模型）": "百度翻译·大模型（翻提示词更准，需在控制台单独开通，没开通自动回落）",
-     "DeepSeek": "DeepSeek",
-     "Moonshot Kimi": "月之暗面 Kimi",
-     "Alibaba Qwen": "阿里通义千问",
-     "Zhipu GLM": "智谱 GLM",
-     "SiliconFlow": "硅基流动",
-     "OpenRouter": "OpenRouter",
-     "Ollama (local)": "Ollama（本地）",
-     "DeepSeek/deepseek-reasoner": "DeepSeek/deepseek-reasoner",
-     "Moonshot Kimi/kimi-k2-turbo-preview": "月之暗面 Kimi/kimi-k2-turbo-preview",
-     "Alibaba Qwen/qwen-max": "阿里通义千问/qwen-max",
-     "Alibaba Qwen/qwen-turbo": "阿里通义千问/qwen-turbo",
-     "Zhipu GLM/glm-4.5": "智谱 GLM/glm-4.5",
-     "SiliconFlow/deepseek-ai/DeepSeek-V3": "硅基流动/deepseek-ai/DeepSeek-V3",
-     "OpenRouter/google/gemini-2.5-flash": "OpenRouter/google/gemini-2.5-flash"
+  },
+  "QG_FaceRectify": {
+    "display_name": "QG 人脸自动矫正",
+    "description": "自动把歪的、横竖颠倒的人脸照片转正。流程：先按 0°/90°/180°/270° 四个方向检测人脸，找到正向（解决横拍竖拍颠倒）；再用 5 点人脸关键点的左右眼中心连线计算倾斜角，以图像中心旋转（Lanczos4，边缘复制填充无黑角）；旋转后中心裁剪回原尺寸，并按倾斜角从四边裁掉旋转拉出的模糊边缘（裁剪量 = 边长 × 角度^0.8 ÷ 100 ÷ 边缘裁剪，边缘裁剪越大裁得越少），因此轻微倾斜时最终尺寸会略小于原图。检测不到人脸、模型缺失或任何异常时原图直通，不会中断流水线。依赖 dlib 与包内置的 shape_predictor_5_face_landmarks.dat 模型。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要矫正的图片。"
+      },
+      "enable_fix": {
+        "name": "开启矫正",
+        "tooltip": "关闭后原图直通，可用于对比效果。",
+        "options": {
+          "True": "开启人脸自动矫正",
+          "False": "关闭（原图直通）"
+        }
+      },
+      "edge_trim": {
+        "name": "边缘裁剪",
+        "tooltip": "旋转后从四边裁掉模糊边缘的力度：1 裁最多、5 裁最少，默认 2。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "矫正后的图像",
+        "tooltip": "人脸转正后的图片（通常比原图略小，因为裁掉了边缘）。"
+      }
     }
-   },
-   "auto_unload": {
-    "name": "自动释放显存",
-    "tooltip": "翻译完立刻把本地 Ollama 的模型请出显存，给后面的采样器腾地方。云端服务商忽略这个开关。"
-   },
-   "seed": {
-    "name": "随机种子",
-    "tooltip": "不影响翻译结果。作用只是让节点重新执行一次（对措辞不满意时换个种子重翻），已有缓存仍会复用，不会重复扣费。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "提示词输出",
-    "tooltip": "译好的提示词；翻译失败时是原文。"
-   }
-  }
- },
- "QG_ImageToPrompt": {
-  "display_name": "图像反推提示词",
-  "description": "给一张图，用视觉模型反推成能复现它的提示词。规则在 设置 → QG 工具 → 提示词规则 里管理（可增删改、也能改默认项），决定输出形态：像素级描述出 200~400 字长段落，Tag 标签流出 30~60 个带权重的逗号标签，自然语言短描述出 60~90 词英文段落（喂 SDXL / Flux），图像编辑指令配合 user prompt 出单条编辑指令，视频动态提示词出首帧描述加运动。视觉服务按「服务商/模型」选，地址与 Key 取自 设置 → QG 工具 → API 服务商，工作流文件里不落密钥；一个服务商可以配多个模型，下拉里会逐个列出来。图片先压到长边 1024 再发，batch 逐帧独立反推、合并文本用 --- 分隔、另一个输出口给逐帧列表。执行时节点下方会实时显示已经收到的文字，不用干等。服务商不认某个参数时自动降级重试，思考链在请求和输出两端各关一次。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要反推的图片。接 batch 时逐帧独立反推，合成文本用 --- 分隔，第二个输出口给出逐帧结果。"
-   },
-   "rule": {
-    "name": "规则预设",
-    "tooltip": "反推规则，来自 设置 → QG 工具 → 提示词规则（规则管理器）：那里能改措辞、加新规则、改默认项，节点下拉会自动跟着变，不用重启。改名不会打断老工作流——旧名会自动记成别名，下游照常命中。不同规则观察的重点和成文格式完全不同：像素级描述出长段落，Tag 标签流出逗号标签，图像编辑指令配合 user prompt 出改动指令。语言：像素级描述、图像编辑指令、视频动态提示词默认中文（跟着 user prompt 走）；Tag 标签流默认英文（SD 生态通用）；自然语言短描述固定英文。",
-    "options": {
-     "像素级描述": "像素级描述——长段落，主体/服装/构图/环境/光线/色彩/风格",
-     "像素级描述（by:阿丹）": "像素级描述（旧名，已改名）——长段落，主体/服装/构图/环境/光线/色彩/风格",
-     "Tag 标签流": "Tag 标签流——30~60 个逗号标签，带 (tag:1.2) 权重，英文",
-     "自然语言短描述": "自然语言短描述——60~90 词英文段落，面向 SDXL / Flux",
-     "图像编辑指令": "图像编辑指令——配合 user prompt 说明要改什么，出一条指令",
-     "视频动态提示词": "视频动态提示词——首帧静态描述 + 运动 / 镜头 / 环境动态"
+  "QG_BiRefNet": {
+    "display_name": "QG BiRefNet 去除背景",
+    "description": "用 BiRefNet 二分图像分割模型做高精度抠图，发丝、半透明边缘处理效果好。流程：图片缩放到模型推理分辨率（方形、32 对齐）推理出前景概率，再缩回原尺寸；随后依次做灵敏度增益、高斯模糊、遮罩偏移（Max/MinFilter 腐蚀膨胀）、可选反转、可选前景精修，最后按背景类型输出透明 RGBA 或纯色底合成图。输出三路：IMAGE（抠图结果）、MASK（单通道遮罩）、MASK_IMAGE（遮罩的三通道可视化）。模型查找顺序：models/RMBG/BiRefNet/ 共享缓存（与 ComfyUI-RMBG 插件互通）→ extra_model_paths.yaml 挂载的 BiRefNet、RMBG 类别目录。挂载库里的 ZhengPeng7 官方命名权重（如 General.safetensors、General-Lite.safetensors）会被自动识别为对应变体（两套命名是同一文件）。都找不到时才从 HuggingFace 下载到共享缓存。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要抠图的图像。批次里每帧独立推理，输出与输入同尺寸。"
+      },
+      "model": {
+        "name": "模型",
+        "tooltip": "BiRefNet 变体：RMBG-2.0 是 BRIA 的商用级权重（结构同 BiRefNet，精度最高）；general 通用平衡；HR 高分辨率（输入 2048）；portrait 人像；matting 通用精细化；lite 轻量版速度快；512x512 固定分辨率速度最快；toonout 卡通描边；Lucida 透明物/伪装/文字标志特化。首次使用自动下载。",
+        "options": {
+          "RMBG-2.0": "BRIA 商用级模型（抠图精度最高，约 885MB）",
+          "BiRefNet-general": "通用平衡（推荐首选，约 930MB）",
+          "BiRefNet-HR": "高分辨率档（2048 输入）",
+          "BiRefNet-portrait": "人像专精",
+          "BiRefNet-matting": "通用精细化抠图",
+          "BiRefNet-HR-matting": "高分辨率精细化",
+          "BiRefNet_dynamic": "动态分辨率（高分辨 DIS）",
+          "BiRefNet_toonout": "卡通描边提取",
+          "Lucida": "透明物/伪装/文字标志特化",
+          "BiRefNet_512x512": "固定 512，速度优先",
+          "BiRefNet_lite": "轻量版（约 220MB，速度快）",
+          "BiRefNet_lite-2K": "轻量版 2K 档",
+          "BiRefNet_lite-matting": "轻量版精细化",
+          "BiRefNet-dis": "DIS 高精度二分分割（挂载库 DIS.safetensors）",
+          "BiRefNet-dis-tr": "DIS-TR 训练集版（挂载库 DIS-TR_TEs.safetensors）",
+          "BiRefNet-cod": "COD 伪装目标分割（挂载库 COD.safetensors）",
+          "BiRefNet-hrsod": "HRSOD 高分辨率显著目标（挂载库 HRSOD.safetensors）",
+          "BiRefNet-legacy": "旧版 General 权重（挂载库 General-legacy.safetensors）"
+        }
+      },
+      "sensitivity": {
+        "name": "灵敏度",
+        "tooltip": "遮罩亮度增益。1.0 不变；低于 1 时遮罩整体变亮（前景判定更宽松），0 最激进。"
+      },
+      "mask_blur": {
+        "name": "遮罩模糊",
+        "tooltip": "遮罩边缘高斯模糊半径，0 不模糊。边缘生硬时可加 1~4。"
+      },
+      "mask_offset": {
+        "name": "遮罩偏移",
+        "tooltip": "整体扩张/收缩遮罩（像素），范围 -20~20。正值向外扩、吃掉一圈背景；负值向内收、去掉边缘残留的背景色。"
+      },
+      "invert_output": {
+        "name": "反转输出",
+        "tooltip": "反转遮罩（黑白对调），用于取背景而不是前景。"
+      },
+      "refine_foreground": {
+        "name": "精修前景优化",
+        "tooltip": "对半透明边缘区做前景颜色精修，弱化边缘残留的原背景色。头发丝/毛边明显带底色时开启。需要 opencv；没装时会给出可照做的安装提示。"
+      },
+      "unload_model": {
+        "name": "释放模型显存",
+        "tooltip": "执行完后从内存卸载模型。CPU 模式下意义不大，除非要临时腾内存。"
+      },
+      "background": {
+        "name": "背景类型",
+        "tooltip": "Alpha 输出透明背景 RGBA；Color 用下面的颜色填底后输出 RGB。",
+        "options": {
+          "Alpha": "透明背景",
+          "Color": "纯色背景"
+        }
+      },
+      "background_color": {
+        "name": "背景颜色",
+        "tooltip": "背景为 Color 时生效。#RRGGBB 或 #RRGGBBAA 十六进制颜色，默认 #222222。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "抠图结果：Alpha 模式为带透明通道的 RGBA；Color 模式为合成后的 RGB。"
+      },
+      "1": {
+        "name": "遮罩",
+        "tooltip": "前景概率单通道遮罩（0..1）。"
+      },
+      "2": {
+        "name": "遮罩预览图",
+        "tooltip": "遮罩的三通道可视化，方便接预览节点查看。"
+      }
     }
-   },
-   "custom_rule": {
-    "name": "自定义规则",
-    "tooltip": "打开后用下面的「自定义规则」整段替换上面的预设规则（不是追加）。适合固定一种输出格式反复使用。"
-   },
-   "custom_rule_content": {
-    "name": "自定义规则内容",
-    "tooltip": "自定义规则内容，只在「自定义规则」打开时生效。写清观察顺序和输出格式，比如「只输出英文标签，逗号分隔，不要句子」。"
-   },
-   "user_prompt": {
-    "name": "附加要求",
-    "tooltip": "附加要求，会拼在规则后面一起发给模型。比如「重点描述服装材质」「这是要换成夜景」。「图像编辑指令」规则靠它说明要改什么。"
-   },
-   "vlm_service": {
-    "name": "视觉服务",
-    "tooltip": "用哪家的视觉模型。列表是「服务商/模型」：地址与 Key 取自 设置 → QG 工具 → API 服务商，节点上只选名字。想用清单外的模型，就在设置面板里加一个服务商条目，填上模型名，它会出现在这里。",
-    "options": {
-     "智谱/glm-4.6v-flash": "智谱 GLM-4.6V-Flash（免费，推荐）",
-     "智谱/glm-4.5v": "智谱 GLM-4.5V",
-     "智谱/glm-4v-flash": "智谱 GLM-4V-Flash（免费）",
-     "智谱/glm-4v-plus": "智谱 GLM-4V-Plus",
-     "通义/qwen3-vl-plus": "通义千问 Qwen3-VL-Plus",
-     "通义/qwen-vl-max-latest": "通义千问 Qwen-VL-Max",
-     "通义/qwen-vl-plus-latest": "通义千问 Qwen-VL-Plus",
-     "通义/qwen2.5-vl-72b-instruct": "通义千问 Qwen2.5-VL-72B",
-     "硅基/Qwen/Qwen2.5-VL-7B-Instruct": "硅基流动 Qwen2.5-VL-7B",
-     "OpenRouter/openai/gpt-4o-mini": "OpenRouter · GPT-4o mini",
-     "OpenRouter/google/gemini-2.5-flash": "OpenRouter · Gemini 2.5 Flash",
-     "Ollama/qwen2.5vl:7b": "本地 Ollama · Qwen2.5-VL 7B",
-     "Ollama/llama3.2-vision:11b": "本地 Ollama · Llama 3.2 Vision 11B",
-     "Ollama/llava:7b": "本地 Ollama · LLaVA 7B"
+  },
+  "QG_QwenTextEncode": {
+    "inputs": {
+      "clip": {
+        "name": "clip",
+        "tooltip": "Qwen Image 2.1 的 CLIP 加载器输出。"
+      },
+      "vae": {
+        "name": "vae",
+        "tooltip": "可选。接上后每张参考图会过一遍 VAE 编码，以 reference_latents 注入条件；同时图 1 的参考 latent 会作为初始 latent 输出。"
+      },
+      "mask": {
+        "name": "mask",
+        "tooltip": "图 1 的局部采样遮罩：白色区域修改，黑色区域保护。可见面积不超过画布 0.2% 时按没接处理。"
+      },
+      "image_01": {
+        "name": "图像 1",
+        "tooltip": "参考图；主参考图（图 1）决定整体尺寸路径，其余图 2~10 依次跟随。"
+      },
+      "image_02": {
+        "name": "图像 2"
+      },
+      "image_03": {
+        "name": "图像 3"
+      },
+      "image_04": {
+        "name": "图像 4"
+      },
+      "image_05": {
+        "name": "图像 5"
+      },
+      "image_06": {
+        "name": "图像 6"
+      },
+      "image_07": {
+        "name": "图像 7"
+      },
+      "image_08": {
+        "name": "图像 8"
+      },
+      "image_09": {
+        "name": "图像 9"
+      },
+      "image_10": {
+        "name": "图像 10"
+      }
+    },
+    "widgets": {
+      "prompt": {
+        "name": "prompt",
+        "tooltip": "正向提示词。"
+      },
+      "negative_prompt": {
+        "name": "negative_prompt",
+        "tooltip": "负面提示词。本节点面向 CFG=1 工作流，负面分支不做第二次编码，CFG>1 时负面提示词（有意地）不生效。"
+      },
+      "latent_width": {
+        "name": "latent_width",
+        "tooltip": "初始 latent 宽度；输入图 1 且其宽高比与目标接近时，参考图也用这个尺寸。"
+      },
+      "latent_height": {
+        "name": "latent_height",
+        "tooltip": "初始 latent 高度；含义同上。"
+      },
+      "mode": {
+        "name": "mode",
+        "tooltip": "「填充」：图 1 等比缩放放进 latent 画布、空余填灰，可用 info 口接「还原画布」节点把灰边裁回来；「裁剪」：居中裁到 latent 尺寸。"
+      },
+      "ref_image_size": {
+        "name": "ref_image_size",
+        "tooltip": "参考图的目标面积：「自动」按 latent 尺寸（1~2 图）/1024²（3~4 图）/768²（5 图及以上）取；固定值则用该边长平方（上限 2048²）。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "正向条件",
+        "tooltip": "CONDITIONING：正向提示词与参考图编码后的条件。"
+      },
+      "1": {
+        "name": "负向条件",
+        "tooltip": "CONDITIONING：负向提示词编码后的条件。"
+      },
+      "2": {
+        "name": "潜空间",
+        "tooltip": "LATENT：填充模式下的初始 latent（图 1 参考 latent）。"
+      },
+      "3": {
+        "name": "还原信息",
+        "tooltip": "QWEN_IMAGE_21_GH_RESTORE_INFO：接 QG_QwenRestore 还原画布。"
+      }
+    },
+    "display_name": "Qwen Image 2.1 文本编码",
+    "description": "Qwen Image 2.1 专用文本编码：1~10 张参考图各占一个稳定槽位（主图决定尺寸路径），自动按宽高比安全缩放参考图，支持局部采样遮罩与 VAE 参考 latent 注入；填充模式下输出 info 供 QG_QwenRestore 还原画布。上游为 Goohaitools「Qwen image 2.1 文本编码」，与原版可互换。"
+  },
+  "QG_QwenRestore": {
+    "inputs": {
+      "image": {
+        "name": "image",
+        "tooltip": "采样后的图像。"
+      },
+      "info": {
+        "name": "info",
+        "tooltip": "「Qwen Image 2.1 文本编码」的 info 输出；只在填充模式下有内容，其他情况原图直接通过。与本包或 Goohaitools 原版编码节点的 info 均可互连。"
+      }
+    },
+    "widgets": {},
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "按 info 里记录的画布/内容位置比例，把填充时加的灰边裁掉的图像。"
+      }
+    },
+    "display_name": "还原 Qwen Image 2.1 画布",
+    "description": "配合「Qwen Image 2.1 文本编码」的填充模式使用：按 info 里记录的画布/内容位置比例，把编码时加的灰边裁掉，恢复内容本身的画布。与上游原版可互换。"
+  },
+  "QG_QwenPromptOptimizer": {
+    "inputs": {
+      "图像_01": {
+        "name": "图像 1",
+        "tooltip": "参考图。可接多张（最多 10 张）：接图且提示词为空=反推，接图且有提示词=按提示词改写。"
+      },
+      "图像_02": {
+        "name": "图像 2"
+      },
+      "图像_03": {
+        "name": "图像 3"
+      },
+      "图像_04": {
+        "name": "图像 4"
+      },
+      "图像_05": {
+        "name": "图像 5"
+      },
+      "图像_06": {
+        "name": "图像 6"
+      },
+      "图像_07": {
+        "name": "图像 7"
+      },
+      "图像_08": {
+        "name": "图像 8"
+      },
+      "图像_09": {
+        "name": "图像 9"
+      },
+      "图像_10": {
+        "name": "图像 10"
+      },
+      "自定义skill": {
+        "name": "自定义 skill",
+        "tooltip": "接一段自定义要求作为系统提示词；不接或留空就用内置提示词。输出格式由节点自动处理，输出语言和透明背景仍由下面的控件决定。"
+      }
+    },
+    "widgets": {
+      "用户提示词": {
+        "name": "用户提示词",
+        "tooltip": "正向引导词。留空且接了图像时进入反推模式：由视觉模型看图写出完整生成提示词；有提示词且接了图像时是图生图改写；不接图是纯文生图扩写。"
+      },
+      "文生图模型": {
+        "name": "文生图模型",
+        "tooltip": "text-to-image GGUF 模型（文件名含 PE-T2I）。纯文字扩写、以及「图像+空提示词」的反推模式都用它。"
+      },
+      "图生图模型": {
+        "name": "图生图模型",
+        "tooltip": "image-to-image GGUF 模型（文件名含 PE-I2I）。接图像且有提示词时的改写模式用它。"
+      },
+      "视觉模型": {
+        "name": "视觉模型",
+        "tooltip": "mmproj 视觉编码器（文件名含 mmproj）。接图像时必须选对，反推/改写全靠它看图。"
+      },
+      "输出语言": {
+        "name": "输出语言",
+        "tooltip": "输出提示词的描述性文字语言：「自动」按用户提示词语言判断，反推模式固定中文。"
+      },
+      "透明背景": {
+        "name": "透明背景",
+        "tooltip": "开启后强制输出描述透明背景（RGBA），自动改写/删除与背景矛盾的描述。"
+      },
+      "种子值": {
+        "name": "种子值",
+        "tooltip": "采样种子，同一种子同一输入结果可复现。"
+      },
+      "种子模式": {
+        "name": "种子模式",
+        "tooltip": "「随机」时每次排队自动换新种子执行，结束后回填实际值。"
+      },
+      "卸载模型": {
+        "name": "卸载模型",
+        "tooltip": "运行后是否把 llama-cpp 模型从内存卸载：「自动」按剩余内存判断；显存紧张时建议「运行前后自动卸载」。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "优化提示词",
+        "tooltip": "优化/反推得到的最终提示词文本。"
+      },
+      "1": {
+        "name": "JSON 结果",
+        "tooltip": "同一结果的 JSON 串（rewritten_prompt + wh_ratio 等）。"
+      },
+      "2": {
+        "name": "是否反推",
+        "tooltip": "BOOLEAN：本次执行是否走了反推模式（接图且提示词为空）。"
+      }
+    },
+    "display_name": "Qwen image 2.1 提示词优化",
+    "description": "本地 llama-cpp 提示词优化：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；最多 10 张参考图，语言锁定、透明背景改写等行为与上游逐项对齐。需 models/LLM 下的 Qwen GGUF + mmproj。"
+  },
+  "QG_IDPhotoParams": {
+    "display_name": "QG 证件照参数",
+    "description": "把「这张照片要什么样」集中在一个节点里：尺寸、底色、渲染方式、打印 dpi。输出一路参数连给抠图换背景节点，另外把算好的像素宽高与 dpi 单独引出来 ——排版节点的照片 DPI 直接接这根线就行，不用手抄数字。底色是下拉，界面显示中文；要别的颜色选「自定义」再填色值。",
+    "inputs": {
+      "preset": {
+        "name": "大小",
+        "tooltip": "成品尺寸。按像素给的预设（358x441 这类）自带 DPI，会覆盖下面的 dpi。"
+      },
+      "bg_color": {
+        "name": "背景颜色",
+        "tooltip": "白 / 蓝 / 深蓝 / 红 / 浅蓝 / 灰，或选「自定义」在下一格填色值。"
+      },
+      "bg_custom": {
+        "name": "自定义色值",
+        "tooltip": "只有背景颜色选「自定义」时才用。填 #438edb 这种色值；留空则退回蓝色。"
+      },
+      "bg_color_2": {
+        "name": "渐变第二色",
+        "tooltip": "渐变背景的第二个颜色，纯色渲染时忽略。"
+      },
+      "render": {
+        "name": "渲染",
+        "tooltip": "纯色；上下渐变（主色在上）；中心渐变（中心主色，四角第二色）。"
+      },
+      "dpi": {
+        "name": "DPI",
+        "tooltip": "打印分辨率。300 是冲印标准，600 给的是双倍像素。"
+      },
+      "custom_width": {
+        "name": "自定义宽（仅 custom）",
+        "tooltip": "只有大小选 custom 时才用，单位厘米。要按像素出图请直接挑像素预设，别在这里填像素数。"
+      },
+      "custom_height": {
+        "name": "自定义高（仅 custom）",
+        "tooltip": "只有大小选 custom 时才用，单位厘米。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "参数",
+        "tooltip": "连给抠图换背景节点的「参数」输入。"
+      },
+      "1": {
+        "name": "宽",
+        "tooltip": "算好的成品像素宽，自定义厘米尺寸也换算过了。"
+      },
+      "2": {
+        "name": "高",
+        "tooltip": "算好的成品像素高。"
+      },
+      "3": {
+        "name": "DPI",
+        "tooltip": "实际用到的 DPI，像素预设会覆盖控件里的值。"
+      },
+      "4": {
+        "name": "主色",
+        "tooltip": "主背景色的 #RRGGBB 文本（渐变取第一色），可直接连给取色/颜色节点。"
+      }
     }
-   },
-   "auto_unload": {
-    "name": "自动释放显存",
-    "tooltip": "反推完立刻把本地 Ollama 的视觉模型请出显存，给后面的采样器腾地方。云端服务忽略这个开关。"
-   },
-   "seed": {
-    "name": "随机种子",
-    "tooltip": "不影响确定性，只控制节点要不要重跑。固定时同一张图复用上次结果、不重复扣费；切成 randomize 就每跑一次重新反推，用来换一种措辞。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "提示词输出",
-    "tooltip": "反推得到的提示词；batch 时是各帧结果用 --- 连接。"
-   },
-   "1": {
-    "name": "提示词列表",
-    "tooltip": "逐帧结果列表；单张时只有一个元素。"
-   }
-  }
- },
- "QG_PromptOptimize": {
-  "display_name": "提示词优化",
-  "description": "一段粗糙的提示词进去，一段能直接出图的出来。规则在 设置 → QG 工具 → 提示词规则 的「提示词优化规则」页管理：扩写-通用在不换题材的前提下补主体、服装、构图、环境、光线、画质；润色-精炼只去重调序、不加新元素；扩写-细节质感专攻材质与光影的微观描写；改写-英文输出逗号短语，喂 SDXL / Flux。原文写进文本框，或者接上游的文本输出（两路会合在一起）；执行时节点下方实时显示模型已经吐出来的字。括号权重 (word:1.2)、[word]、LoRA 标签 <lora:name:0.8> 会原样保留——规则里写明，输出端再兜一层。LLM 服务按「服务商」或「服务商/模型」选，地址与 Key 取自 设置 → QG 工具 → API 服务商，工作流文件里不落密钥。纯文本任务，任何对话模型都能跑；失败直接报错、不原样输出，免得下游以为优化生效了。",
-  "inputs": {
-   "text": {
-    "name": "原文输入",
-    "tooltip": "要优化的提示词，直接写在这里。也可以右键这个输入框转成输入口，接上游的文本；或者用下面的 extra_text 口，两路会合在一起处理。"
-   },
-   "rule": {
-    "name": "规则预设",
-    "tooltip": "优化规则，来自 设置 → QG 工具 → 提示词规则（规则管理器）的「提示词优化规则」页：能改措辞、加新规则、改默认项，节点下拉自动跟着变，不用重启。改名不会打断老工作流——旧名会记成别名，下游照常命中。只列这一组：反推规则写的是「怎么看图」，套到纯文本上会让模型开始描述一段文字「看起来像什么」。",
-    "options": {
-     "扩写-通用": "扩写-通用——补主体/服装/构图/环境/光线/画质，长度 150~300 字",
-     "润色-精炼": "润色-精炼——只去重、修语病、调顺序，长度不超过原文 1.2 倍",
-     "扩写-细节质感": "扩写-细节质感——专攻材质、高光形状、阴影软硬、镜头味",
-     "改写-英文": "改写-英文——逗号短语，供 SDXL / Flux / SD3 使用"
+  "QG_PortraitMatte": {
+    "display_name": "QG 人像抠图换背景",
+    "description": "把人像从背景里抠出来，换纯色或渐变底，按证件照的构图裁好。尺寸与底色来自「证件照参数」节点 —— 这一头只管怎么抠、怎么修。抠图用 onnx 模型：modnet 系快（512 输入），rmbg / birefnet 慢但边缘更准，模型放 ComfyUI/models/background_removal 就会出现在下拉里。输出成品图、目标尺寸的蒙版，以及一张长边不小于 600 像素的高清版。批量输入逐帧处理；某帧找不到脸时会等比装入目标尺寸并居中。",
+    "inputs": {
+      "image": {
+        "name": "输入图像",
+        "tooltip": "要处理的人像。批量进来每帧各出一张。"
+      },
+      "params": {
+        "name": "参数",
+        "tooltip": "接「证件照参数」节点。不接就用一寸、蓝底、300 dpi。"
+      },
+      "matting_model": {
+        "name": "抠图模型",
+        "tooltip": "modnet_photographic_portrait_matting 速度与质量均衡；rmbg-1.4 / birefnet-v1-lite 边缘更准但要 2 秒到 15 秒。"
+      },
+      "face_alignment": {
+        "name": "人脸对齐",
+        "tooltip": "把画面转到双眼水平，超过 2 度才动。关掉保持原始倾斜。",
+        "options": {
+          "True": "摆正双眼",
+          "False": "保持原倾斜"
+        }
+      },
+      "change_bg_only": {
+        "name": "仅更换背景",
+        "tooltip": "只换背景，不裁剪不缩放。适合先检查抠图干不干净。",
+        "options": {
+          "True": "只换背景",
+          "False": "换背景并裁剪"
+        }
+      },
+      "crop_only": {
+        "name": "仅裁剪",
+        "tooltip": "只裁剪不抠图。此时蒙版全 1，背景保持原样。",
+        "options": {
+          "True": "只裁剪",
+          "False": "抠图并裁剪"
+        }
+      },
+      "head_height": {
+        "name": "头高占比",
+        "tooltip": "头部（头发顶到下巴）占画面的高度比例。国标约 2/3，护照 58%~69%。这个口径与纸型无关：方版和竖版算出来是同一个头高比；参考实现那个「人脸框面积比」会随宽高比漂（同一组参数在方版上大 12 个点）。"
+      },
+      "top_distance": {
+        "name": "顶部距离",
+        "tooltip": "头顶（头发顶，不是人脸框顶）到画面上沿的距离，占裁剪框高度的比例。0.06 与参考实现的实测构图一致；想多留白就往大调，0.12 大约到国标上限那一档。"
+      },
+      "whitening_strength": {
+        "name": "美白强度",
+        "tooltip": "0 关，10 是满强度，15 等于再叠一次。"
+      },
+      "brightness_strength": {
+        "name": "亮度强度",
+        "tooltip": "直接加在像素值上，负数是压暗。"
+      },
+      "contrast_strength": {
+        "name": "对比度强度",
+        "tooltip": "百分比增益，0 不变。"
+      },
+      "saturation_strength": {
+        "name": "饱和度强度",
+        "tooltip": "百分比，负数是降饱和。"
+      },
+      "sharpen_strength": {
+        "name": "锐化强度",
+        "tooltip": "反锐化掩模。证件照建议 1~2，5 已经很硬。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "成品图",
+        "tooltip": "目标尺寸，背景已换。"
+      },
+      "1": {
+        "name": "蒙版",
+        "tooltip": "成品尺寸的蒙版：1 是人像，0 是背景。可以直接拿去别处合成。"
+      },
+      "2": {
+        "name": "高清图",
+        "tooltip": "同样构图，长边不小于 600 像素。拿去排版或再放大用这张。"
+      }
     }
-   },
-   "custom_rule": {
-    "name": "自定义规则",
-    "tooltip": "打开后用下面的「自定义规则」整段替换上面的预设规则（不是追加）。追加会让两套互相矛盾的格式要求打架。"
-   },
-   "custom_rule_content": {
-    "name": "自定义规则内容",
-    "tooltip": "自定义规则正文，只在「自定义规则」打开时生效。写清任务、要补什么、禁止什么、输出形态——四段缺一段，模型就容易自由发挥。"
-   },
-   "llm_service": {
-    "name": "LLM 服务",
-    "tooltip": "用哪家的哪个模型。列表是「服务商」或「服务商/模型」：地址与 Key 取自 设置 → QG 工具 → API 服务商，节点上只选名字。一个服务商配了多个模型时会逐个列出来。纯文本任务，任何对话模型都能干，不必挑视觉模型。",
-    "options": {
-     "DeepSeek": "DeepSeek · deepseek-chat（默认模型）",
-     "DeepSeek/deepseek-reasoner": "DeepSeek · deepseek-reasoner（推理模型，慢但稳）",
-     "Moonshot Kimi": "月之暗面 Kimi · 默认模型",
-     "Alibaba Qwen": "通义千问 · qwen-plus（默认模型）",
-     "Zhipu GLM": "智谱 GLM-4-Flash（免费，推荐）",
-     "Zhipu GLM/glm-4.5": "智谱 GLM-4.5",
-     "SiliconFlow": "硅基流动 · 默认模型",
-     "OpenRouter": "OpenRouter · GPT-4o mini",
-     "Ollama (local)": "本地 Ollama · qwen2.5:7b",
-     "Moonshot Kimi/kimi-k2-turbo-preview": "月之暗面 Kimi/kimi-k2-turbo-preview",
-     "Alibaba Qwen/qwen-max": "阿里通义千问/qwen-max",
-     "Alibaba Qwen/qwen-turbo": "阿里通义千问/qwen-turbo",
-     "SiliconFlow/deepseek-ai/DeepSeek-V3": "硅基流动/deepseek-ai/DeepSeek-V3",
-     "OpenRouter/google/gemini-2.5-flash": "OpenRouter/google/gemini-2.5-flash"
+  },
+  "QG_IDPhotoCrop": {
+    "display_name": "QG 证件照裁剪",
+    "description": "把一张人像裁成指定尺寸的证件照：一寸、美签、358×441 的电子身份证这些都在预设里。眼睛自动摆平，人脸按指定比例占画面宽。要裁的范围超出原图时会自动收回原图内（默认），照片四周不会再被补出一圈背景色 —— 素材本来已经裁得很紧、又把「脸部大小」调小，正是范围被撑出去的原因。整张图只重采样一次：裁剪框直接在原图上算好，一次仿射就出结果。输出补出来的区域的遮罩、是否补过边的布尔、实际用到的 DPI，以及一张把脸框、眼线和裁剪框画在原图上的定位示意图，方便眼睛核对参数。批量输入逐帧处理；某帧找不到脸时会等比装入目标尺寸并居中，而不是把原图原样丢出去。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "从 ComfyUI 的 input 文件夹里选择或上传一张人像。"
+      },
+      "preset": {
+        "name": "预设尺寸",
+        "tooltip": "标准尺寸。选了预设就忽略下面四个尺寸参数；custom 才用它们。按像素给的预设自带 DPI —— 358×441 的电子证件照按定义就是 350 dpi。"
+      },
+      "custom_width": {
+        "name": "自定义宽",
+        "tooltip": "只有预设选 custom 时才用。默认是厘米，改单位可填像素。"
+      },
+      "custom_height": {
+        "name": "自定义高",
+        "tooltip": "只有预设选 custom 时才用。"
+      },
+      "unit": {
+        "name": "单位",
+        "tooltip": "厘米：像素 = 厘米 / 2.54 × DPI。像素：填的就是像素。"
+      },
+      "dpi": {
+        "name": "DPI",
+        "tooltip": "一英寸算多少像素。打印通用 300；想要更大的文件用 600。"
+      },
+      "face_ratio": {
+        "name": "脸部大小",
+        "tooltip": "人脸轮廓占裁剪宽的比例。0.42 是标准证件照，调大就是更紧的头像。轮廓是耳到耳，比脸颊宽，所以这个数看着偏小。"
+      },
+      "eye_line": {
+        "name": "垂直偏移",
+        "tooltip": "眼睛连线在裁剪框内的位置（从顶边往下算的比例）。0.38 留出的头顶空间最像证件照。"
+      },
+      "auto_rotate": {
+        "name": "人脸矫正",
+        "tooltip": "把画面转到双眼水平。关掉就保持原来的倾斜，但仍然按眼中心取景。",
+        "options": {
+          "True": "摆平",
+          "False": "保持倾斜"
+        }
+      },
+      "face_pick": {
+        "name": "多脸时取哪张",
+        "tooltip": "画面里有多张脸时：取离画面中心最近的那张，还是取最大的那张。"
+      },
+      "max_side": {
+        "name": "检测降采样",
+        "tooltip": "只在检测时把图缩小，大图更快、小脸也更稳；裁剪永远取自原始分辨率。0 = 不缩小。"
+      },
+      "fill_mode": {
+        "name": "填充模式",
+        "tooltip": "补出来的像素取什么颜色：边框颜色从原图四条边各自取背景色（会剔掉衣服这类非背景像素），自定义颜色用下面那个色值。"
+      },
+      "fill_color": {
+        "name": "填充颜色",
+        "tooltip": "只有填充模式选自定义时才用。支持 #RRGGBB、#ABC、white 这类颜色名、128,128,128，以及 0.5 这种灰度。"
+      },
+      "alpha_mode": {
+        "name": "透明区域",
+        "tooltip": "输入带透明通道（抠图节点输出的 RGBA）时怎么处理：填平透明 = 把透明区按填充色变成实心，输出不透明的证件照（默认）；保留透明 = 输出 RGBA，透明区保持透明供后续节点合成。普通 RGB 图两种模式结果一样。",
+        "options": {
+          "fill": "填平透明",
+          "keep": "保留透明"
+        }
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "裁剪后图像",
+        "tooltip": "目标尺寸的证件照，可直接接保存或 VAE Encode。"
+      },
+      "1": {
+        "name": "扩展遮罩",
+        "tooltip": "需要补出来的区域为 1，原图区域为 0。接重绘或局部生成。"
+      },
+      "2": {
+        "name": "是否扩图",
+        "tooltip": "有任意一帧补过边就是 True。"
+      },
+      "3": {
+        "name": "DPI",
+        "tooltip": "实际用到的 DPI —— 选了按像素的预设时它会覆盖控件里的值。"
+      },
+      "4": {
+        "name": "定位示意图",
+        "tooltip": "在第 0 帧原图上画出脸框（绿）、眼线与双眼（红）、裁剪框（黄），左上角标出目标尺寸、脸宽占比和倾斜角。"
+      }
     }
-   },
-   "auto_unload": {
-    "name": "自动释放显存",
-    "tooltip": "优化完立刻把本地 Ollama 的模型请出显存，给后面的采样器腾地方。云端服务忽略这个开关。"
-   },
-   "seed": {
-    "name": "随机种子",
-    "tooltip": "不参与推理，只控制节点要不要重跑。固定时同一段原文复用上次结果、不重复扣费；切成 randomize 就每跑一次换一种写法，用来挑一版最喜欢的。"
-   },
-   "extra_text": {
-    "name": "另一路文本",
-    "tooltip": "接上游节点用（比如图像反推出来的提示词）。连上就和「原文输入」合在一起优化；不接时忽略。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "提示词输出",
-    "tooltip": "优化后的提示词，可直接接采样器的正向提示词。"
-   }
-  }
- },
- "QG_MaskByName": {
-  "display_name": "文字取蒙版",
-  "description": "输入一句文字描述（如「红色夹克」「那只狗」），SAM 3 在图里找到对应物体，输出蒙版和透明背景抠图，节点上直接显示染色预览。什么都没找到时默认报错终止流水线（可改为输出空蒙版继续跑）。检测复用 ComfyUI 原生 SAM3_Detect 节点；SAM 3 检查点直接在节点下拉框里选（sam3.1_multiplex_fp16.safetensors，放 models/checkpoints），节点内部加载，无需再摆一个检查点加载器，也无需单独下载 CLIP。「查找」只运行本节点，可先看蒙版再跑全图。多个匹配可选全部合并或只取最大；自动剔除蒙版里不属于目标的零碎噪点（面积占比可调），支持填补内部孔洞、外扩、边缘软化，找不到的小物体可以调低「确信度」再试。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要搜索的图片。"
-   },
-   "checkpoint": {
-    "name": "检查点",
-    "tooltip": "SAM 3 检查点：sam3.1_multiplex_fp16.safetensors（放 models/checkpoints，或 extra_model_paths.yaml 里配置的 checkpoints 目录）。节点内部加载，无需检查点加载器；文件里的文字读取器负责读名称，无需单独的 CLIP。"
-   },
-   "name": {
-    "name": "名称",
-    "tooltip": "要找什么，几个普通词即可，如「那只狗」「红色夹克」。要找多个物体就用逗号隔开。"
-   },
-   "several": {
-    "name": "多个匹配",
-    "tooltip": "匹配到多个物体时：全部合并成一个蒙版，或只取面积最大的那个。",
-    "options": {
-     "all matches": "全部合并",
-     "largest only": "只取最大"
+  "QG_PhotoSheet": {
+    "display_name": "QG 照片排版",
+    "description": "把一张照片按相纸尺寸铺满排版：填相纸宽高（厘米）、分辨率、安全边距和照片间距，能放多少张就居中等距排多少张。相纸、边距、间距的单位是厘米，描边和字号是像素 —— 参数名里写清楚了。照片放不下时直接报错并给出实际数字，不会给你一张白纸。批量输入每帧各出一张相纸。可选画裁切角标、在下方加一行标注文字。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要重复排版的照片。批量进来每帧各出一张相纸；照片不会被缩放，只重复。"
+      },
+      "paper_w": {
+        "name": "相纸宽",
+        "tooltip": "相纸宽度，单位厘米。12.7 × 8.9 是 5 寸，10.1 × 15.2 是 6 寸。"
+      },
+      "paper_h": {
+        "name": "相纸高",
+        "tooltip": "相纸高度，单位厘米。"
+      },
+      "dpi": {
+        "name": "分辨率",
+        "tooltip": "冲印分辨率，决定相纸有多少像素：12.7 厘米在 350dpi 下是 1750 像素。"
+      },
+      "margin": {
+        "name": "安全边距",
+        "tooltip": "四边留出的空白，单位厘米。打印机通常够不到最外面几毫米。"
+      },
+      "spacing": {
+        "name": "照片间距",
+        "tooltip": "照片之间的缝宽，单位厘米。裁切角标也是画在这条缝里的。"
+      },
+      "border": {
+        "name": "描边",
+        "tooltip": "给每张照片加一圈黑框，单位是像素。它会让照片变大，所以会减少能排的张数。"
+      },
+      "cut_marks": {
+        "name": "裁切角标",
+        "tooltip": "在每张照片四角外侧画短 L 形标记，方便下刀。需要间距大于 0 才有地方画。",
+        "options": {
+          "True": "画裁切角标",
+          "False": "不画"
+        }
+      },
+      "auto_orient": {
+        "name": "自动横竖版",
+        "tooltip": "哪个方向能排更多张就自动把相纸转过来。一样多时保持你设定的方向。",
+        "options": {
+          "True": "自动转向",
+          "False": "按设定方向"
+        }
+      },
+      "caption": {
+        "name": "标注文字",
+        "tooltip": "印在照片区域下方的一行字。画在图上，不是写进文件。留空就不画。"
+      },
+      "font": {
+        "name": "字体",
+        "tooltip": "标注字体。下拉首项是随包的 Noto Sans SC（SIL OFL 1.1，含中文）；内置位图字体没有中文字形。"
+      },
+      "font_size": {
+        "name": "字号",
+        "tooltip": "标注文字的大小，单位是像素。填 0 就完全不画，也不会占用高度。"
+      },
+      "auto_fit": {
+        "name": "自动缩小",
+        "tooltip": "照片比相纸大时，等比缩小到刚好放一张，而不是把整个流程停下来。日志会写明缩到了百分之多少、印出来大约多少 dpi。关掉就按原来的方式直接报错，适合你想知道尺寸不对、而不是被悄悄缩小的情况。",
+        "options": {
+          "True": "缩到放得下",
+          "False": "放不下就报错"
+        }
+      },
+      "photo_dpi": {
+        "name": "照片 DPI",
+        "tooltip": "这张照片是按多少 dpi 出的图，用来把像素读成真实厘米。填 0 就是按像素直接排（原来的行为）。比如 1 寸照 @600dpi 是 591x827 像素，直接塞进350dpi 的相纸会印成 4.3x6.0 厘米、一张纸只排 2 张；填 600 就换算成345x482，印出来正好 2.5x3.5 厘米、一张排 9 张。接证件照节点的 DPI 输出即可自动对齐。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "排版图像",
+        "tooltip": "每帧输入对应一张相纸，尺寸是相纸厘米数乘以分辨率。"
+      },
+      "1": {
+        "name": "列数",
+        "tooltip": "横向排了几张。"
+      },
+      "2": {
+        "name": "行数",
+        "tooltip": "纵向排了几行。"
+      },
+      "3": {
+        "name": "总张数",
+        "tooltip": "列数乘行数，一张相纸上印了几张。"
+      }
     }
-   },
-   "grow": {
-    "name": "外扩",
-    "tooltip": "蒙版向外扩多少像素。0 保持精确轮廓。"
-   },
-   "soften": {
-    "name": "软化",
-    "tooltip": "蒙版边缘软化多少像素。0 保持硬边。"
-   },
-   "if_nothing": {
-    "name": "找不到时",
-    "tooltip": "没有任何匹配时怎么办。终止运行：工作流在此停止并给出提示，本节点之后一律不跑。空蒙版：继续运行，输出一张全黑蒙版。",
-    "options": {
-     "stop the run": "终止运行",
-     "empty mask": "输出空蒙版"
+  },
+  "QG_IDCardSheet": {
+    "display_name": "QG 身份证拼版",
+    "description": "把拍歪的卡片摆正，铺到纸上。给正面（和可选的背面）图像 + 蒙版，节点按蒙版找四角拉成正射图，加圆角与投影，按厘米居中排在纸上。只放一面就把背面两根线都拔掉。",
+    "inputs": {
+      "front_image": {
+        "name": "正面图",
+        "tooltip": "卡片照片。拍歪、有透视都行，蒙版对得上即可。"
+      },
+      "front_mask": {
+        "name": "正面蒙版",
+        "tooltip": "卡片区域的蒙版，和正面图同尺寸。抠图节点或手绘都行，白=卡片。"
+      },
+      "paper_w": {
+        "name": "纸宽(cm)",
+        "tooltip": "A4 是 21.0，5 寸相纸 12.7。"
+      },
+      "paper_h": {
+        "name": "纸高(cm)",
+        "tooltip": "A4 是 29.7，5 寸相纸 8.9。"
+      },
+      "dpi": {
+        "name": "打印 dpi",
+        "tooltip": "450 是参考实现的口径；印件别低于 300。"
+      },
+      "gap": {
+        "name": "间距(cm)",
+        "tooltip": "正反面之间的间距，只放一面时忽略。"
+      },
+      "card_w": {
+        "name": "卡片宽(cm)",
+        "tooltip": "二代身份证 8.56（85.6mm）。"
+      },
+      "card_h": {
+        "name": "卡片高(cm)",
+        "tooltip": "二代身份证 5.4（54mm）。"
+      },
+      "corner_pct": {
+        "name": "圆角(%)",
+        "tooltip": "占短边的百分比，身份证实际约 6%。0 是直角。"
+      },
+      "rotate_180": {
+        "name": "旋转180°",
+        "tooltip": "出来是倒的就打开。四边形只能看出长边朝哪，分不出正立还是倒立。",
+        "options": {
+          "True": "转到正立",
+          "False": "不转"
+        }
+      },
+      "shadow_offset": {
+        "name": "阴影偏移(mm)",
+        "tooltip": "投影相对卡片的位移，0 是只留糊边不偏移。"
+      },
+      "shadow_blur": {
+        "name": "阴影模糊(mm)",
+        "tooltip": "投影的虚化半径，0 是硬边。"
+      },
+      "shadow_opacity": {
+        "name": "阴影不透明度",
+        "tooltip": "0~255，0 关掉投影。"
+      },
+      "auto_contrast": {
+        "name": "自动对比度",
+        "tooltip": "0 关。只在卡片上统计，白纸不参与。"
+      },
+      "auto_tone": {
+        "name": "自动色调",
+        "tooltip": "灰度世界白平衡，偏黄的扫描件用它。0 关。"
+      },
+      "grayscale": {
+        "name": "黑白",
+        "tooltip": "整张纸转灰度，复印件效果。",
+        "options": {
+          "True": "黑白",
+          "False": "彩色"
+        }
+      },
+      "bg_color": {
+        "name": "背景色",
+        "tooltip": "纸张底色，支持 #FFFFFF、white、255,255,255。"
+      },
+      "back_image": {
+        "name": "背面图",
+        "tooltip": "可选。要和背面蒙版一起接。"
+      },
+      "back_mask": {
+        "name": "背面蒙版",
+        "tooltip": "可选。要和背面图一起接。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "整张纸：正面（和可选的背面）按厘米居中排好，带圆角与投影。"
+      }
     }
-   },
-   "preview": {
-    "name": "预览",
-    "tooltip": "在节点上显示染色+描边的找到区域。关掉可省去写临时预览文件。"
-   },
-   "drop_small": {
-    "name": "剔除碎块",
-    "tooltip": "剔除搜索偶尔在目标旁边留下的零碎小白斑——蒙版里独立、不属于目标的小岛。面积最大的一块永远保留。"
-   },
-   "small_size": {
-    "name": "碎块面积",
-    "tooltip": "多小的一块算零碎噪点：以最大块面积的百分比计。仅在「剔除碎块」开启时生效。"
-   },
-   "threshold": {
-    "name": "确信度",
-    "tooltip": "SAM 3 判定「匹配」所需的最低确信度。小物体被漏掉就调低；把不是目标的东西框进来了就调高。"
-   },
-   "fill_holes": {
-    "name": "填补孔洞",
-    "tooltip": "填补完全位于蒙版内部的空隙（分割在头发、布料上常留的洞）。开启后得到实心形状。"
-   },
-   "free_vram": {
-    "name": "释放显存",
-    "tooltip": "搜索结束后立刻把 SAM 3 移出显存。后面还要加载大模型的工作流建议开启；关闭则下一次搜索稍快。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "蒙版",
-    "tooltip": "物体处为白色。每张图一个蒙版。"
-   },
-   "1": {
-    "name": "抠图",
-    "tooltip": "蒙版作为透明通道的 RGBA 图，蒙版外全透明。"
-   },
-   "2": {
-    "name": "找到数量",
-    "tooltip": "第一张图里匹配该名称的物体个数。"
-   }
-  }
- },
- "QG_FaceRectify": {
-  "display_name": "QG 人脸自动矫正",
-  "description": "自动把歪的、横竖颠倒的人脸照片转正。流程：先按 0°/90°/180°/270° 四个方向检测人脸，找到正向（解决横拍竖拍颠倒）；再用 5 点人脸关键点的左右眼中心连线计算倾斜角，以图像中心旋转（Lanczos4，边缘复制填充无黑角）；旋转后中心裁剪回原尺寸，并按倾斜角从四边裁掉旋转拉出的模糊边缘（裁剪量 = 边长 × 角度^0.8 ÷ 100 ÷ 边缘裁剪，边缘裁剪越大裁得越少），因此轻微倾斜时最终尺寸会略小于原图。检测不到人脸、模型缺失或任何异常时原图直通，不会中断流水线。依赖 dlib 与包内置的 shape_predictor_5_face_landmarks.dat 模型。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要矫正的图片。"
-   },
-   "enable_fix": {
-    "name": "开启矫正",
-    "tooltip": "关闭后原图直通，可用于对比效果。",
-    "options": {
-     "True": "开启人脸自动矫正",
-     "False": "关闭（原图直通）"
+  "QG_Watermark": {
+    "display_name": "QG 斜向水印",
+    "description": "在任何图上斜向平铺文字水印。字体走和照片排版节点同一套发现逻辑，下拉里只列这台机器上真能读到的字体。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要盖水印的图，批量逐帧处理。"
+      },
+      "text": {
+        "name": "水印文字",
+        "tooltip": "写什么就重复铺什么，中文需要中文字体。"
+      },
+      "font": {
+        "name": "水印字体",
+        "tooltip": "默认已指向随包的 Noto Sans SC（SIL OFL 1.1，含中文字形）；内置位图字体只有英文。"
+      },
+      "size": {
+        "name": "字号(px)",
+        "tooltip": "像素。450 dpi 的 A4 上 48 大约 2.7 mm 高。"
+      },
+      "color": {
+        "name": "颜色",
+        "tooltip": "支持 #RRGGBB、gray、128,128,128。"
+      },
+      "opacity": {
+        "name": "不透明度",
+        "tooltip": "百分比，50 是常见的浅灰效果。"
+      },
+      "spacing": {
+        "name": "间距(px)",
+        "tooltip": "水印单元之间的空白，调小更密。"
+      },
+      "angle": {
+        "name": "角度",
+        "tooltip": "45 是斜向铺开，0 是横平竖直。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "盖好水印的图，尺寸与原图一致。"
+      }
     }
-   },
-   "edge_trim": {
-    "name": "边缘裁剪",
-    "tooltip": "旋转后从四边裁掉模糊边缘的力度：1 裁最多、5 裁最少，默认 2。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "矫正后的图像",
-    "tooltip": "人脸转正后的图片（通常比原图略小，因为裁掉了边缘）。"
-   }
-  }
- },
- "QG_BiRefNet": {
-  "display_name": "QG BiRefNet 去除背景",
-  "description": "用 BiRefNet 二分图像分割模型做高精度抠图，发丝、半透明边缘处理效果好。流程：图片缩放到模型推理分辨率（方形、32 对齐）推理出前景概率，再缩回原尺寸；随后依次做灵敏度增益、高斯模糊、遮罩偏移（Max/MinFilter 腐蚀膨胀）、可选反转、可选前景精修，最后按背景类型输出透明 RGBA 或纯色底合成图。输出三路：IMAGE（抠图结果）、MASK（单通道遮罩）、MASK_IMAGE（遮罩的三通道可视化）。模型查找顺序：models/RMBG/BiRefNet/ 共享缓存（与 ComfyUI-RMBG 插件互通）→ extra_model_paths.yaml 挂载的 BiRefNet、RMBG 类别目录。挂载库里的 ZhengPeng7 官方命名权重（如 General.safetensors、General-Lite.safetensors）会被自动识别为对应变体（两套命名是同一文件）。都找不到时才从 HuggingFace 下载到共享缓存。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要抠图的图像。批次里每帧独立推理，输出与输入同尺寸。"
-   },
-   "model": {
-    "name": "模型",
-    "tooltip": "BiRefNet 变体：RMBG-2.0 是 BRIA 的商用级权重（结构同 BiRefNet，精度最高）；general 通用平衡；HR 高分辨率（输入 2048）；portrait 人像；matting 通用精细化；lite 轻量版速度快；512x512 固定分辨率速度最快；toonout 卡通描边；Lucida 透明物/伪装/文字标志特化。首次使用自动下载。",
-    "options": {
-     "RMBG-2.0": "BRIA 商用级模型（抠图精度最高，约 885MB）",
-     "BiRefNet-general": "通用平衡（推荐首选，约 930MB）",
-     "BiRefNet-HR": "高分辨率档（2048 输入）",
-     "BiRefNet-portrait": "人像专精",
-     "BiRefNet-matting": "通用精细化抠图",
-     "BiRefNet-HR-matting": "高分辨率精细化",
-     "BiRefNet_dynamic": "动态分辨率（高分辨 DIS）",
-     "BiRefNet_toonout": "卡通描边提取",
-     "Lucida": "透明物/伪装/文字标志特化",
-     "BiRefNet_512x512": "固定 512，速度优先",
-     "BiRefNet_lite": "轻量版（约 220MB，速度快）",
-     "BiRefNet_lite-2K": "轻量版 2K 档",
-     "BiRefNet_lite-matting": "轻量版精细化",
-     "BiRefNet-dis": "DIS 高精度二分分割（挂载库 DIS.safetensors）",
-     "BiRefNet-dis-tr": "DIS-TR 训练集版（挂载库 DIS-TR_TEs.safetensors）",
-     "BiRefNet-cod": "COD 伪装目标分割（挂载库 COD.safetensors）",
-     "BiRefNet-hrsod": "HRSOD 高分辨率显著目标（挂载库 HRSOD.safetensors）",
-     "BiRefNet-legacy": "旧版 General 权重（挂载库 General-legacy.safetensors）"
+  "QG_FaceAlign": {
+    "display_name": "QG 面部对齐",
+    "description": "把目标图的人脸对齐到参考图：按人脸面积比缩放整图、按眼线角差旋转（可关），目标脸中心对齐参考脸中心后裁回参考图尺寸；不接参考图时只把目标图绕图中心摆平。多张脸取离图中心最近的一张；填充模式决定旋转/扩画布的空白底色（自定义颜色或按四边像素自适应的边框颜色）。没检出人脸时原样返回目标图。人脸检测复用本包 _face_helpers：mediapipe 优先，模型缺失自动按需下载 face_landmarker.task，缺 mediapipe 回退 OpenCV Haar。来源为参照 Goohaitools「孤海-面部对齐」规格的独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "target_image": {
+        "name": "目标图",
+        "tooltip": "要被对齐的图像，批量只取第一帧。"
+      },
+      "reference_image": {
+        "name": "参考图",
+        "tooltip": "对齐基准：目标图会被缩放/旋转到与这张图的人脸大小、角度一致，输出尺寸等于参考图。不接时只摆平目标图角度。"
+      },
+      "confidence": {
+        "name": "面部置信度",
+        "tooltip": "人脸检测的最低置信度 0-1，默认 0.3。检出不了脸就调低，误检就调高。"
+      },
+      "angle_align": {
+        "name": "角度对齐",
+        "tooltip": "开启时按两图眼线角差旋转目标图（>90° 自动归到 ±90° 内）；关闭则只缩放不平转。"
+      },
+      "fill_mode": {
+        "name": "填充模式",
+        "tooltip": "旋转/扩画布空白区的底色：自定义颜色用下面的色值；边框颜色按目标图四边像素自适应取色。中文只是显示名，存档值是英文。",
+        "options": {
+          "custom_color": "自定义颜色",
+          "border_color": "边框颜色"
+        }
+      },
+      "custom_fill_color": {
+        "name": "自定义填充色",
+        "tooltip": "填充模式为自定义颜色时的底色，点色块弹色板。默认 #364254。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "对齐后的 IMAGE：有参考图时尺寸=参考图；无参考图摆平时尺寸可能因旋转 expand 变大。"
+      }
     }
-   },
-   "sensitivity": {
-    "name": "灵敏度",
-    "tooltip": "遮罩亮度增益。1.0 不变；低于 1 时遮罩整体变亮（前景判定更宽松），0 最激进。"
-   },
-   "mask_blur": {
-    "name": "遮罩模糊",
-    "tooltip": "遮罩边缘高斯模糊半径，0 不模糊。边缘生硬时可加 1~4。"
-   },
-   "mask_offset": {
-    "name": "遮罩偏移",
-    "tooltip": "整体扩张/收缩遮罩（像素），范围 -20~20。正值向外扩、吃掉一圈背景；负值向内收、去掉边缘残留的背景色。"
-   },
-   "invert_output": {
-    "name": "反转输出",
-    "tooltip": "反转遮罩（黑白对调），用于取背景而不是前景。"
-   },
-   "refine_foreground": {
-    "name": "精修前景优化",
-    "tooltip": "对半透明边缘区做前景颜色精修，弱化边缘残留的原背景色。头发丝/毛边明显带底色时开启。需要 opencv；没装时会给出可照做的安装提示。"
-   },
-   "unload_model": {
-    "name": "释放模型显存",
-    "tooltip": "执行完后从内存卸载模型。CPU 模式下意义不大，除非要临时腾内存。"
-   },
-   "background": {
-    "name": "背景类型",
-    "tooltip": "Alpha 输出透明背景 RGBA；Color 用下面的颜色填底后输出 RGB。",
-    "options": {
-     "Alpha": "透明背景",
-     "Color": "纯色背景"
+  },
+  "QG_IDPhotoOutfit": {
+    "display_name": "QG 证件照服装发型",
+    "description": "证件照服装/发型模板选择：节点面板里浏览缩略图、搜索、点选模板，选中的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。插件内置 7 分类 200 张模板（女士/男士/女童/男童/老年服装 + 女士/男士发型，均配提示词），开箱即用；还可往 ComfyUI/models/id_photo/ 放自己的分类或补图，两边合并显示。功能规格参照 Goohaitools「孤海-证件照服装发型」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库（原样复制，见 THIRD-PARTY-NOTICES）。",
+    "inputs": {
+      "style": {
+        "name": "风格类型",
+        "tooltip": "模板分类（来自 models/id_photo/ 下的目录名）：服装/发型等。在节点面板里选模板后提示词自动写进下面的控件。"
+      },
+      "prompt_output": {
+        "name": "提示词",
+        "tooltip": "选中模板的服装/发型描述；面板点选会覆盖此值，也可手动编辑成自定义提示词。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示词",
+        "tooltip": "STRING：当前模板提示词，原样透传给下游。"
+      }
     }
-   },
-   "background_color": {
-    "name": "背景颜色",
-    "tooltip": "背景为 Color 时生效。#RRGGBB 或 #RRGGBBAA 十六进制颜色，默认 #222222。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "抠图结果：Alpha 模式为带透明通道的 RGBA；Color 模式为合成后的 RGB。"
-   },
-   "1": {
-    "name": "遮罩",
-    "tooltip": "前景概率单通道遮罩（0..1）。"
-   },
-   "2": {
-    "name": "遮罩预览图",
-    "tooltip": "遮罩的三通道可视化，方便接预览节点查看。"
-   }
-  }
- },
- "QG_QwenTextEncode": {
-  "inputs": {
-   "clip": {
-    "name": "clip",
-    "tooltip": "Qwen Image 2.1 的 CLIP 加载器输出。"
-   },
-   "vae": {
-    "name": "vae",
-    "tooltip": "可选。接上后每张参考图会过一遍 VAE 编码，以 reference_latents 注入条件；同时图 1 的参考 latent 会作为初始 latent 输出。"
-   },
-   "mask": {
-    "name": "mask",
-    "tooltip": "图 1 的局部采样遮罩：白色区域修改，黑色区域保护。可见面积不超过画布 0.2% 时按没接处理。"
-   },
-   "image_01": {
-    "name": "图像 1",
-    "tooltip": "参考图；主参考图（图 1）决定整体尺寸路径，其余图 2~10 依次跟随。"
-   },
-   "image_02": {
-    "name": "图像 2"
-   },
-   "image_03": {
-    "name": "图像 3"
-   },
-   "image_04": {
-    "name": "图像 4"
-   },
-   "image_05": {
-    "name": "图像 5"
-   },
-   "image_06": {
-    "name": "图像 6"
-   },
-   "image_07": {
-    "name": "图像 7"
-   },
-   "image_08": {
-    "name": "图像 8"
-   },
-   "image_09": {
-    "name": "图像 9"
-   },
-   "image_10": {
-    "name": "图像 10"
-   }
-  },
-  "widgets": {
-   "prompt": {
-    "name": "prompt",
-    "tooltip": "正向提示词。"
-   },
-   "negative_prompt": {
-    "name": "negative_prompt",
-    "tooltip": "负面提示词。本节点面向 CFG=1 工作流，负面分支不做第二次编码，CFG>1 时负面提示词（有意地）不生效。"
-   },
-   "latent_width": {
-    "name": "latent_width",
-    "tooltip": "初始 latent 宽度；输入图 1 且其宽高比与目标接近时，参考图也用这个尺寸。"
-   },
-   "latent_height": {
-    "name": "latent_height",
-    "tooltip": "初始 latent 高度；含义同上。"
-   },
-   "mode": {
-    "name": "mode",
-    "tooltip": "「填充」：图 1 等比缩放放进 latent 画布、空余填灰，可用 info 口接「还原画布」节点把灰边裁回来；「裁剪」：居中裁到 latent 尺寸。"
-   },
-   "ref_image_size": {
-    "name": "ref_image_size",
-    "tooltip": "参考图的目标面积：「自动」按 latent 尺寸（1~2 图）/1024²（3~4 图）/768²（5 图及以上）取；固定值则用该边长平方（上限 2048²）。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "正向条件",
-    "tooltip": "CONDITIONING：正向提示词与参考图编码后的条件。"
-   },
-   "1": {
-    "name": "负向条件",
-    "tooltip": "CONDITIONING：负向提示词编码后的条件。"
-   },
-   "2": {
-    "name": "潜空间",
-    "tooltip": "LATENT：填充模式下的初始 latent（图 1 参考 latent）。"
-   },
-   "3": {
-    "name": "还原信息",
-    "tooltip": "QWEN_IMAGE_21_GH_RESTORE_INFO：接 QG_QwenRestore 还原画布。"
-   }
-  },
-  "display_name": "Qwen Image 2.1 文本编码",
-  "description": "Qwen Image 2.1 专用文本编码：1~10 张参考图各占一个稳定槽位（主图决定尺寸路径），自动按宽高比安全缩放参考图，支持局部采样遮罩与 VAE 参考 latent 注入；填充模式下输出 info 供 QG_QwenRestore 还原画布。上游为 Goohaitools「Qwen image 2.1 文本编码」，与原版可互换。"
- },
- "QG_QwenRestore": {
-  "inputs": {
-   "image": {
-    "name": "image",
-    "tooltip": "采样后的图像。"
-   },
-   "info": {
-    "name": "info",
-    "tooltip": "「Qwen Image 2.1 文本编码」的 info 输出；只在填充模式下有内容，其他情况原图直接通过。与本包或 Goohaitools 原版编码节点的 info 均可互连。"
-   }
-  },
-  "widgets": {},
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "按 info 里记录的画布/内容位置比例，把填充时加的灰边裁掉的图像。"
-   }
-  },
-  "display_name": "还原 Qwen Image 2.1 画布",
-  "description": "配合「Qwen Image 2.1 文本编码」的填充模式使用：按 info 里记录的画布/内容位置比例，把编码时加的灰边裁掉，恢复内容本身的画布。与上游原版可互换。"
- },
- "QG_QwenPromptOptimizer": {
-  "inputs": {
-   "图像_01": {
-    "name": "图像 1",
-    "tooltip": "参考图。可接多张（最多 10 张）：接图且提示词为空=反推，接图且有提示词=按提示词改写。"
-   },
-   "图像_02": {
-    "name": "图像 2"
-   },
-   "图像_03": {
-    "name": "图像 3"
-   },
-   "图像_04": {
-    "name": "图像 4"
-   },
-   "图像_05": {
-    "name": "图像 5"
-   },
-   "图像_06": {
-    "name": "图像 6"
-   },
-   "图像_07": {
-    "name": "图像 7"
-   },
-   "图像_08": {
-    "name": "图像 8"
-   },
-   "图像_09": {
-    "name": "图像 9"
-   },
-   "图像_10": {
-    "name": "图像 10"
-   },
-   "自定义skill": {
-    "name": "自定义 skill",
-    "tooltip": "接一段自定义要求作为系统提示词；不接或留空就用内置提示词。输出格式由节点自动处理，输出语言和透明背景仍由下面的控件决定。"
-   }
-  },
-  "widgets": {
-   "用户提示词": {
-    "name": "用户提示词",
-    "tooltip": "正向引导词。留空且接了图像时进入反推模式：由视觉模型看图写出完整生成提示词；有提示词且接了图像时是图生图改写；不接图是纯文生图扩写。"
-   },
-   "文生图模型": {
-    "name": "文生图模型",
-    "tooltip": "text-to-image GGUF 模型（文件名含 PE-T2I）。纯文字扩写、以及「图像+空提示词」的反推模式都用它。"
-   },
-   "图生图模型": {
-    "name": "图生图模型",
-    "tooltip": "image-to-image GGUF 模型（文件名含 PE-I2I）。接图像且有提示词时的改写模式用它。"
-   },
-   "视觉模型": {
-    "name": "视觉模型",
-    "tooltip": "mmproj 视觉编码器（文件名含 mmproj）。接图像时必须选对，反推/改写全靠它看图。"
-   },
-   "输出语言": {
-    "name": "输出语言",
-    "tooltip": "输出提示词的描述性文字语言：「自动」按用户提示词语言判断，反推模式固定中文。"
-   },
-   "透明背景": {
-    "name": "透明背景",
-    "tooltip": "开启后强制输出描述透明背景（RGBA），自动改写/删除与背景矛盾的描述。"
-   },
-   "种子值": {
-    "name": "种子值",
-    "tooltip": "采样种子，同一种子同一输入结果可复现。"
-   },
-   "种子模式": {
-    "name": "种子模式",
-    "tooltip": "「随机」时每次排队自动换新种子执行，结束后回填实际值。"
-   },
-   "卸载模型": {
-    "name": "卸载模型",
-    "tooltip": "运行后是否把 llama-cpp 模型从内存卸载：「自动」按剩余内存判断；显存紧张时建议「运行前后自动卸载」。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "优化提示词",
-    "tooltip": "优化/反推得到的最终提示词文本。"
-   },
-   "1": {
-    "name": "JSON 结果",
-    "tooltip": "同一结果的 JSON 串（rewritten_prompt + wh_ratio 等）。"
-   },
-   "2": {
-    "name": "是否反推",
-    "tooltip": "BOOLEAN：本次执行是否走了反推模式（接图且提示词为空）。"
-   }
-  },
-  "display_name": "Qwen image 2.1 提示词优化",
-  "description": "本地 llama-cpp 提示词优化：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；最多 10 张参考图，语言锁定、透明背景改写等行为与上游逐项对齐。需 models/LLM 下的 Qwen GGUF + mmproj。"
- },
- "QG_IDPhotoParams": {
-  "display_name": "QG 证件照参数",
-  "description": "把「这张照片要什么样」集中在一个节点里：尺寸、底色、渲染方式、打印 dpi。输出一路参数连给抠图换背景节点，另外把算好的像素宽高与 dpi 单独引出来 ——排版节点的照片 DPI 直接接这根线就行，不用手抄数字。底色是下拉，界面显示中文；要别的颜色选「自定义」再填色值。",
-  "inputs": {
-   "preset": {
-    "name": "大小",
-    "tooltip": "成品尺寸。按像素给的预设（358x441 这类）自带 DPI，会覆盖下面的 dpi。"
-   },
-   "bg_color": {
-    "name": "背景颜色",
-    "tooltip": "白 / 蓝 / 深蓝 / 红 / 浅蓝 / 灰，或选「自定义」在下一格填色值。"
-   },
-   "bg_custom": {
-    "name": "自定义色值",
-    "tooltip": "只有背景颜色选「自定义」时才用。填 #438edb 这种色值；留空则退回蓝色。"
-   },
-   "bg_color_2": {
-    "name": "渐变第二色",
-    "tooltip": "渐变背景的第二个颜色，纯色渲染时忽略。"
-   },
-   "render": {
-    "name": "渲染",
-    "tooltip": "纯色；上下渐变（主色在上）；中心渐变（中心主色，四角第二色）。"
-   },
-   "dpi": {
-    "name": "DPI",
-    "tooltip": "打印分辨率。300 是冲印标准，600 给的是双倍像素。"
-   },
-   "custom_width": {
-    "name": "自定义宽（仅 custom）",
-    "tooltip": "只有大小选 custom 时才用，单位厘米。要按像素出图请直接挑像素预设，别在这里填像素数。"
-   },
-   "custom_height": {
-    "name": "自定义高（仅 custom）",
-    "tooltip": "只有大小选 custom 时才用，单位厘米。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "参数",
-    "tooltip": "连给抠图换背景节点的「参数」输入。"
-   },
-   "1": {
-    "name": "宽",
-    "tooltip": "算好的成品像素宽，自定义厘米尺寸也换算过了。"
-   },
-   "2": {
-    "name": "高",
-    "tooltip": "算好的成品像素高。"
-   },
-   "3": {
-    "name": "DPI",
-    "tooltip": "实际用到的 DPI，像素预设会覆盖控件里的值。"
-   },
-   "4": {
-    "name": "主色",
-    "tooltip": "主背景色的 #RRGGBB 文本（渐变取第一色），可直接连给取色/颜色节点。"
-   }
-  }
- },
- "QG_PortraitMatte": {
-  "display_name": "QG 人像抠图换背景",
-  "description": "把人像从背景里抠出来，换纯色或渐变底，按证件照的构图裁好。尺寸与底色来自「证件照参数」节点 —— 这一头只管怎么抠、怎么修。抠图用 onnx 模型：modnet 系快（512 输入），rmbg / birefnet 慢但边缘更准，模型放 ComfyUI/models/background_removal 就会出现在下拉里。输出成品图、目标尺寸的蒙版，以及一张长边不小于 600 像素的高清版。批量输入逐帧处理；某帧找不到脸时会等比装入目标尺寸并居中。",
-  "inputs": {
-   "image": {
-    "name": "输入图像",
-    "tooltip": "要处理的人像。批量进来每帧各出一张。"
-   },
-   "params": {
-    "name": "参数",
-    "tooltip": "接「证件照参数」节点。不接就用一寸、蓝底、300 dpi。"
-   },
-   "matting_model": {
-    "name": "抠图模型",
-    "tooltip": "modnet_photographic_portrait_matting 速度与质量均衡；rmbg-1.4 / birefnet-v1-lite 边缘更准但要 2 秒到 15 秒。"
-   },
-   "face_alignment": {
-    "name": "人脸对齐",
-    "tooltip": "把画面转到双眼水平，超过 2 度才动。关掉保持原始倾斜。",
-    "options": {
-     "True": "摆正双眼",
-     "False": "保持原倾斜"
+  "QG_MarriageCloth": {
+    "display_name": "QG 结婚登记照服装",
+    "description": "结婚登记照服装选择：节点面板里浏览服装参考图并点选，输出选中的 IMAGE 供图生图使用（序号 0 输出纯色底图）。插件内置 81 张双人服装素材，开箱即用；还可往 ComfyUI/models/marriage_cloth/ 放自己的图，两边合并显示。功能规格参照 Goohaitools「孤海-结婚登记照服装」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库。",
+    "inputs": {
+      "image_index": {
+        "name": "服装序号",
+        "tooltip": "1 到 N 选一张（N 见节点面板），0 输出纯色底图；素材增删后序号按文件名自然排序重排。"
+      },
+      "resize_mode": {
+        "name": "缩放方式",
+        "tooltip": "fit_pad 等比缩放补边（默认，不变形）/ stretch 拉伸填满（可能变形）/ original 不缩放。"
+      },
+      "target_width": {
+        "name": "目标宽",
+        "tooltip": "输出宽度（像素）；original 模式下忽略。"
+      },
+      "target_height": {
+        "name": "目标高",
+        "tooltip": "输出高度（像素）；original 模式下忽略。"
+      },
+      "pad_color": {
+        "name": "底色",
+        "tooltip": "纯色底图与 fit_pad 补边用的颜色，支持 #RRGGBB、#ABC 或颜色名。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "IMAGE：选中服装参考图（或纯色底图）。"
+      }
     }
-   },
-   "change_bg_only": {
-    "name": "仅更换背景",
-    "tooltip": "只换背景，不裁剪不缩放。适合先检查抠图干不干净。",
-    "options": {
-     "True": "只换背景",
-     "False": "换背景并裁剪"
+  },
+  "QG_MaskTopExpand": {
+    "display_name": "QG 头顶遮罩扩展",
+    "description": "头顶遮罩扩展：从遮罩最高点向上补一块矩形，给外补画板/扩图节点留出发量补全的区域。支持批量遮罩逐帧处理、矩形羽化、三种中心点取法，默认与原遮罩合并（Replace 模式只保留新矩形）。功能规格参照 Goohaitools「孤海-头顶遮罩」独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "mask": {
+        "name": "遮罩",
+        "tooltip": "以它的最高点作为矩形的上边界锚点。"
+      },
+      "expand_x": {
+        "name": "水平半径",
+        "tooltip": "矩形宽度为 中心 x ± 该值（像素）。"
+      },
+      "expand_y": {
+        "name": "向上高度",
+        "tooltip": "矩形从最高点向上延伸的像素数。"
+      },
+      "center_mode": {
+        "name": "中心取法",
+        "tooltip": "top_center 顶行中点（默认）/ bbox_center 外接框中点 / mask_center 遮罩质心。"
+      },
+      "feather": {
+        "name": "羽化",
+        "tooltip": "矩形边缘的高斯模糊半径，0 为硬边。"
+      },
+      "keep_original": {
+        "name": "合并原遮罩",
+        "tooltip": "开启时与原遮罩取并集；关闭只输出新矩形。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "遮罩",
+        "tooltip": "MASK：扩展后的遮罩，形状与输入一致。"
+      }
     }
-   },
-   "crop_only": {
-    "name": "仅裁剪",
-    "tooltip": "只裁剪不抠图。此时蒙版全 1，背景保持原样。",
-    "options": {
-     "True": "只裁剪",
-     "False": "抠图并裁剪"
+  },
+  "QG_IDPhotoPrompt": {
+    "display_name": "QG 证件照简易提示词",
+    "description": "证件照简易提示词：13 个维度下拉（构图/国籍/性别/体型/发色/发型/服装颜色/服装款式/服饰佩饰/妆容/表情/背景色/其他佩饰）组合成一句中文人像提示词，可直接接文本编码器。每维都能选「无」或「随机」，seed 保证随机结果可复现；下拉存档值为英文编号、中文仅显示名，改文案不会破坏旧工作流。功能规格参照 Goohaitools「孤海-证件照简易提示词」独立实现（GPL-3.0，未复制上游源码）。",
+    "inputs": {
+      "composition": {
+        "name": "构图",
+        "tooltip": "构图：选「无」则不写入提示词，选「随机」则按种子从 5 个候选中抽一个。"
+      },
+      "nationality": {
+        "name": "国籍",
+        "tooltip": "国籍：选「无」则不写入提示词，选「随机」则按种子从 15 个候选中抽一个。"
+      },
+      "gender": {
+        "name": "性别",
+        "tooltip": "性别：选「无」则不写入提示词，选「随机」则按种子从 11 个候选中抽一个。"
+      },
+      "body_shape": {
+        "name": "体型",
+        "tooltip": "体型：选「无」则不写入提示词，选「随机」则按种子从 7 个候选中抽一个。"
+      },
+      "hair_color": {
+        "name": "发色",
+        "tooltip": "发色：选「无」则不写入提示词，选「随机」则按种子从 23 个候选中抽一个。"
+      },
+      "hairstyle": {
+        "name": "发型",
+        "tooltip": "发型：选「无」则不写入提示词，选「随机」则按种子从 22 个候选中抽一个。"
+      },
+      "clothing_color": {
+        "name": "服装颜色",
+        "tooltip": "服装颜色：选「无」则不写入提示词，选「随机」则按种子从 36 个候选中抽一个。"
+      },
+      "clothing_style": {
+        "name": "服装款式",
+        "tooltip": "服装款式：选「无」则不写入提示词，选「随机」则按种子从 33 个候选中抽一个。"
+      },
+      "accessory": {
+        "name": "服饰佩饰",
+        "tooltip": "服饰佩饰：选「无」则不写入提示词，选「随机」则按种子从 7 个候选中抽一个。"
+      },
+      "makeup": {
+        "name": "妆容",
+        "tooltip": "妆容：选「无」则不写入提示词，选「随机」则按种子从 16 个候选中抽一个。"
+      },
+      "expression": {
+        "name": "表情",
+        "tooltip": "表情：选「无」则不写入提示词，选「随机」则按种子从 6 个候选中抽一个。"
+      },
+      "background_color": {
+        "name": "背景色",
+        "tooltip": "背景色：选「无」则不写入提示词，选「随机」则按种子从 37 个候选中抽一个。"
+      },
+      "extra_accessory": {
+        "name": "其他佩饰",
+        "tooltip": "其他佩饰：选「无」则不写入提示词，选「随机」则按种子从 9 个候选中抽一个。"
+      },
+      "seed": {
+        "name": "随机种子",
+        "tooltip": "随机抽取用的种子；相同种子与相同下拉设置，输出必然一致。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "提示词",
+        "tooltip": "STRING：组合好的中文人像提示词。"
+      }
     }
-   },
-   "head_height": {
-    "name": "头高占比",
-    "tooltip": "头部（头发顶到下巴）占画面的高度比例。国标约 2/3，护照 58%~69%。这个口径与纸型无关：方版和竖版算出来是同一个头高比；参考实现那个「人脸框面积比」会随宽高比漂（同一组参数在方版上大 12 个点）。"
-   },
-   "top_distance": {
-    "name": "顶部距离",
-    "tooltip": "头顶（头发顶，不是人脸框顶）到画面上沿的距离，占裁剪框高度的比例。0.06 与参考实现的实测构图一致；想多留白就往大调，0.12 大约到国标上限那一档。"
-   },
-   "whitening_strength": {
-    "name": "美白强度",
-    "tooltip": "0 关，10 是满强度，15 等于再叠一次。"
-   },
-   "brightness_strength": {
-    "name": "亮度强度",
-    "tooltip": "直接加在像素值上，负数是压暗。"
-   },
-   "contrast_strength": {
-    "name": "对比度强度",
-    "tooltip": "百分比增益，0 不变。"
-   },
-   "saturation_strength": {
-    "name": "饱和度强度",
-    "tooltip": "百分比，负数是降饱和。"
-   },
-   "sharpen_strength": {
-    "name": "锐化强度",
-    "tooltip": "反锐化掩模。证件照建议 1~2，5 已经很硬。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "成品图",
-    "tooltip": "目标尺寸，背景已换。"
-   },
-   "1": {
-    "name": "蒙版",
-    "tooltip": "成品尺寸的蒙版：1 是人像，0 是背景。可以直接拿去别处合成。"
-   },
-   "2": {
-    "name": "高清图",
-    "tooltip": "同样构图，长边不小于 600 像素。拿去排版或再放大用这张。"
-   }
-  }
- },
- "QG_IDPhotoCrop": {
-  "display_name": "QG 证件照裁剪",
-  "description": "把一张人像裁成指定尺寸的证件照：一寸、美签、358×441 的电子身份证这些都在预设里。眼睛自动摆平，人脸按指定比例占画面宽。要裁的范围超出原图时会自动收回原图内（默认），照片四周不会再被补出一圈背景色 —— 素材本来已经裁得很紧、又把「脸部大小」调小，正是范围被撑出去的原因。整张图只重采样一次：裁剪框直接在原图上算好，一次仿射就出结果。输出补出来的区域的遮罩、是否补过边的布尔、实际用到的 DPI，以及一张把脸框、眼线和裁剪框画在原图上的定位示意图，方便眼睛核对参数。批量输入逐帧处理；某帧找不到脸时会等比装入目标尺寸并居中，而不是把原图原样丢出去。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "从 ComfyUI 的 input 文件夹里选择或上传一张人像。"
-   },
-   "preset": {
-    "name": "预设尺寸",
-    "tooltip": "标准尺寸。选了预设就忽略下面四个尺寸参数；custom 才用它们。按像素给的预设自带 DPI —— 358×441 的电子证件照按定义就是 350 dpi。"
-   },
-   "custom_width": {
-    "name": "自定义宽",
-    "tooltip": "只有预设选 custom 时才用。默认是厘米，改单位可填像素。"
-   },
-   "custom_height": {
-    "name": "自定义高",
-    "tooltip": "只有预设选 custom 时才用。"
-   },
-   "unit": {
-    "name": "单位",
-    "tooltip": "厘米：像素 = 厘米 / 2.54 × DPI。像素：填的就是像素。"
-   },
-   "dpi": {
-    "name": "DPI",
-    "tooltip": "一英寸算多少像素。打印通用 300；想要更大的文件用 600。"
-   },
-   "face_ratio": {
-    "name": "脸部大小",
-    "tooltip": "人脸轮廓占裁剪宽的比例。0.42 是标准证件照，调大就是更紧的头像。轮廓是耳到耳，比脸颊宽，所以这个数看着偏小。"
-   },
-   "eye_line": {
-    "name": "垂直偏移",
-    "tooltip": "眼睛连线在裁剪框内的位置（从顶边往下算的比例）。0.38 留出的头顶空间最像证件照。"
-   },
-   "auto_rotate": {
-    "name": "人脸矫正",
-    "tooltip": "把画面转到双眼水平。关掉就保持原来的倾斜，但仍然按眼中心取景。",
-    "options": {
-     "True": "摆平",
-     "False": "保持倾斜"
+  "QG_PhotoSheetMixed": {
+    "display_name": "QG 证件照混合排版（A5）",
+    "description": "证件照混合排版（A5）：13 种固定版式，含 6 种单尺寸网格与 7 种双尺寸混排（部分版式旋转照片、竖版 A5、零间距）。相纸/照片尺寸/间距为厘米，描边与文字大小为像素，DPI 决定像素。批量逐帧出图；描边画在照片内部不会挤占网格；版式放不下时等比缩到相纸内（关闭 fit_to_paper 则明确报错）。下拉存档值为英文编号、中文仅显示名。功能规格参照 Goohaitools「孤海-证件照排版（A5定制）」独立实现（GPL-3.0，未复制上游源码），13 个版式由数据表 + 统一引擎描述。",
+    "inputs": {
+      "image": {
+        "name": "证件照图像",
+        "tooltip": "一张证件照；批量输入时每一帧各自出一张相纸，按版式比例居中裁剪。"
+      },
+      "layout": {
+        "name": "版式",
+        "tooltip": "13 种 A5 版式之一；值为英文编号，中文名仅显示。"
+      },
+      "dpi": {
+        "name": "DPI",
+        "tooltip": "打印分辨率；厘米乘 DPI 得到相纸像素，证件照常用 300。"
+      },
+      "border_px": {
+        "name": "描边宽度（像素）",
+        "tooltip": "每张照片的描边，单位像素；画在照片内部，不改变网格尺寸。"
+      },
+      "border_color": {
+        "name": "描边颜色",
+        "tooltip": "支持 #RGB / #RRGGBB / 颜色名，非法值回退黑色。"
+      },
+      "caption": {
+        "name": "文字",
+        "tooltip": "印在网格底部的文字，后面会接版式名；留空时只印版式名。"
+      },
+      "font": {
+        "name": "字体",
+        "tooltip": "标注字体。下拉首项是随包的 Noto Sans SC（OFL，含中文），其后是 models/fonts 与系统字体。"
+      },
+      "font_size": {
+        "name": "文字大小（像素）",
+        "tooltip": "文字大小，单位像素；0 表示不印文字。"
+      },
+      "fit_to_paper": {
+        "name": "放不下时缩到相纸内",
+        "tooltip": "开启：整体等比缩小到相纸内；关闭：超界时报出具体像素数。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "排版图像",
+        "tooltip": "IMAGE：一帧一张 A5 相纸。"
+      },
+      "1": {
+        "name": "版式名",
+        "tooltip": "STRING：所选版式的中文名。"
+      },
+      "2": {
+        "name": "张数",
+        "tooltip": "INT：一张相纸上的照片份数。"
+      }
     }
-   },
-   "face_pick": {
-    "name": "多脸时取哪张",
-    "tooltip": "画面里有多张脸时：取离画面中心最近的那张，还是取最大的那张。"
-   },
-   "max_side": {
-    "name": "检测降采样",
-    "tooltip": "只在检测时把图缩小，大图更快、小脸也更稳；裁剪永远取自原始分辨率。0 = 不缩小。"
-   },
-   "fill_mode": {
-    "name": "填充模式",
-    "tooltip": "补出来的像素取什么颜色：边框颜色从原图四条边各自取背景色（会剔掉衣服这类非背景像素），自定义颜色用下面那个色值。"
-   },
-   "fill_color": {
-    "name": "填充颜色",
-    "tooltip": "只有填充模式选自定义时才用。支持 #RRGGBB、#ABC、white 这类颜色名、128,128,128，以及 0.5 这种灰度。"
-   },
-   "alpha_mode": {
-    "name": "透明区域",
-    "tooltip": "输入带透明通道（抠图节点输出的 RGBA）时怎么处理：填平透明 = 把透明区按填充色变成实心，输出不透明的证件照（默认）；保留透明 = 输出 RGBA，透明区保持透明供后续节点合成。普通 RGB 图两种模式结果一样。",
-    "options": {
-     "fill": "填平透明",
-     "keep": "保留透明"
+  },
+  "QG_IDPhotoSizePicker": {
+    "display_name": "QG 证件照尺寸选择",
+    "description": "只挑尺寸：选一个预设，preset 输出直接连证件照裁剪、证件照参数等节点的预设下拉，同时把换算好的像素宽高与实际 dpi 引出来，排版和生成节点可以直接接。尺寸换算与裁剪节点共用同一份表，同一个预设两边算出的像素一定相同；按像素给的预设（358x441 这类）自带 dpi，会覆盖控件里的值。",
+    "inputs": {
+      "preset": {
+        "name": "预设尺寸",
+        "tooltip": "成品尺寸。按像素给的预设（358x441 这类）自带 DPI，会覆盖下面的 dpi。选 custom 才用自定义宽高。"
+      },
+      "dpi": {
+        "name": "DPI",
+        "tooltip": "打印分辨率。300 是冲印标准；像素预设自带 dpi，不受这里影响。"
+      },
+      "custom_width": {
+        "name": "自定义宽",
+        "tooltip": "只有预设选 custom 时才用。单位由下面的单位决定。"
+      },
+      "custom_height": {
+        "name": "自定义高",
+        "tooltip": "只有预设选 custom 时才用。"
+      },
+      "unit": {
+        "name": "单位",
+        "tooltip": "只有 custom 才用：厘米按 dpi 换算成像素，像素则填多少是多少。标准预设自带的单位不受这里影响。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "预设",
+        "tooltip": "预设值，连给证件照裁剪 / 证件照参数等节点的预设下拉。"
+      },
+      "1": {
+        "name": "宽",
+        "tooltip": "换算好的成品像素宽。"
+      },
+      "2": {
+        "name": "高",
+        "tooltip": "换算好的成品像素高。"
+      },
+      "3": {
+        "name": "DPI",
+        "tooltip": "实际用到的 dpi —— 按像素给的预设会覆盖控件里的值。"
+      }
     }
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "裁剪后图像",
-    "tooltip": "目标尺寸的证件照，可直接接保存或 VAE Encode。"
-   },
-   "1": {
-    "name": "扩展遮罩",
-    "tooltip": "需要补出来的区域为 1，原图区域为 0。接重绘或局部生成。"
-   },
-   "2": {
-    "name": "是否扩图",
-    "tooltip": "有任意一帧补过边就是 True。"
-   },
-   "3": {
-    "name": "DPI",
-    "tooltip": "实际用到的 DPI —— 选了按像素的预设时它会覆盖控件里的值。"
-   },
-   "4": {
-    "name": "定位示意图",
-    "tooltip": "在第 0 帧原图上画出脸框（绿）、眼线与双眼（红）、裁剪框（黄），左上角标出目标尺寸、脸宽占比和倾斜角。"
-   }
-  }
- },
- "QG_PhotoSheet": {
-  "display_name": "QG 照片排版",
-  "description": "把一张照片按相纸尺寸铺满排版：填相纸宽高（厘米）、分辨率、安全边距和照片间距，能放多少张就居中等距排多少张。相纸、边距、间距的单位是厘米，描边和字号是像素 —— 参数名里写清楚了。照片放不下时直接报错并给出实际数字，不会给你一张白纸。批量输入每帧各出一张相纸。可选画裁切角标、在下方加一行标注文字。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要重复排版的照片。批量进来每帧各出一张相纸；照片不会被缩放，只重复。"
-   },
-   "paper_w": {
-    "name": "相纸宽",
-    "tooltip": "相纸宽度，单位厘米。12.7 × 8.9 是 5 寸，10.1 × 15.2 是 6 寸。"
-   },
-   "paper_h": {
-    "name": "相纸高",
-    "tooltip": "相纸高度，单位厘米。"
-   },
-   "dpi": {
-    "name": "分辨率",
-    "tooltip": "冲印分辨率，决定相纸有多少像素：12.7 厘米在 350dpi 下是 1750 像素。"
-   },
-   "margin": {
-    "name": "安全边距",
-    "tooltip": "四边留出的空白，单位厘米。打印机通常够不到最外面几毫米。"
-   },
-   "spacing": {
-    "name": "照片间距",
-    "tooltip": "照片之间的缝宽，单位厘米。裁切角标也是画在这条缝里的。"
-   },
-   "border": {
-    "name": "描边",
-    "tooltip": "给每张照片加一圈黑框，单位是像素。它会让照片变大，所以会减少能排的张数。"
-   },
-   "cut_marks": {
-    "name": "裁切角标",
-    "tooltip": "在每张照片四角外侧画短 L 形标记，方便下刀。需要间距大于 0 才有地方画。",
-    "options": {
-     "True": "画裁切角标",
-     "False": "不画"
+  "QG_MultiPhotoSheet": {
+    "display_name": "QG 多人证件照拼版",
+    "description": "把好几个人的证件照拼到同一张纸上：每人一帧打包成 IMAGE 批次，统一格、居中裁切、按首帧比例不变形，指定列数行数自动算。同一人放多张就多放几帧。与「照片排版」不同，那边是一张照片复制多份，这里是每人各占一格。",
+    "inputs": {
+      "image": {
+        "name": "人像批次",
+        "tooltip": "多人证件照，每人一帧(batch)；同一人要几张就放几帧，按帧顺序逐格排。"
+      },
+      "paper_w": {
+        "name": "纸宽(厘米)",
+        "tooltip": "纸张宽度，厘米。A4 为 21.0。"
+      },
+      "paper_h": {
+        "name": "纸高(厘米)",
+        "tooltip": "纸张高度，厘米。A4 为 29.7。"
+      },
+      "dpi": {
+        "name": "DPI",
+        "tooltip": "打印分辨率，纸宽纸高(厘米) × dpi 决定出图像素。"
+      },
+      "cols": {
+        "name": "列数",
+        "tooltip": "每行排几人；行数按人数自动算，实际列数不超过人数。"
+      },
+      "margin_cm": {
+        "name": "页边距(厘米)",
+        "tooltip": "四周安全边距，厘米。"
+      },
+      "spacing_cm": {
+        "name": "间距(厘米)",
+        "tooltip": "人与人之间的间距，厘米。"
+      },
+      "fit_to_paper": {
+        "name": "放不下时缩小",
+        "tooltip": "人太多放不下时整体等比缩小格子；关闭则直接报错。"
+      },
+      "bg_color": {
+        "name": "纸张底色",
+        "tooltip": "纸张底色，#RGB / #RRGGBB / 颜色名，默认白。"
+      },
+      "border_px": {
+        "name": "描边宽度",
+        "tooltip": "每格描边宽度，像素，画在格子内部；0 为不画。"
+      },
+      "border_color": {
+        "name": "描边颜色",
+        "tooltip": "描边颜色，#RGB / #RRGGBB / 颜色名。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "拼版图像",
+        "tooltip": "一张纸，所有人的照片各占一格。"
+      },
+      "1": {
+        "name": "行数",
+        "tooltip": "自动算出的实际行数。"
+      },
+      "2": {
+        "name": "列数",
+        "tooltip": "实际使用的列数，不超过总人数。"
+      },
+      "3": {
+        "name": "人数",
+        "tooltip": "实际拼进去的帧数。"
+      }
     }
-   },
-   "auto_orient": {
-    "name": "自动横竖版",
-    "tooltip": "哪个方向能排更多张就自动把相纸转过来。一样多时保持你设定的方向。",
-    "options": {
-     "True": "自动转向",
-     "False": "按设定方向"
+  },
+  "QG_RemoveBackgroundV2": {
+    "display_name": "QG 移除背景 V2 · 细节精修",
+    "description": "移除背景并重做边缘细节：先用本包 BiRefNet 做粗分割，再按所选细节方法精修边缘。VITMatte 系列用 hustvl 模型按 trimap 出发丝级 alpha（首次需联网下载，VITMatte(local) 只用本地缓存）；vitmatte-base-composition-1k 用更大的 base 模型；PyMatting 用闭合形式抠图，需 pymatting + pyamg；GuidedFilter 用 opencv 引导滤波，速度最快。腐蚀/膨胀控制 trimap 待处理边缘宽度，黑点和白点拉伸 alpha 范围；关掉「处理细节」就只出粗分割结果。输出 RGBA 图像与单通道遮罩。",
+    "inputs": {
+      "image": {
+        "name": "图像",
+        "tooltip": "要移除背景的图像。批次逐帧处理，输出与输入同尺寸。"
+      },
+      "detail_method": {
+        "name": "细节方法",
+        "tooltip": "边缘细节精修方法。VITMatte 系列最细，需首次下载模型；PyMatting 需 pymatting+pyamg；GuidedFilter 最快，靠 opencv 保持边缘。",
+        "options": {
+          "VITMatte": "ViTMatte 小模型（在线，边缘最细）",
+          "VITMatte(local)": "ViTMatte 小模型（仅本地缓存）",
+          "vitmatte-base-composition-1k": "ViTMatte base 大模型（在线）",
+          "PyMatting": "闭合形式抠图（需 pyamg）",
+          "GuidedFilter": "引导滤波（最快，需 opencv）"
+        }
+      },
+      "detail_erode": {
+        "name": "腐蚀核",
+        "tooltip": "trimap 腐蚀核尺寸。值越大，确定前景区越收缩、待处理边缘越宽。"
+      },
+      "detail_dilate": {
+        "name": "膨胀核",
+        "tooltip": "trimap 膨胀核尺寸。值越大，待处理边缘越宽，细节保留越多。"
+      },
+      "black_point": {
+        "name": "黑点",
+        "tooltip": "黑点。低于该透明度判为全透明，可信度过滤用。"
+      },
+      "white_point": {
+        "name": "白点",
+        "tooltip": "白点。高于该透明度判为不透明，与黑点一起拉伸 alpha 范围。"
+      },
+      "process_detail": {
+        "name": "处理细节",
+        "tooltip": "关闭时直接输出粗分割遮罩，不做任何细节精修，也不需要额外依赖。"
+      },
+      "device": {
+        "name": "设备",
+        "tooltip": "ViTMatte 推理设备。auto 跟随 ComfyUI 当前设备；选 cuda 但不可用时自动回退 CPU。",
+        "options": {
+          "auto": "自动（跟随 ComfyUI）",
+          "cuda": "CUDA 显卡",
+          "cpu": "CPU"
+        }
+      },
+      "max_megapixels": {
+        "name": "最大像素（百万）",
+        "tooltip": "ViTMatte 推理时的最大像素数（百万像素）。超出会按比例缩小再处理，完成后放大回原尺寸。"
+      },
+      "model": {
+        "name": "粗分割模型",
+        "tooltip": "粗分割的 BiRefNet 变体。默认 general；portrait 是人像专用。也可用环境变量 QG_REMOVEBG_MODEL 覆盖。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "图像",
+        "tooltip": "去掉背景后的 RGBA 图像；alpha 来自精修后的遮罩，原图颜色保持不变。"
+      },
+      "1": {
+        "name": "遮罩",
+        "tooltip": "单通道遮罩，白色为前景、黑色为背景，灰色是半透明边缘。"
+      }
     }
-   },
-   "caption": {
-    "name": "标注文字",
-    "tooltip": "印在照片区域下方的一行字。画在图上，不是写进文件。留空就不画。"
-   },
-   "font": {
-    "name": "字体",
-    "tooltip": "标注字体。下拉首项是随包的 Noto Sans SC（SIL OFL 1.1，含中文）；内置位图字体没有中文字形。"
-   },
-   "font_size": {
-    "name": "字号",
-    "tooltip": "标注文字的大小，单位是像素。填 0 就完全不画，也不会占用高度。"
-   },
-   "auto_fit": {
-    "name": "自动缩小",
-    "tooltip": "照片比相纸大时，等比缩小到刚好放一张，而不是把整个流程停下来。日志会写明缩到了百分之多少、印出来大约多少 dpi。关掉就按原来的方式直接报错，适合你想知道尺寸不对、而不是被悄悄缩小的情况。",
-    "options": {
-     "True": "缩到放得下",
-     "False": "放不下就报错"
+  },
+  "QG_YoloDetectorLoader": {
+    "display_name": "QG 检测模型加载器",
+    "description": "扫描本机 ultralytics 权重并用它加载目标检测模型，输出自造检测对象 QG_YOLO_DETECTOR，供 QG 简易 Seg 检测使用。只用 ultralytics 推理库，不依赖 ComfyUI-Impact-Pack 或 Impact-Subpack。",
+    "inputs": {
+      "model_name": {
+        "name": "检测模型",
+        "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下（支持子目录，最多 3 层），或用 QG_ULTRALYTICS_DIR 指定目录。"
+      },
+      "device": {
+        "name": "推理设备",
+        "tooltip": "推理设备。auto 自动选 CUDA（可用时），cpu 强制 CPU，cuda 不可用时自动回退 CPU。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "检测器",
+        "tooltip": "自造检测对象 QG_YOLO_DETECTOR，只能接本包的 QG 简易 Seg 检测节点。"
+      }
     }
-   },
-   "photo_dpi": {
-    "name": "照片 DPI",
-    "tooltip": "这张照片是按多少 dpi 出的图，用来把像素读成真实厘米。填 0 就是按像素直接排（原来的行为）。比如 1 寸照 @600dpi 是 591x827 像素，直接塞进350dpi 的相纸会印成 4.3x6.0 厘米、一张纸只排 2 张；填 600 就换算成345x482，印出来正好 2.5x3.5 厘米、一张排 9 张。接证件照节点的 DPI 输出即可自动对齐。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "排版图像",
-    "tooltip": "每帧输入对应一张相纸，尺寸是相纸厘米数乘以分辨率。"
-   },
-   "1": {
-    "name": "列数",
-    "tooltip": "横向排了几张。"
-   },
-   "2": {
-    "name": "行数",
-    "tooltip": "纵向排了几行。"
-   },
-   "3": {
-    "name": "总张数",
-    "tooltip": "列数乘行数，一张相纸上印了几张。"
-   }
-  }
- },
- "QG_IDCardSheet": {
-  "display_name": "QG 身份证拼版",
-  "description": "把拍歪的卡片摆正，铺到纸上。给正面（和可选的背面）图像 + 蒙版，节点按蒙版找四角拉成正射图，加圆角与投影，按厘米居中排在纸上。只放一面就把背面两根线都拔掉。",
-  "inputs": {
-   "front_image": {
-    "name": "正面图",
-    "tooltip": "卡片照片。拍歪、有透视都行，蒙版对得上即可。"
-   },
-   "front_mask": {
-    "name": "正面蒙版",
-    "tooltip": "卡片区域的蒙版，和正面图同尺寸。抠图节点或手绘都行，白=卡片。"
-   },
-   "paper_w": {
-    "name": "纸宽(cm)",
-    "tooltip": "A4 是 21.0，5 寸相纸 12.7。"
-   },
-   "paper_h": {
-    "name": "纸高(cm)",
-    "tooltip": "A4 是 29.7，5 寸相纸 8.9。"
-   },
-   "dpi": {
-    "name": "打印 dpi",
-    "tooltip": "450 是参考实现的口径；印件别低于 300。"
-   },
-   "gap": {
-    "name": "间距(cm)",
-    "tooltip": "正反面之间的间距，只放一面时忽略。"
-   },
-   "card_w": {
-    "name": "卡片宽(cm)",
-    "tooltip": "二代身份证 8.56（85.6mm）。"
-   },
-   "card_h": {
-    "name": "卡片高(cm)",
-    "tooltip": "二代身份证 5.4（54mm）。"
-   },
-   "corner_pct": {
-    "name": "圆角(%)",
-    "tooltip": "占短边的百分比，身份证实际约 6%。0 是直角。"
-   },
-   "rotate_180": {
-    "name": "旋转180°",
-    "tooltip": "出来是倒的就打开。四边形只能看出长边朝哪，分不出正立还是倒立。",
-    "options": {
-     "True": "转到正立",
-     "False": "不转"
+  "QG_SamModelLoader": {
+    "display_name": "QG SAM 模型加载器",
+    "description": "扫描本机 SAM 权重并加载，输出自造 SAM 对象 QG_SAM_MODEL，供 QG 简易 Seg 检测把检测框细化成轮廓。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的走 HQ-SAM 后端（需另装 segment-anything-hq）。不依赖 ComfyUI-Impact-Pack。",
+    "inputs": {
+      "model_name": {
+        "name": "SAM 模型",
+        "tooltip": "本机 SAM 权重（models/sams，含子目录，最多 3 层）。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的按 HQ-SAM 后端加载（需另装 segment-anything-hq）。"
+      },
+      "device": {
+        "name": "推理设备",
+        "tooltip": "推理设备。auto 自动选 CUDA（可用时），cpu 强制 CPU，cuda 不可用时自动回退 CPU。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "SAM 模型",
+        "tooltip": "自造 SAM 对象 QG_SAM_MODEL，只能接本包的 QG 简易 Seg 检测节点。"
+      }
     }
-   },
-   "shadow_offset": {
-    "name": "阴影偏移(mm)",
-    "tooltip": "投影相对卡片的位移，0 是只留糊边不偏移。"
-   },
-   "shadow_blur": {
-    "name": "阴影模糊(mm)",
-    "tooltip": "投影的虚化半径，0 是硬边。"
-   },
-   "shadow_opacity": {
-    "name": "阴影不透明度",
-    "tooltip": "0~255，0 关掉投影。"
-   },
-   "auto_contrast": {
-    "name": "自动对比度",
-    "tooltip": "0 关。只在卡片上统计，白纸不参与。"
-   },
-   "auto_tone": {
-    "name": "自动色调",
-    "tooltip": "灰度世界白平衡，偏黄的扫描件用它。0 关。"
-   },
-   "grayscale": {
-    "name": "黑白",
-    "tooltip": "整张纸转灰度，复印件效果。",
-    "options": {
-     "True": "黑白",
-     "False": "彩色"
+  },
+  "QG_SimpleSegDetector": {
+    "display_name": "QG 简易 Seg 检测",
+    "description": "用自造检测器出框，可选接自造 SAM 模型把框细化成轮廓，输出自造 QG_SEGS 容器与普通遮罩批次。参数对齐参考节点的控件含义，逐项独立实现。类型自造，不能接 Impact 下游；MASK 输出可直接接本包遮罩类节点。",
+    "inputs": {
+      "detector": {
+        "name": "检测器",
+        "tooltip": "自造检测器对象，由 QG 检测模型加载器输出。"
+      },
+      "image": {
+        "name": "图像",
+        "tooltip": "单张图片。批次大于 1 会直接报错，请先用批次拆分节点逐帧处理。"
+      },
+      "bbox_threshold": {
+        "name": "BBox 阈值",
+        "tooltip": "检测置信度阈值：低于此分数的框丢弃。"
+      },
+      "bbox_dilation": {
+        "name": "BBox 膨胀",
+        "tooltip": "框四边膨胀像素：正值外扩、负值收缩，影响裁剪与 SAM 提示框。"
+      },
+      "crop_factor": {
+        "name": "裁剪系数",
+        "tooltip": "裁剪系数：每段裁剪区域相对检测框放大的倍数，记入 SEG 元数据。"
+      },
+      "drop_size": {
+        "name": "最小尺寸",
+        "tooltip": "最小尺寸：宽或高小于该像素数的段丢弃。"
+      },
+      "sub_threshold": {
+        "name": "次要阈值",
+        "tooltip": "SAM 二值化阈值：越高遮罩越保守，只保留 SAM 更有把握的核心区域。"
+      },
+      "sub_dilation": {
+        "name": "次要膨胀",
+        "tooltip": "SAM 提示框在框膨胀之上再膨胀的像素，正值外扩。"
+      },
+      "sub_bbox_expansion": {
+        "name": "次要 BBox 扩展",
+        "tooltip": "SAM 提示框四边额外扩展的像素，给 SAM 更多上下文。"
+      },
+      "sam_mask_hint_threshold": {
+        "name": "SAM 遮挡检测阈值",
+        "tooltip": "SAM 打分低于该值的段直接丢弃（质量过滤），0 表示不过滤。"
+      },
+      "post_dilation": {
+        "name": "扩张后",
+        "tooltip": "对最终每段遮罩做膨胀（负值收缩）的像素数，0 不处理。"
+      },
+      "sam_model": {
+        "name": "SAM 模型",
+        "tooltip": "可选 SAM 模型（QG SAM 模型加载器输出）。给了就把检测框细化成轮廓；不给则直接用矩形框作遮罩。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Segs",
+        "tooltip": "自造 QG_SEGS 容器：每段的框、标签、打分与遮罩；只能接本包下游。"
+      },
+      "1": {
+        "name": "遮罩",
+        "tooltip": "遮罩批次 [N,H,W]，每段一帧，可直接接本包的遮罩类节点。"
+      }
     }
-   },
-   "bg_color": {
-    "name": "背景色",
-    "tooltip": "纸张底色，支持 #FFFFFF、white、255,255,255。"
-   },
-   "back_image": {
-    "name": "背面图",
-    "tooltip": "可选。要和背面蒙版一起接。"
-   },
-   "back_mask": {
-    "name": "背面蒙版",
-    "tooltip": "可选。要和背面图一起接。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "整张纸：正面（和可选的背面）按厘米居中排好，带圆角与投影。"
-   }
-  }
- },
- "QG_Watermark": {
-  "display_name": "QG 斜向水印",
-  "description": "在任何图上斜向平铺文字水印。字体走和照片排版节点同一套发现逻辑，下拉里只列这台机器上真能读到的字体。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要盖水印的图，批量逐帧处理。"
-   },
-   "text": {
-    "name": "水印文字",
-    "tooltip": "写什么就重复铺什么，中文需要中文字体。"
-   },
-   "font": {
-    "name": "水印字体",
-    "tooltip": "默认已指向随包的 Noto Sans SC（SIL OFL 1.1，含中文字形）；内置位图字体只有英文。"
-   },
-   "size": {
-    "name": "字号(px)",
-    "tooltip": "像素。450 dpi 的 A4 上 48 大约 2.7 mm 高。"
-   },
-   "color": {
-    "name": "颜色",
-    "tooltip": "支持 #RRGGBB、gray、128,128,128。"
-   },
-   "opacity": {
-    "name": "不透明度",
-    "tooltip": "百分比，50 是常见的浅灰效果。"
-   },
-   "spacing": {
-    "name": "间距(px)",
-    "tooltip": "水印单元之间的空白，调小更密。"
-   },
-   "angle": {
-    "name": "角度",
-    "tooltip": "45 是斜向铺开，0 是横平竖直。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "盖好水印的图，尺寸与原图一致。"
-   }
-  }
- },
- "QG_DualColorPicker": {
-  "display_name": "QG 双色取色器",
-  "description": "选一个颜色模式和主色、辅色两路颜色，输出三个字符串给下游节点用。模式值以英文存档：solid（纯色）/ vertical_gradient（上下渐变）/ radial_gradient（中心渐变）；色值统一成小写 #rrggbb，#rgb、无 # 前缀、8 位带透明度、RGB 元组都能吃，非法值回退默认色。两个颜色控件点一下弹色板，也可以直接手填色值。",
-  "inputs": {
-   "mode": {
-    "name": "模式",
-    "tooltip": "颜色模式：纯色 / 上下渐变 / 中心渐变。中文只是显示名，存档值是英文。",
-    "options": {
-     "solid": "纯色",
-     "vertical_gradient": "上下渐变",
-     "radial_gradient": "中心渐变"
+  "QG_MaskToSeg": {
+    "display_name": "QG 遮罩到 Seg",
+    "description": "把 ComfyUI 原生 MASK 转成自造 QG_SEGS：每个独立连通区域出一段，带框、标签、打分与遮罩。可接 QG 遮罩次序过滤等本包下游；类型自造，不依赖 Impact-Pack。批次遮罩先逐像素取最大值合成一张再分段。",
+    "inputs": {
+      "mask": {
+        "name": "遮罩",
+        "tooltip": "输入遮罩，支持 [H,W] 单张或 [N,H,W] 批次；批次先逐像素取最大值合成一张再分段。"
+      },
+      "combine": {
+        "name": "合并方式",
+        "tooltip": "逐区域分段：每个独立连通区域各出一段。合并为一段：整张遮罩只出一个段。"
+      },
+      "crop_factor": {
+        "name": "裁剪系数",
+        "tooltip": "记入段的元数据，表示裁剪框相对外接框的放大倍数；本节点不裁图。"
+      },
+      "bbox_fill": {
+        "name": "填充 BBox",
+        "tooltip": "把每段外接矩形范围填成实心遮罩，适合做整块区域处理。"
+      },
+      "drop_size": {
+        "name": "最小尺寸",
+        "tooltip": "外接框宽或高不超过该像素数的段丢弃，过滤噪点小块。"
+      },
+      "is_contour": {
+        "name": "轮廓方式",
+        "tooltip": "填充轮廓：用连通域实心轮廓当段遮罩。保留原遮罩：与原遮罩相乘，保留灰度与镂空。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "Segs",
+        "tooltip": "自造 QG_SEGS 容器：每个连通区域一段，带框、标签、打分与遮罩；可接 QG 遮罩次序过滤等本包下游。"
+      }
     }
-   },
-   "primary_color": {
-    "name": "主色",
-    "tooltip": "第一路颜色，默认 #213d50。点色块打开色板。"
-   },
-   "secondary_color": {
-    "name": "辅色",
-    "tooltip": "第二路颜色，默认 #402633。纯色模式下不使用，但仍会输出。"
-   }
   },
-  "outputs": {
-   "0": {
-    "name": "模式",
-    "tooltip": "英文模式值：solid / vertical_gradient / radial_gradient。"
-   },
-   "1": {
-    "name": "主色",
-    "tooltip": "规范化后的小写 #rrggbb 主色。"
-   },
-   "2": {
-    "name": "辅色",
-    "tooltip": "规范化后的小写 #rrggbb 辅色。"
-   }
-  }
- },
- "QG_ColorConvert": {
-  "display_name": "QG 颜色转换",
-  "description": "把各种写法的颜色字符串转成目标格式：输入支持带/不带 # 的十六进制（3 位自动展开）、RGB 整数、HSL 百分比、0-1 浮点，全角逗号括号也能吃，解析失败回退白色。输出两路：字符串是按所选格式的转换结果，颜色控件始终是规范化的小写 #rrggbb。下拉值保持 #HEX / HEX / RGB / HSL 原文（存档与 API 不变），中文界面显示带注释的格式名。",
-  "inputs": {
-   "color": {
-    "name": "色值",
-    "tooltip": "原始颜色，支持 #hex / hex / RGB 整数 / HSL 百分比 / 0-1 浮点；非法写法按白色处理。"
-   },
-   "format": {
-    "name": "转换后",
-    "tooltip": "目标格式：#HEX 带 # 十六进制 / HEX 不带 # / RGB 整数 / HSL 百分比。",
-    "options": {
-     "#HEX": "带 # 十六进制",
-     "HEX": "十六进制",
-     "RGB": "RGB 整数",
-     "HSL": "HSL 百分比"
+  "QG_GoogleTranslate": {
+    "display_name": "QG 谷歌翻译",
+    "description": "谷歌免费通道的文本翻译，零额外依赖、不需要 API Key（Google 可能对部分网络限流）；设置环境变量 GOOGLE_TRANSLATION_API_KEY 后自动改走官方接口、不限量。超过单次上限的长文按换行切分、译完按原样拼回；官方接口按纯文本翻译，换行和引号原样保留。开启「手动翻译」后节点排队时文本原样通过，用节点上的「手动翻译」按钮就地翻译。翻译失败时把原文传下去，不中断工作流。",
+    "inputs": {
+      "from_translate": {
+        "name": "源语言",
+        "tooltip": "原文语言。auto 让 Google 自动识别；下拉值是 BCP-47 语言码（如 zh-cn / en），存档里存的也是码，不随界面语言变。",
+        "options": {
+          "auto": "自动",
+          "de": "德文",
+          "en": "英文",
+          "es": "西班牙文",
+          "fr": "法文",
+          "ja": "日文",
+          "ko": "韩文",
+          "ru": "俄文",
+          "zh-cn": "中文（简体）",
+          "zh-tw": "中文（繁体）"
+        }
+      },
+      "to_translate": {
+        "name": "目标语言",
+        "tooltip": "翻译成什么语言。默认英文——SAM 3 这类检测模型只认英文。",
+        "options": {
+          "de": "德文",
+          "en": "英文",
+          "es": "西班牙文",
+          "fr": "法文",
+          "ja": "日文",
+          "ko": "韩文",
+          "ru": "俄文",
+          "zh-cn": "中文（简体）",
+          "zh-tw": "中文（繁体）"
+        }
+      },
+      "manual_translate": {
+        "name": "手动翻译",
+        "tooltip": "开启后节点不再自动翻译：排队运行时文本原样通过，用节点上的「手动翻译」按钮就地翻译。"
+      },
+      "text": {
+        "name": "文本",
+        "tooltip": "要翻译的文字。超过 Google 单次上限会按换行切分再拼回，一行一句切得最干净。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "译文"
+      }
     }
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "字符串",
-    "tooltip": "按所选格式转换后的颜色字符串。"
-   },
-   "1": {
-    "name": "颜色控件",
-    "tooltip": "同一颜色的规范化小写 #rrggbb，供颜色控件类下游使用。"
-   }
   }
- },
- "QG_CustomColor": {
-  "display_name": "QG 自定义颜色",
-  "description": "按宽度高度生成一张纯色或渐变底图输出：模式下拉为 纯色 / 上下渐变 / 中心渐变（存档值英文 solid / vertical_gradient / radial_gradient，与双色取色器同一套），颜色1 / 颜色2 点色条弹色板。缩放控制渐变推进或半径（100 标准，0 有特殊语义，>100 钳制在两色之间），颗粒叠加灰度噪声。非法色值回退各自默认色。",
-  "inputs": {
-   "width": {
-    "name": "宽度",
-    "tooltip": "输出图像宽度，1-8192 像素。"
-   },
-   "height": {
-    "name": "高度",
-    "tooltip": "输出图像高度，1-8192 像素。"
-   },
-   "mode": {
-    "name": "模式",
-    "tooltip": "纯色 / 上下渐变 / 中心渐变。中文只是显示名，存档值是英文。",
-    "options": {
-     "solid": "纯色",
-     "vertical_gradient": "上下渐变",
-     "radial_gradient": "中心渐变"
-    }
-   },
-   "color1": {
-    "name": "颜色1",
-    "tooltip": "纯色整图用色；上下渐变的顶部色；中心渐变的边缘色。默认 #364254。"
-   },
-   "color2": {
-    "name": "颜色2",
-    "tooltip": "上下渐变的底部色；中心渐变的中心色。纯色模式不用但仍保留。默认 #4C3843。"
-   },
-   "scale": {
-    "name": "缩放",
-    "tooltip": "渐变推进（上下渐变）或渐变半径（中心渐变）的百分比：100 标准，大于 100 提前完成（钳制在两色间），小于 100 推进更慢；0 时上下渐变退化为正常渐变、中心渐变全图为颜色1。"
-   },
-   "grain": {
-    "name": "颗粒",
-    "tooltip": "叠加灰度噪声的强度，0-100；0 为无噪声。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "生成的 IMAGE，[1, 高, 宽, 3] float 0-1。"
-   }
-  }
- },
- "QG_DominantColor": {
-  "display_name": "QG 主色提取",
-  "description": "统计整张图里出现最多的颜色，输出大写 #RRGGBB 字符串。流程：按降采样系数 LANCZOS 缩小 → 剔除黑边/白边像素（平均亮度 <15 或 >240，全被剔则回退全部） → 按颜色容差把每通道量化分桶 → 取像素最多的桶（频次并列取亮度更高的）。批量图像只取第一帧；容差 0 时逐原色统计。来源为参照 Goohaitools「孤海-主色提取」规格的独立实现（GPL-3.0，未复制上游源码）。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要提取主色的图像，批量时只统计第一帧。"
-   },
-   "downsample": {
-    "name": "降采样系数",
-    "tooltip": "统计前先把图缩小到 宽//系数 × 高//系数（两边下限 4 像素），1-16；越大越快、越忽略局部细节，默认 8。"
-   },
-   "tolerance": {
-    "name": "颜色容差",
-    "tooltip": "每通道按 容差 量化分桶（0 逐原色统计），0-100；越大越容易凑出 dominant 色，默认 15。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "主色 HEX",
-    "tooltip": "大写 #RRGGBB 字符串，可直接喂给颜色类下游控件。"
-   }
-  }
- },
- "QG_FaceAlign": {
-  "display_name": "QG 面部对齐",
-  "description": "把目标图的人脸对齐到参考图：按人脸面积比缩放整图、按眼线角差旋转（可关），目标脸中心对齐参考脸中心后裁回参考图尺寸；不接参考图时只把目标图绕图中心摆平。多张脸取离图中心最近的一张；填充模式决定旋转/扩画布的空白底色（自定义颜色或按四边像素自适应的边框颜色）。没检出人脸时原样返回目标图。人脸检测复用本包 _face_helpers：mediapipe 优先，模型缺失自动按需下载 face_landmarker.task，缺 mediapipe 回退 OpenCV Haar。来源为参照 Goohaitools「孤海-面部对齐」规格的独立实现（GPL-3.0，未复制上游源码）。",
-  "inputs": {
-   "target_image": {
-    "name": "目标图",
-    "tooltip": "要被对齐的图像，批量只取第一帧。"
-   },
-   "reference_image": {
-    "name": "参考图",
-    "tooltip": "对齐基准：目标图会被缩放/旋转到与这张图的人脸大小、角度一致，输出尺寸等于参考图。不接时只摆平目标图角度。"
-   },
-   "confidence": {
-    "name": "面部置信度",
-    "tooltip": "人脸检测的最低置信度 0-1，默认 0.3。检出不了脸就调低，误检就调高。"
-   },
-   "angle_align": {
-    "name": "角度对齐",
-    "tooltip": "开启时按两图眼线角差旋转目标图（>90° 自动归到 ±90° 内）；关闭则只缩放不平转。"
-   },
-   "fill_mode": {
-    "name": "填充模式",
-    "tooltip": "旋转/扩画布空白区的底色：自定义颜色用下面的色值；边框颜色按目标图四边像素自适应取色。中文只是显示名，存档值是英文。",
-    "options": {
-     "custom_color": "自定义颜色",
-     "border_color": "边框颜色"
-    }
-   },
-   "custom_fill_color": {
-    "name": "自定义填充色",
-    "tooltip": "填充模式为自定义颜色时的底色，点色块弹色板。默认 #364254。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "对齐后的 IMAGE：有参考图时尺寸=参考图；无参考图摆平时尺寸可能因旋转 expand 变大。"
-   }
-  }
- },
- "QG_IDPhotoOutfit": {
-  "display_name": "QG 证件照服装发型",
-  "description": "证件照服装/发型模板选择：节点面板里浏览缩略图、搜索、点选模板，选中的服装/发型提示词写进提示词控件输出给下游（可直接接证件照参数类节点）。插件内置 7 分类 200 张模板（女士/男士/女童/男童/老年服装 + 女士/男士发型，均配提示词），开箱即用；还可往 ComfyUI/models/id_photo/ 放自己的分类或补图，两边合并显示。功能规格参照 Goohaitools「孤海-证件照服装发型」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库（原样复制，见 THIRD-PARTY-NOTICES）。",
-  "inputs": {
-   "style": {
-    "name": "风格类型",
-    "tooltip": "模板分类（来自 models/id_photo/ 下的目录名）：服装/发型等。在节点面板里选模板后提示词自动写进下面的控件。"
-   },
-   "prompt_output": {
-    "name": "提示词",
-    "tooltip": "选中模板的服装/发型描述；面板点选会覆盖此值，也可手动编辑成自定义提示词。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "提示词",
-    "tooltip": "STRING：当前模板提示词，原样透传给下游。"
-   }
-  }
- },
- "QG_MarriageCloth": {
-  "display_name": "QG 结婚登记照服装",
-  "description": "结婚登记照服装选择：节点面板里浏览服装参考图并点选，输出选中的 IMAGE 供图生图使用（序号 0 输出纯色底图）。插件内置 81 张双人服装素材，开箱即用；还可往 ComfyUI/models/marriage_cloth/ 放自己的图，两边合并显示。功能规格参照 Goohaitools「孤海-结婚登记照服装」独立实现（GPL-3.0，未复制上游源码），内置素材取自其公开素材库。",
-  "inputs": {
-   "image_index": {
-    "name": "服装序号",
-    "tooltip": "1 到 N 选一张（N 见节点面板），0 输出纯色底图；素材增删后序号按文件名自然排序重排。"
-   },
-   "resize_mode": {
-    "name": "缩放方式",
-    "tooltip": "fit_pad 等比缩放补边（默认，不变形）/ stretch 拉伸填满（可能变形）/ original 不缩放。"
-   },
-   "target_width": {
-    "name": "目标宽",
-    "tooltip": "输出宽度（像素）；original 模式下忽略。"
-   },
-   "target_height": {
-    "name": "目标高",
-    "tooltip": "输出高度（像素）；original 模式下忽略。"
-   },
-   "pad_color": {
-    "name": "底色",
-    "tooltip": "纯色底图与 fit_pad 补边用的颜色，支持 #RRGGBB、#ABC 或颜色名。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "IMAGE：选中服装参考图（或纯色底图）。"
-   }
-  }
- },
- "QG_MaskTopExpand": {
-  "display_name": "QG 头顶遮罩扩展",
-  "description": "头顶遮罩扩展：从遮罩最高点向上补一块矩形，给外补画板/扩图节点留出发量补全的区域。支持批量遮罩逐帧处理、矩形羽化、三种中心点取法，默认与原遮罩合并（Replace 模式只保留新矩形）。功能规格参照 Goohaitools「孤海-头顶遮罩」独立实现（GPL-3.0，未复制上游源码）。",
-  "inputs": {
-   "mask": {
-    "name": "遮罩",
-    "tooltip": "以它的最高点作为矩形的上边界锚点。"
-   },
-   "expand_x": {
-    "name": "水平半径",
-    "tooltip": "矩形宽度为 中心 x ± 该值（像素）。"
-   },
-   "expand_y": {
-    "name": "向上高度",
-    "tooltip": "矩形从最高点向上延伸的像素数。"
-   },
-   "center_mode": {
-    "name": "中心取法",
-    "tooltip": "top_center 顶行中点（默认）/ bbox_center 外接框中点 / mask_center 遮罩质心。"
-   },
-   "feather": {
-    "name": "羽化",
-    "tooltip": "矩形边缘的高斯模糊半径，0 为硬边。"
-   },
-   "keep_original": {
-    "name": "合并原遮罩",
-    "tooltip": "开启时与原遮罩取并集；关闭只输出新矩形。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "遮罩",
-    "tooltip": "MASK：扩展后的遮罩，形状与输入一致。"
-   }
-  }
- },
- "QG_IDPhotoPrompt": {
-  "display_name": "QG 证件照简易提示词",
-  "description": "证件照简易提示词：13 个维度下拉（构图/国籍/性别/体型/发色/发型/服装颜色/服装款式/服饰佩饰/妆容/表情/背景色/其他佩饰）组合成一句中文人像提示词，可直接接文本编码器。每维都能选「无」或「随机」，seed 保证随机结果可复现；下拉存档值为英文编号、中文仅显示名，改文案不会破坏旧工作流。功能规格参照 Goohaitools「孤海-证件照简易提示词」独立实现（GPL-3.0，未复制上游源码）。",
-  "inputs": {
-   "composition": {
-    "name": "构图",
-    "tooltip": "构图：选「无」则不写入提示词，选「随机」则按种子从 5 个候选中抽一个。"
-   },
-   "nationality": {
-    "name": "国籍",
-    "tooltip": "国籍：选「无」则不写入提示词，选「随机」则按种子从 15 个候选中抽一个。"
-   },
-   "gender": {
-    "name": "性别",
-    "tooltip": "性别：选「无」则不写入提示词，选「随机」则按种子从 11 个候选中抽一个。"
-   },
-   "body_shape": {
-    "name": "体型",
-    "tooltip": "体型：选「无」则不写入提示词，选「随机」则按种子从 7 个候选中抽一个。"
-   },
-   "hair_color": {
-    "name": "发色",
-    "tooltip": "发色：选「无」则不写入提示词，选「随机」则按种子从 23 个候选中抽一个。"
-   },
-   "hairstyle": {
-    "name": "发型",
-    "tooltip": "发型：选「无」则不写入提示词，选「随机」则按种子从 22 个候选中抽一个。"
-   },
-   "clothing_color": {
-    "name": "服装颜色",
-    "tooltip": "服装颜色：选「无」则不写入提示词，选「随机」则按种子从 36 个候选中抽一个。"
-   },
-   "clothing_style": {
-    "name": "服装款式",
-    "tooltip": "服装款式：选「无」则不写入提示词，选「随机」则按种子从 33 个候选中抽一个。"
-   },
-   "accessory": {
-    "name": "服饰佩饰",
-    "tooltip": "服饰佩饰：选「无」则不写入提示词，选「随机」则按种子从 7 个候选中抽一个。"
-   },
-   "makeup": {
-    "name": "妆容",
-    "tooltip": "妆容：选「无」则不写入提示词，选「随机」则按种子从 16 个候选中抽一个。"
-   },
-   "expression": {
-    "name": "表情",
-    "tooltip": "表情：选「无」则不写入提示词，选「随机」则按种子从 6 个候选中抽一个。"
-   },
-   "background_color": {
-    "name": "背景色",
-    "tooltip": "背景色：选「无」则不写入提示词，选「随机」则按种子从 37 个候选中抽一个。"
-   },
-   "extra_accessory": {
-    "name": "其他佩饰",
-    "tooltip": "其他佩饰：选「无」则不写入提示词，选「随机」则按种子从 9 个候选中抽一个。"
-   },
-   "seed": {
-    "name": "随机种子",
-    "tooltip": "随机抽取用的种子；相同种子与相同下拉设置，输出必然一致。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "提示词",
-    "tooltip": "STRING：组合好的中文人像提示词。"
-   }
-  }
- },
- "QG_PhotoSheetMixed": {
-  "display_name": "QG 证件照混合排版（A5）",
-  "description": "证件照混合排版（A5）：13 种固定版式，含 6 种单尺寸网格与 7 种双尺寸混排（部分版式旋转照片、竖版 A5、零间距）。相纸/照片尺寸/间距为厘米，描边与文字大小为像素，DPI 决定像素。批量逐帧出图；描边画在照片内部不会挤占网格；版式放不下时等比缩到相纸内（关闭 fit_to_paper 则明确报错）。下拉存档值为英文编号、中文仅显示名。功能规格参照 Goohaitools「孤海-证件照排版（A5定制）」独立实现（GPL-3.0，未复制上游源码），13 个版式由数据表 + 统一引擎描述。",
-  "inputs": {
-   "image": {
-    "name": "证件照图像",
-    "tooltip": "一张证件照；批量输入时每一帧各自出一张相纸，按版式比例居中裁剪。"
-   },
-   "layout": {
-    "name": "版式",
-    "tooltip": "13 种 A5 版式之一；值为英文编号，中文名仅显示。"
-   },
-   "dpi": {
-    "name": "DPI",
-    "tooltip": "打印分辨率；厘米乘 DPI 得到相纸像素，证件照常用 300。"
-   },
-   "border_px": {
-    "name": "描边宽度（像素）",
-    "tooltip": "每张照片的描边，单位像素；画在照片内部，不改变网格尺寸。"
-   },
-   "border_color": {
-    "name": "描边颜色",
-    "tooltip": "支持 #RGB / #RRGGBB / 颜色名，非法值回退黑色。"
-   },
-   "caption": {
-    "name": "文字",
-    "tooltip": "印在网格底部的文字，后面会接版式名；留空时只印版式名。"
-   },
-   "font": {
-    "name": "字体",
-    "tooltip": "标注字体。下拉首项是随包的 Noto Sans SC（OFL，含中文），其后是 models/fonts 与系统字体。"
-   },
-   "font_size": {
-    "name": "文字大小（像素）",
-    "tooltip": "文字大小，单位像素；0 表示不印文字。"
-   },
-   "fit_to_paper": {
-    "name": "放不下时缩到相纸内",
-    "tooltip": "开启：整体等比缩小到相纸内；关闭：超界时报出具体像素数。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "排版图像",
-    "tooltip": "IMAGE：一帧一张 A5 相纸。"
-   },
-   "1": {
-    "name": "版式名",
-    "tooltip": "STRING：所选版式的中文名。"
-   },
-   "2": {
-    "name": "张数",
-    "tooltip": "INT：一张相纸上的照片份数。"
-   }
-  }
- },
- "QG_ImageComposite": {
-  "display_name": "QG 图像合成",
-  "description": "把源图按坐标贴到目标画布上，可用遮罩控制混合。X/Y 是源图左上角在画布上的像素位置，X偏移/Y偏移叠加在它们之上；负坐标与四边越界都按裁切处理，超出画布的部分直接丢掉。批次帧数取两边较大值，短的一边重复最后一帧。遮罩尺寸不符时自动缩放到源图尺寸，单帧遮罩覆盖所有帧。功能规格参照 ComfyUI_essentials 的 ImageComposite+（GPL-3.0）独立实现，未复制上游源码。",
-  "inputs": {
-   "destination": {
-    "name": "目标",
-    "tooltip": "底图画布，它的尺寸决定输出尺寸。"
-   },
-   "source": {
-    "name": "源",
-    "tooltip": "要贴上去的图。"
-   },
-   "x": {
-    "name": "X",
-    "tooltip": "源图左边缘在画布上的横坐标（像素），可为负以裁掉左侧。"
-   },
-   "y": {
-    "name": "Y",
-    "tooltip": "源图上边缘在画布上的纵坐标（像素），可为负以裁掉上侧。"
-   },
-   "offset_x": {
-    "name": "X偏移",
-    "tooltip": "叠加到 X 上，方便由上游动态值驱动位置。"
-   },
-   "offset_y": {
-    "name": "Y偏移",
-    "tooltip": "叠加到 Y 上，方便由上游动态值驱动位置。"
-   },
-   "mask": {
-    "name": "遮罩",
-    "tooltip": "与源图同尺寸的混合遮罩：白保留源图、黑保留底图；尺寸不符自动缩放，单帧覆盖所有帧。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "IMAGE：合成结果，尺寸与目标一致，帧数取目标与源图的较大值。"
-   }
-  }
- },
- "QG_IDPhotoSizePicker": {
-  "display_name": "QG 证件照尺寸选择",
-  "description": "只挑尺寸：选一个预设，preset 输出直接连证件照裁剪、证件照参数等节点的预设下拉，同时把换算好的像素宽高与实际 dpi 引出来，排版和生成节点可以直接接。尺寸换算与裁剪节点共用同一份表，同一个预设两边算出的像素一定相同；按像素给的预设（358x441 这类）自带 dpi，会覆盖控件里的值。",
-  "inputs": {
-   "preset": {
-    "name": "预设尺寸",
-    "tooltip": "成品尺寸。按像素给的预设（358x441 这类）自带 DPI，会覆盖下面的 dpi。选 custom 才用自定义宽高。"
-   },
-   "dpi": {
-    "name": "DPI",
-    "tooltip": "打印分辨率。300 是冲印标准；像素预设自带 dpi，不受这里影响。"
-   },
-   "custom_width": {
-    "name": "自定义宽",
-    "tooltip": "只有预设选 custom 时才用。单位由下面的单位决定。"
-   },
-   "custom_height": {
-    "name": "自定义高",
-    "tooltip": "只有预设选 custom 时才用。"
-   },
-   "unit": {
-    "name": "单位",
-    "tooltip": "只有 custom 才用：厘米按 dpi 换算成像素，像素则填多少是多少。标准预设自带的单位不受这里影响。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "预设",
-    "tooltip": "预设值，连给证件照裁剪 / 证件照参数等节点的预设下拉。"
-   },
-   "1": {
-    "name": "宽",
-    "tooltip": "换算好的成品像素宽。"
-   },
-   "2": {
-    "name": "高",
-    "tooltip": "换算好的成品像素高。"
-   },
-   "3": {
-    "name": "DPI",
-    "tooltip": "实际用到的 dpi —— 按像素给的预设会覆盖控件里的值。"
-   }
-  }
- },
- "QG_ColorPicker": {
-  "display_name": "QG 取色器",
-  "description": "点色块选一个颜色，按模式输出颜色值与字符串，可直接当工作流的颜色起点。模式 HEX 输出大写 #RRGGBB，RGB 输出「r, g, b」，HSL 输出「h, s%, l%」（逗号后均带一个空格）。两路输出都是 STRING：颜色控件是小写色值，接本包任意颜色控件；字符串接提示词等文本输入。非法色值回退 #213d50。与「QG 颜色转换」的区别是本节点有图形化色块、直接选色，无需上游提供色值。",
-  "inputs": {
-   "color": {
-    "name": "颜色",
-    "tooltip": "点色块打开色板选色，也可手填带 # 的 3/6 位十六进制；非法值回退 #213d50。"
-   },
-   "mode": {
-    "name": "模式",
-    "tooltip": "字符串格式：HEX 大写十六进制 / RGB 整数 / HSL 百分比。值保持英文原文，存档与 API 不变。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "颜色控件",
-    "tooltip": "小写 #rrggbb（3 位输入保持 3 位），供颜色控件类下游使用。"
-   },
-   "1": {
-    "name": "字符串",
-    "tooltip": "按所选模式排版的颜色字符串：HEX / RGB / HSL。"
-   }
-  }
- },
- "QG_MultiPhotoSheet": {
-  "display_name": "QG 多人证件照拼版",
-  "description": "把好几个人的证件照拼到同一张纸上：每人一帧打包成 IMAGE 批次，统一格、居中裁切、按首帧比例不变形，指定列数行数自动算。同一人放多张就多放几帧。与「照片排版」不同，那边是一张照片复制多份，这里是每人各占一格。",
-  "inputs": {
-   "image": {
-    "name": "人像批次",
-    "tooltip": "多人证件照，每人一帧(batch)；同一人要几张就放几帧，按帧顺序逐格排。"
-   },
-   "paper_w": {
-    "name": "纸宽(厘米)",
-    "tooltip": "纸张宽度，厘米。A4 为 21.0。"
-   },
-   "paper_h": {
-    "name": "纸高(厘米)",
-    "tooltip": "纸张高度，厘米。A4 为 29.7。"
-   },
-   "dpi": {
-    "name": "DPI",
-    "tooltip": "打印分辨率，纸宽纸高(厘米) × dpi 决定出图像素。"
-   },
-   "cols": {
-    "name": "列数",
-    "tooltip": "每行排几人；行数按人数自动算，实际列数不超过人数。"
-   },
-   "margin_cm": {
-    "name": "页边距(厘米)",
-    "tooltip": "四周安全边距，厘米。"
-   },
-   "spacing_cm": {
-    "name": "间距(厘米)",
-    "tooltip": "人与人之间的间距，厘米。"
-   },
-   "fit_to_paper": {
-    "name": "放不下时缩小",
-    "tooltip": "人太多放不下时整体等比缩小格子；关闭则直接报错。"
-   },
-   "bg_color": {
-    "name": "纸张底色",
-    "tooltip": "纸张底色，#RGB / #RRGGBB / 颜色名，默认白。"
-   },
-   "border_px": {
-    "name": "描边宽度",
-    "tooltip": "每格描边宽度，像素，画在格子内部；0 为不画。"
-   },
-   "border_color": {
-    "name": "描边颜色",
-    "tooltip": "描边颜色，#RGB / #RRGGBB / 颜色名。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "拼版图像",
-    "tooltip": "一张纸，所有人的照片各占一格。"
-   },
-   "1": {
-    "name": "行数",
-    "tooltip": "自动算出的实际行数。"
-   },
-   "2": {
-    "name": "列数",
-    "tooltip": "实际使用的列数，不超过总人数。"
-   },
-   "3": {
-    "name": "人数",
-    "tooltip": "实际拼进去的帧数。"
-   }
-  }
- },
- "QG_ImageBatchBuilder": {
-  "display_name": "QG 图像批次组合",
-  "description": "把多张图片一次合成一个 IMAGE 批次：输入槽动态增减，默认只显示 1 个，给最后一个槽接上图就自动加一个空槽（接一个加一槽），最多 24 个；空槽自动跳过，按槽位顺序拼。每个槽接单张或一个 batch 都行。尺寸不一致时默认以第 1 张为准缩放对齐，也可切换成直接报错。常用来把多人的证件照汇成一个 batch 再接拼版节点，省掉串一堆「合并图像」节点。",
-  "inputs": {
-   "image_01": {
-    "name": "第 1～24 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_02": {
-    "name": "第 2 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_03": {
-    "name": "第 3 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_04": {
-    "name": "第 4 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_05": {
-    "name": "第 5 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_06": {
-    "name": "第 6 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_07": {
-    "name": "第 7 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_08": {
-    "name": "第 8 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_09": {
-    "name": "第 9 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_10": {
-    "name": "第 10 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_11": {
-    "name": "第 11 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_12": {
-    "name": "第 12 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_13": {
-    "name": "第 13 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_14": {
-    "name": "第 14 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_15": {
-    "name": "第 15 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_16": {
-    "name": "第 16 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_17": {
-    "name": "第 17 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_18": {
-    "name": "第 18 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_19": {
-    "name": "第 19 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_20": {
-    "name": "第 20 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_21": {
-    "name": "第 21 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_22": {
-    "name": "第 22 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_23": {
-    "name": "第 23 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "image_24": {
-    "name": "第 24 张",
-    "tooltip": "第 1～24 张图（可空）：接几张合几张，按编号顺序拼，空槽自动跳过；给最后一个槽接上图会自动多出一个空槽。每个槽可以接单张，也可以接一个 batch。"
-   },
-   "resize_mode": {
-    "name": "尺寸不一致时",
-    "tooltip": "first=以第 1 张为准双三次缩放对齐；error=尺寸不同就直接报错。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像批次",
-    "tooltip": "所有输入按顺序合成的一个 IMAGE batch。"
-   },
-   "1": {
-    "name": "张数",
-    "tooltip": "实际合进去的张数。"
-   }
-  }
- },
- "QG_RemoveBackgroundV2": {
-  "display_name": "QG 移除背景 V2 · 细节精修",
-  "description": "移除背景并重做边缘细节：先用本包 BiRefNet 做粗分割，再按所选细节方法精修边缘。VITMatte 系列用 hustvl 模型按 trimap 出发丝级 alpha（首次需联网下载，VITMatte(local) 只用本地缓存）；vitmatte-base-composition-1k 用更大的 base 模型；PyMatting 用闭合形式抠图，需 pymatting + pyamg；GuidedFilter 用 opencv 引导滤波，速度最快。腐蚀/膨胀控制 trimap 待处理边缘宽度，黑点和白点拉伸 alpha 范围；关掉「处理细节」就只出粗分割结果。输出 RGBA 图像与单通道遮罩。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "要移除背景的图像。批次逐帧处理，输出与输入同尺寸。"
-   },
-   "detail_method": {
-    "name": "细节方法",
-    "tooltip": "边缘细节精修方法。VITMatte 系列最细，需首次下载模型；PyMatting 需 pymatting+pyamg；GuidedFilter 最快，靠 opencv 保持边缘。",
-    "options": {
-     "VITMatte": "ViTMatte 小模型（在线，边缘最细）",
-     "VITMatte(local)": "ViTMatte 小模型（仅本地缓存）",
-     "vitmatte-base-composition-1k": "ViTMatte base 大模型（在线）",
-     "PyMatting": "闭合形式抠图（需 pyamg）",
-     "GuidedFilter": "引导滤波（最快，需 opencv）"
-    }
-   },
-   "detail_erode": {
-    "name": "腐蚀核",
-    "tooltip": "trimap 腐蚀核尺寸。值越大，确定前景区越收缩、待处理边缘越宽。"
-   },
-   "detail_dilate": {
-    "name": "膨胀核",
-    "tooltip": "trimap 膨胀核尺寸。值越大，待处理边缘越宽，细节保留越多。"
-   },
-   "black_point": {
-    "name": "黑点",
-    "tooltip": "黑点。低于该透明度判为全透明，可信度过滤用。"
-   },
-   "white_point": {
-    "name": "白点",
-    "tooltip": "白点。高于该透明度判为不透明，与黑点一起拉伸 alpha 范围。"
-   },
-   "process_detail": {
-    "name": "处理细节",
-    "tooltip": "关闭时直接输出粗分割遮罩，不做任何细节精修，也不需要额外依赖。"
-   },
-   "device": {
-    "name": "设备",
-    "tooltip": "ViTMatte 推理设备。auto 跟随 ComfyUI 当前设备；选 cuda 但不可用时自动回退 CPU。",
-    "options": {
-     "auto": "自动（跟随 ComfyUI）",
-     "cuda": "CUDA 显卡",
-     "cpu": "CPU"
-    }
-   },
-   "max_megapixels": {
-    "name": "最大像素（百万）",
-    "tooltip": "ViTMatte 推理时的最大像素数（百万像素）。超出会按比例缩小再处理，完成后放大回原尺寸。"
-   },
-   "model": {
-    "name": "粗分割模型",
-    "tooltip": "粗分割的 BiRefNet 变体。默认 general；portrait 是人像专用。也可用环境变量 QG_REMOVEBG_MODEL 覆盖。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "去掉背景后的 RGBA 图像；alpha 来自精修后的遮罩，原图颜色保持不变。"
-   },
-   "1": {
-    "name": "遮罩",
-    "tooltip": "单通道遮罩，白色为前景、黑色为背景，灰色是半透明边缘。"
-   }
-  }
- },
- "QG_MaskOrderFilter": {
-  "display_name": "QG 遮罩次序过滤",
-  "description": "把遮罩批次的每一帧当成一个独立段，按面积、宽高或位置排序，按 X 坐标分组，再用开始索引和过滤数量挑选，可选按外接框重叠去重，最后合并成一张或逐帧输出。只处理 ComfyUI 原生 MASK，不依赖 Impact-Pack 或 Goohaitools。",
-  "inputs": {
-   "segs": {
-    "name": "分段",
-    "tooltip": "自造分段容器（QG 简易 Seg 检测的输出 QG_SEGS），每段取其中遮罩当一段；与 masks 二选一，masks 优先。"
-   },
-   "优先规则": {
-    "name": "优先规则",
-    "tooltip": "面积大小：正序从大到小。宽度/高度大小：同理。上下左右：按 X 分组、组内从上到下。下上左右：组内从下到上。"
-   },
-   "正反顺序": {
-    "name": "正反顺序",
-    "tooltip": "正序按规则的自然方向，反序把结果整体倒过来。"
-   },
-   "开始索引": {
-    "name": "开始索引",
-    "tooltip": "从排序结果的第几个开始取，从 0 数起。"
-   },
-   "过滤数量": {
-    "name": "过滤数量",
-    "tooltip": "取多少段；0 表示取到末尾，超出尾部会从头循环。"
-   },
-   "分组阈值": {
-    "name": "分组阈值",
-    "tooltip": "位置规则下，左边界与同组第一段相差不超过该像素数的段算同一列；0 表示只把左边界完全相同的算一列。"
-   },
-   "重叠因子": {
-    "name": "重叠因子",
-    "tooltip": "按外接框 IoU 去重：重叠超过该比例就跳过后面的段；0 关闭。"
-   },
-   "合并遮罩": {
-    "name": "合并遮罩",
-    "tooltip": "合并：所有段取逐像素最大值输出单张。逐帧：按次序堆成批次，每段独立。"
-   },
-   "masks": {
-    "name": "遮罩",
-    "tooltip": "遮罩批次，每一帧当成一个独立段；单张 [H,W] 视为一段。与 segs 二选一，都不接会报错。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "分段",
-    "tooltip": "筛选后的自造 QG_SEGS 容器：每段的框、标签、打分与遮罩，可继续接本包 seg 下游。"
-   },
-   "1": {
-    "name": "遮罩",
-    "tooltip": "筛选后的遮罩；合并时是单张 [H,W]，逐帧时是按次序堆叠的批次。"
-   }
-  }
- },
- "QG_YoloDetectorLoader": {
-  "display_name": "QG 检测模型加载器",
-  "description": "扫描本机 ultralytics 权重并用它加载目标检测模型，输出自造检测对象 QG_YOLO_DETECTOR，供 QG 简易 Seg 检测使用。只用 ultralytics 推理库，不依赖 ComfyUI-Impact-Pack 或 Impact-Subpack。",
-  "inputs": {
-   "model_name": {
-    "name": "检测模型",
-    "tooltip": "本机 ultralytics 权重。bbox/ 只出矩形框，segm/ 为实例分割权重；放在 models/ultralytics/bbox 或 segm 下（支持子目录，最多 3 层），或用 QG_ULTRALYTICS_DIR 指定目录。"
-   },
-   "device": {
-    "name": "推理设备",
-    "tooltip": "推理设备。auto 自动选 CUDA（可用时），cpu 强制 CPU，cuda 不可用时自动回退 CPU。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "检测器",
-    "tooltip": "自造检测对象 QG_YOLO_DETECTOR，只能接本包的 QG 简易 Seg 检测节点。"
-   }
-  }
- },
- "QG_SamModelLoader": {
-  "display_name": "QG SAM 模型加载器",
-  "description": "扫描本机 SAM 权重并加载，输出自造 SAM 对象 QG_SAM_MODEL，供 QG 简易 Seg 检测把检测框细化成轮廓。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的走 HQ-SAM 后端（需另装 segment-anything-hq）。不依赖 ComfyUI-Impact-Pack。",
-  "inputs": {
-   "model_name": {
-    "name": "SAM 模型",
-    "tooltip": "本机 SAM 权重（models/sams，含子目录，最多 3 层）。按文件名自动识别 vit_b/vit_l/vit_h；文件名含 sam_hq 的按 HQ-SAM 后端加载（需另装 segment-anything-hq）。"
-   },
-   "device": {
-    "name": "推理设备",
-    "tooltip": "推理设备。auto 自动选 CUDA（可用时），cpu 强制 CPU，cuda 不可用时自动回退 CPU。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "SAM 模型",
-    "tooltip": "自造 SAM 对象 QG_SAM_MODEL，只能接本包的 QG 简易 Seg 检测节点。"
-   }
-  }
- },
- "QG_SimpleSegDetector": {
-  "display_name": "QG 简易 Seg 检测",
-  "description": "用自造检测器出框，可选接自造 SAM 模型把框细化成轮廓，输出自造 QG_SEGS 容器与普通遮罩批次。参数对齐参考节点的控件含义，逐项独立实现。类型自造，不能接 Impact 下游；MASK 输出可直接接本包遮罩类节点。",
-  "inputs": {
-   "detector": {
-    "name": "检测器",
-    "tooltip": "自造检测器对象，由 QG 检测模型加载器输出。"
-   },
-   "image": {
-    "name": "图像",
-    "tooltip": "单张图片。批次大于 1 会直接报错，请先用批次拆分节点逐帧处理。"
-   },
-   "bbox_threshold": {
-    "name": "BBox 阈值",
-    "tooltip": "检测置信度阈值：低于此分数的框丢弃。"
-   },
-   "bbox_dilation": {
-    "name": "BBox 膨胀",
-    "tooltip": "框四边膨胀像素：正值外扩、负值收缩，影响裁剪与 SAM 提示框。"
-   },
-   "crop_factor": {
-    "name": "裁剪系数",
-    "tooltip": "裁剪系数：每段裁剪区域相对检测框放大的倍数，记入 SEG 元数据。"
-   },
-   "drop_size": {
-    "name": "最小尺寸",
-    "tooltip": "最小尺寸：宽或高小于该像素数的段丢弃。"
-   },
-   "sub_threshold": {
-    "name": "次要阈值",
-    "tooltip": "SAM 二值化阈值：越高遮罩越保守，只保留 SAM 更有把握的核心区域。"
-   },
-   "sub_dilation": {
-    "name": "次要膨胀",
-    "tooltip": "SAM 提示框在框膨胀之上再膨胀的像素，正值外扩。"
-   },
-   "sub_bbox_expansion": {
-    "name": "次要 BBox 扩展",
-    "tooltip": "SAM 提示框四边额外扩展的像素，给 SAM 更多上下文。"
-   },
-   "sam_mask_hint_threshold": {
-    "name": "SAM 遮挡检测阈值",
-    "tooltip": "SAM 打分低于该值的段直接丢弃（质量过滤），0 表示不过滤。"
-   },
-   "post_dilation": {
-    "name": "扩张后",
-    "tooltip": "对最终每段遮罩做膨胀（负值收缩）的像素数，0 不处理。"
-   },
-   "sam_model": {
-    "name": "SAM 模型",
-    "tooltip": "可选 SAM 模型（QG SAM 模型加载器输出）。给了就把检测框细化成轮廓；不给则直接用矩形框作遮罩。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "Segs",
-    "tooltip": "自造 QG_SEGS 容器：每段的框、标签、打分与遮罩；只能接本包下游。"
-   },
-   "1": {
-    "name": "遮罩",
-    "tooltip": "遮罩批次 [N,H,W]，每段一帧，可直接接本包的遮罩类节点。"
-   }
-  }
- },
- "QG_MaskToSeg": {
-  "display_name": "QG 遮罩到 Seg",
-  "description": "把 ComfyUI 原生 MASK 转成自造 QG_SEGS：每个独立连通区域出一段，带框、标签、打分与遮罩。可接 QG 遮罩次序过滤等本包下游；类型自造，不依赖 Impact-Pack。批次遮罩先逐像素取最大值合成一张再分段。",
-  "inputs": {
-   "mask": {
-    "name": "遮罩",
-    "tooltip": "输入遮罩，支持 [H,W] 单张或 [N,H,W] 批次；批次先逐像素取最大值合成一张再分段。"
-   },
-   "combine": {
-    "name": "合并方式",
-    "tooltip": "逐区域分段：每个独立连通区域各出一段。合并为一段：整张遮罩只出一个段。"
-   },
-   "crop_factor": {
-    "name": "裁剪系数",
-    "tooltip": "记入段的元数据，表示裁剪框相对外接框的放大倍数；本节点不裁图。"
-   },
-   "bbox_fill": {
-    "name": "填充 BBox",
-    "tooltip": "把每段外接矩形范围填成实心遮罩，适合做整块区域处理。"
-   },
-   "drop_size": {
-    "name": "最小尺寸",
-    "tooltip": "外接框宽或高不超过该像素数的段丢弃，过滤噪点小块。"
-   },
-   "is_contour": {
-    "name": "轮廓方式",
-    "tooltip": "填充轮廓：用连通域实心轮廓当段遮罩。保留原遮罩：与原遮罩相乘，保留灰度与镂空。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "Segs",
-    "tooltip": "自造 QG_SEGS 容器：每个连通区域一段，带框、标签、打分与遮罩；可接 QG 遮罩次序过滤等本包下游。"
-   }
-  }
- },
- "QG_ImageMaskPreview": {
-  "display_name": "QG 图像与遮罩预览",
-  "description": "在图像上叠加遮罩区域颜色与序号：遮罩每帧当一个对象分别上色、按中心画序号（从 1 数起）；序号字号可跟随遮罩缩放或固定大小。参考 Goohaitools「图像与遮罩预览」规格独立实现，颜色用本包 STRING 色块而非 GHCOLOR，字体走本包发现逻辑。",
-  "inputs": {
-   "image": {
-    "name": "图像",
-    "tooltip": "输入图像，取第一帧；支持 RGB/RGBA，透明部分压黑。"
-   },
-   "mask": {
-    "name": "遮罩",
-    "tooltip": "输入遮罩，[H,W] 单张或 [B,H,W] 批次；每帧当一个对象分别上色与编号。"
-   },
-   "mask_opacity": {
-    "name": "遮罩不透明",
-    "tooltip": "遮罩区域叠加颜色的强度，0 不叠加、1 完全盖住。"
-   },
-   "mask_color": {
-    "name": "遮罩颜色",
-    "tooltip": "叠加到遮罩区域的色值，点色块取色或手填 #RRGGBB。"
-   },
-   "show_index": {
-    "name": "显示序号",
-    "tooltip": "在每个遮罩中心画序号，从 1 数起；布尔控件的显示文字写在源码 label_on/label_off。"
-   },
-   "index_opacity": {
-    "name": "序号不透明",
-    "tooltip": "序号文字的透明度，0 全透明、1 完全不透明。"
-   },
-   "index_scale": {
-    "name": "序号缩放",
-    "tooltip": "跟随遮罩缩放：按各自遮罩高度定字号；固定大小：按最大遮罩高度统一定字号。"
-   },
-   "index_ratio": {
-    "name": "序号比例",
-    "tooltip": "字号 = 遮罩高度 × 该比例。0.5 时字号约半身高，多人密集场景会互相压盖，建议 0.1~0.2。"
-   },
-   "index_font": {
-    "name": "序号字体",
-    "tooltip": "随包 OFL 中文字体优先，其后是 models/fonts 与系统字体，下拉只列真实存在的文件。"
-   },
-   "index_color": {
-    "name": "序号颜色",
-    "tooltip": "序号文字的色值，点色块取色或手填 #RRGGBB。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "图像",
-    "tooltip": "叠加了遮罩颜色与序号的预览图，可直接接预览节点查看。"
-   }
-  }
- },
- "QG_GoogleTranslate": {
-  "display_name": "QG 谷歌翻译",
-  "description": "谷歌免费通道的文本翻译，零额外依赖、不需要 API Key（Google 可能对部分网络限流）；设置环境变量 GOOGLE_TRANSLATION_API_KEY 后自动改走官方接口、不限量。超过单次上限的长文按换行切分、译完按原样拼回；官方接口按纯文本翻译，换行和引号原样保留。开启「手动翻译」后节点排队时文本原样通过，用节点上的「手动翻译」按钮就地翻译。翻译失败时把原文传下去，不中断工作流。",
-  "inputs": {
-   "from_translate": {
-    "name": "源语言",
-    "tooltip": "原文语言。auto 让 Google 自动识别；下拉值是 BCP-47 语言码（如 zh-cn / en），存档里存的也是码，不随界面语言变。",
-    "options": {
-     "auto": "自动",
-     "de": "德文",
-     "en": "英文",
-     "es": "西班牙文",
-     "fr": "法文",
-     "ja": "日文",
-     "ko": "韩文",
-     "ru": "俄文",
-     "zh-cn": "中文（简体）",
-     "zh-tw": "中文（繁体）"
-    }
-   },
-   "to_translate": {
-    "name": "目标语言",
-    "tooltip": "翻译成什么语言。默认英文——SAM 3 这类检测模型只认英文。",
-    "options": {
-     "de": "德文",
-     "en": "英文",
-     "es": "西班牙文",
-     "fr": "法文",
-     "ja": "日文",
-     "ko": "韩文",
-     "ru": "俄文",
-     "zh-cn": "中文（简体）",
-     "zh-tw": "中文（繁体）"
-    }
-   },
-   "manual_translate": {
-    "name": "手动翻译",
-    "tooltip": "开启后节点不再自动翻译：排队运行时文本原样通过，用节点上的「手动翻译」按钮就地翻译。"
-   },
-   "text": {
-    "name": "文本",
-    "tooltip": "要翻译的文字。超过 Google 单次上限会按换行切分再拼回，一行一句切得最干净。"
-   }
-  },
-  "outputs": {
-   "0": {
-    "name": "译文"
-   }
-  }
- }
 }

@@ -23,8 +23,6 @@ const FALLBACK = "#364254";
 /** 需要图形化的颜色控件：节点注册 key → 控件名列表。要复用到别的节点，在这里加一行即可。 */
 const COLOR_WIDGETS = {
     QG_BiRefNet: ["background_color"],
-    QG_DualColorPicker: ["primary_color", "secondary_color"],
-    QG_CustomColor: ["color1", "color2"],
     QG_FaceAlign: ["custom_fill_color"],
     QG_IDPhotoParams: ["bg_custom"],
     // 全包普查后补齐的 5 个纯颜色值控件。这些都是单一颜色输入（不像
@@ -34,11 +32,9 @@ const COLOR_WIDGETS = {
     QG_IDCardSheet: ["bg_color"],
     QG_MarriageCloth: ["pad_color"],
     QG_Watermark: ["color"],
-    QG_ColorPicker: ["color"],
     // 多人证件照拼版：纸张底色 + 每格描边色（PANEL_TITLE 已有这两个控件名）。
     QG_MultiPhotoSheet: ["bg_color", "border_color"],
     // 图像与遮罩预览：遮罩叠加色 + 序号色，两个都是整块色条（BANNER_WIDGETS）。
-    QG_ImageMaskPreview: ["mask_color", "index_color"],
 };
 
 /**
@@ -46,7 +42,6 @@ const COLOR_WIDGETS = {
  * 直接往里加 color 会把水印节点的 color 也变成色条，所以这里按节点精确限定。
  */
 const BANNER_WIDGETS = {
-    QG_ColorPicker: ["color"],
 };
 
 /**
@@ -75,10 +70,6 @@ const LINKED_COMBO = {
 /** 色板标题按控件给，不再一律写死「描边颜色」（那个词只对描边控件才对）。 */
 const PANEL_TITLE = {
     background_color: "背景颜色",
-    primary_color: "主色",
-    secondary_color: "辅色",
-    color1: "颜色 1",
-    color2: "颜色 2",
     custom_fill_color: "自定义填充色",
     bg_custom: "自定义背景色",
     fill_color: "填充颜色",
@@ -86,25 +77,16 @@ const PANEL_TITLE = {
     bg_color: "底色",
     pad_color: "衬底颜色",
     color: "颜色",
-    mask_color: "遮罩颜色",
-    index_color: "序号颜色",
 };
 
 /**
- * 这些控件改用「整块色块 + 居中文字」绘制（双色取色器的主色/辅色按钮），
- * 其余控件仍是胶囊底板 + 左侧小色块。文案存中英双串，绘制时才按界面语言取，
- * 不在模块顶层定稿（开发规范 §4.2）。
+ * 这些控件改用「整块色块 + 居中文字」绘制，其余控件仍是胶囊底板 + 左侧小色块。
+ * 文案存中英双串，绘制时才按界面语言取，不在模块顶层定稿（开发规范 §4.2）。
+ * 2026-11-25：双色取色器 / 图像与遮罩预览已迁去 ComfyUI-QG-tools，原 6 条
+ * （primary_color / secondary_color / color1 / color2 / mask_color / index_color）
+ * 无人引用已清掉；机制保留，给别的节点加整块色条时往这里和 BANNER_WIDGETS 各补一行。
  */
-const BANNER_TEXT = {
-    primary_color: { en: "Primary", zh: "主色" },
-    secondary_color: { en: "Secondary", zh: "辅色" },
-    color1: { en: "Color 1", zh: "颜色1" },
-    color2: { en: "Color 2", zh: "颜色2" },
-    // 图像与遮罩预览的两个色条：各带中文标签（走 BANNER_TEXT 而非 BANNER_WIDGETS，
-    // 后者只会显示写死的「颜色」，区分不出遮罩色与序号色）。
-    mask_color: { en: "Mask Color", zh: "遮罩颜色" },
-    index_color: { en: "Index Color", zh: "序号颜色" },
-};
+const BANNER_TEXT = {};
 
 /** 画布上画的字汉化插件够不到，这里延迟到绘制时判定界面语言。 */
 function wantsChinese() {

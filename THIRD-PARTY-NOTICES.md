@@ -143,8 +143,7 @@ implementation and does not copy upstream source.
 
 Most nodes in this pack align their **functional spec** with nodes from
 Goohaitools-comfyui (`QG_IDPhotoCrop`, `QG_IDPhotoOutfit`,
-`QG_MarriageCloth`, `QG_MaskTopExpand`, `QG_DualColorPicker`,
-`QG_ColorConvert`, `QG_CustomColor`, `QG_DominantColor`, `QG_FaceAlign`,
+`QG_MarriageCloth`, `QG_MaskTopExpand`, `QG_FaceAlign`,
 `QG_IDPhotoPrompt`, and `QG_PhotoSheetMixed`).
 Their behaviour was studied and then re-implemented independently; each one
 also lists what was deliberately changed (see the node's module docstring

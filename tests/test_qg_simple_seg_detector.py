@@ -449,7 +449,7 @@ nd = json.load(open(os.path.join(PKG, "locales/zh/nodeDefs.json"), encoding="utf
 tr = json.load(open(os.path.join(PKG, "translations/zh-CN/Nodes/ComfyUI-QG-Multipack.json"),
                     encoding="utf-8"))
 new_keys = ("QG_YoloDetectorLoader", "QG_SamModelLoader", "QG_SimpleSegDetector")
-check("两份词表均 39 节点", len(nd) == len(tr) == 39, "%d/%d" % (len(nd), len(tr)))
+check("两份词表均 30 节点", len(nd) == len(tr) == 30, "%d/%d" % (len(nd), len(tr)))
 check("新三节点进 nodeDefs", all(k in nd for k in new_keys))
 check("新三节点进 translations", all(k in tr for k in new_keys))
 for k in new_keys:

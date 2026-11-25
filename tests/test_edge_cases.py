@@ -275,11 +275,7 @@ check("qg_id_photo_outfit 模板丢失时保留已有提示词",
       "const existing = String(promptWidget?.value || \"\").trim();" in outfit
       and "selectedPrompt = existing;" in outfit)
 
-ebb = js("qg_image_batch_builder.js")
-check("qg_image_batch_builder 上限裁剪前判连接",
-      "if (connected(last.slot)) break;" in
-      ebb[ebb.find("while (inputs.length > MAX_IMAGES)"):
-          ebb.find("while (inputs.length > MAX_IMAGES)") + 400])
+# 2026-11-25：qg_image_batch_builder.js 已随节点迁去 ComfyUI-QG-tools，相关断言移除。
 
 # --------------------------------------------------------------------------
 print("=== H. 第五轮真机 fuzz 补出的空批次 ===")
@@ -298,10 +294,7 @@ def _rejects_0frame(fn, label):
     else:
         check(label + " 空批次报中文错误", False, "未抛异常")
 
-_rejects_0frame(
-    lambda: load("qg_dominant_color").QGDominantColor().extract(
-        _empty_img, 8, 15),
-    "QG_DominantColor")
+# 2026-11-25：qg_dominant_color 已随节点迁去 ComfyUI-QG-tools，相关断言移除。
 
 _rejects_0frame(
     lambda: load("qg_multi_photo_sheet").QGMultiPhotoSheet().execute(

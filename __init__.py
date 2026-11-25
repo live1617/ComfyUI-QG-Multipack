@@ -33,26 +33,20 @@
 #   · 后端：身份证拼版节点（id_card_sheet_node.py，注册 key QG_IDCardSheet，
 #           找四角扶正/铺到纸上；参考 Goohaitools 重写）
 #   · 后端：斜向水印节点（watermark_node.py，注册 key QG_Watermark，斜向平铺文字水印）
-#   · 后端：主色提取节点（qg_dominant_color.py，注册 key QG_DominantColor，
-#           图片进、主色 #RRGGBB 出，降采样+滤边+容差分桶）
 #   · 后端：面部对齐节点（face_align_node.py，注册 key QG_FaceAlign，
 #           目标图人脸按参考图缩放旋转对齐，无参考图时仅摆平角度）
 #   · 后端：证件照服装发型节点（qg_id_photo_outfit.py，注册 key QG_IDPhotoOutfit，
 #           扫描 models/id_photo/ 自备素材，前端网格选模板出提示词）
-#   · 后端：遮罩次序过滤节点（qg_mask_order_filter.py，注册 key QG_MaskOrderFilter，
-#           参考 Goohaitools「Seg次序过滤」规格独立实现，只吃/出 MASK，不依赖 SEGS）
 #   · 后端：简易 Seg 检测三件套（qg_yolo_detector_loader.py / qg_sam_model_loader.py
 #           / qg_simple_seg_detector.py，注册 key QG_YoloDetectorLoader /
 #           QG_SamModelLoader / QG_SimpleSegDetector，自造类型 QG_YOLO_DETECTOR /
 #           QG_SAM_MODEL / QG_SEGS，只用 ultralytics + segment_anything，不依赖 Impact）
 #   · 后端：遮罩到 Seg 节点（qg_mask_to_seg.py，注册 key QG_MaskToSeg，
 #           把 MASK 连通域转成自造 QG_SEGS，参考 Impact MaskToSeg 规格独立实现）
-#   · 后端：图像与遮罩预览（qg_image_mask_preview.py，注册 key QG_ImageMaskPreview，
-#           遮罩区域上色 + 按帧序号，参考 Goohaitools 规格独立实现，颜色走本包色块）
 
 # 版本号单一真源是插件根目录的 VERSION 文件；每次改完节点用工作区的
 # 打包备份.py --bump patch|minor|major 递增，并同步打包到 D:\插件开发。
-__version__ = "2.23.0"
+__version__ = "2.24.0"
 
 import asyncio
 import time
@@ -227,60 +221,6 @@ for _pk_mod, _pk_label in (
         print("[QG-Multipack] %s（%s）导入失败，其余节点不受影响。"
               % (_pk_label, _pk_mod))
 
-# QG 双色取色器：纯字符串节点，无第三方依赖，单独 try/except。
-try:
-    from . import qg_dual_color_picker as _dual_color
-
-    NODE_CLASS_MAPPINGS.update(_dual_color.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_dual_color.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 双色取色器导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-# QG 颜色转换：纯字符串节点，无第三方依赖，单独 try/except。
-try:
-    from . import qg_color_convert as _color_convert
-
-    NODE_CLASS_MAPPINGS.update(_color_convert.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_color_convert.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 颜色转换导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-# QG 自定义颜色：图像生成节点（依赖 torch/numpy，ComfyUI 环境必有），单独 try/except。
-try:
-    from . import qg_custom_color as _custom_color
-
-    NODE_CLASS_MAPPINGS.update(_custom_color.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_custom_color.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 自定义颜色导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-
-# QG 主色提取：图像统计节点（依赖 torch/numpy/PIL，ComfyUI 环境必有），单独 try/except。
-try:
-    from . import qg_dominant_color as _dominant_color
-
-    NODE_CLASS_MAPPINGS.update(_dominant_color.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_dominant_color.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 主色提取导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-
 # QG 面部对齐：人脸检测复用 _face_helpers（mediapipe/Haar 可选依赖），单独 try/except。
 try:
     from . import face_align_node as _face_align
@@ -364,20 +304,6 @@ except Exception:
           "其余节点不受影响。")
 
 
-# 图像合成：qg_image_composite.py（注册 key QG_ImageComposite）
-try:
-    from . import qg_image_composite as _image_composite
-
-    NODE_CLASS_MAPPINGS.update(_image_composite.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_image_composite.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 图像合成导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-
 # 证件照尺寸选择：qg_id_photo_size_picker.py（注册 key QG_IDPhotoSizePicker）
 try:
     from . import qg_id_photo_size_picker as _id_photo_size_picker
@@ -390,20 +316,6 @@ except Exception:
     traceback.print_exc()
     print("[QG-Multipack] QG 证件照尺寸选择导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
-
-# QG 取色器：纯字符串节点，无第三方依赖，单独 try/except。
-try:
-    from . import qg_color_picker as _color_picker
-
-    NODE_CLASS_MAPPINGS.update(_color_picker.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_color_picker.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 取色器导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
 
 # 多人证件照拼版：qg_multi_photo_sheet.py（注册 key QG_MultiPhotoSheet）
 try:
@@ -419,20 +331,6 @@ except Exception:
           "其余节点不受影响。")
 
 
-# 图像批次组合：qg_image_batch_builder.py（注册 key QG_ImageBatchBuilder）
-try:
-    from . import qg_image_batch_builder as _image_batch_builder
-
-    NODE_CLASS_MAPPINGS.update(_image_batch_builder.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_image_batch_builder.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 图像批次组合导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-
 # 移除背景 V2：qg_remove_background_v2.py（注册 key QG_RemoveBackgroundV2）
 try:
     from . import qg_remove_background_v2 as _remove_bg_v2
@@ -444,20 +342,6 @@ except Exception:
 
     traceback.print_exc()
     print("[QG-Multipack] QG 移除背景 V2 导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
-
-# 遮罩次序过滤：qg_mask_order_filter.py（注册 key QG_MaskOrderFilter）
-try:
-    from . import qg_mask_order_filter as _mask_order
-
-    NODE_CLASS_MAPPINGS.update(_mask_order.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_mask_order.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 遮罩次序过滤导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
 
 
@@ -510,20 +394,6 @@ except Exception:
     traceback.print_exc()
     print("[QG-Multipack] QG 遮罩到 Seg 导入失败（上面的 traceback 是原因），"
           "其余节点不受影响。")
-
-# 图像与遮罩预览：qg_image_mask_preview.py（注册 key QG_ImageMaskPreview）
-try:
-    from . import qg_image_mask_preview as _image_mask_preview
-
-    NODE_CLASS_MAPPINGS.update(_image_mask_preview.NODE_CLASS_MAPPINGS)
-    NODE_DISPLAY_NAME_MAPPINGS.update(_image_mask_preview.NODE_DISPLAY_NAME_MAPPINGS)
-except Exception:
-    import traceback
-
-    traceback.print_exc()
-    print("[QG-Multipack] QG 图像与遮罩预览导入失败（上面的 traceback 是原因），"
-          "其余节点不受影响。")
-
 
 WEB_DIRECTORY = "./web"
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]

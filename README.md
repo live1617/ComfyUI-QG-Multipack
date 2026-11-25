@@ -1,6 +1,6 @@
 # QG 工具（ComfyUI-QG-Multipack）
 
-> 当前版本：**v2.23.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
+> 当前版本：**v2.24.0** ｜ 版本号真源在插件根目录 `VERSION` 文件；每次修改节点后递增版本号，并打包备份到 `D:\插件开发\ComfyUI-QG-Multipack-vX.Y.Z.zip`。
 
 ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都收在 **添加节点 → QG 工具** 分类下。
 
@@ -26,28 +26,19 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | `QG_IDPhotoSizePicker` | QG 证件照尺寸选择 | 一处选好尺寸，`preset` 直接连裁剪 / 参数节点的预设下拉，另出像素宽高与 DPI | `预设` / `宽` / `高` / `DPI` |
 | `QG_PhotoSheet` | QG 照片排版 | 铺满相纸、画裁切角标、放不下自动缩 | `排版图像` / `列数` / `行数` / `总张数` |
 | `QG_MultiPhotoSheet` | QG 多人证件照拼版 | 多人的照片各占一格拼到同一张纸，统一格居中裁切、列数指定行数自动 | `拼版图像` / `行数` / `列数` / `人数` |
-| `QG_ImageBatchBuilder` | QG 图像批次组合 | 输入槽动态增减（默认 1 个，接一个加一个，上限 24），接几张合几张成 batch，省掉串一堆「合并图像」节点 | `image` / `count` |
 | `QG_RemoveBackgroundV2` | QG 移除背景 V2 · 细节精修 | 本包 BiRefNet 粗分割 + 五种边缘精修（VITMatte / VITMatte(local) / base / PyMatting / GuidedFilter），腐蚀膨胀控制 trimap、黑白点拉伸 alpha，输出透明 RGBA 与遮罩 | `IMAGE` / `MASK` |
-| `QG_MaskOrderFilter` | QG 遮罩次序过滤 | 遮罩每帧当成一段，按面积/宽高/位置排序、X 分组、索引筛选、IoU 去重，合并或逐帧输出；`分段`/`遮罩` 二选一输入（分段在上），输出 Segs + Mask 两路，不依赖 Impact-Pack | `Segs` / `MASK` |
 | `QG_IDCardSheet` | QG 身份证拼版 | 拍歪的卡片找四角扶正、加圆角投影、按厘米铺到纸上 | `IMAGE` |
 | `QG_Watermark` | QG 斜向水印 | 斜向平铺文字水印（默认用随包 OFL 中文字体，中文不再成方框） | `IMAGE` |
-| `QG_DualColorPicker` | QG 双色取色器 | 一次输出模式 + 主色 + 辅色三路字符串，颜色控件点开弹出色板 | `模式` / `主色` / `辅色` |
-| `QG_ColorPicker` | QG 取色器 | 点色块选一个颜色，按 HEX / RGB / HSL 输出颜色值与字符串，可作工作流颜色起点 | `颜色控件` / `字符串` |
-| `QG_ColorConvert` | QG 颜色转换 | 把 hex / RGB / HSL / 0-1 浮点等写法互转成目标格式，另出一路规范化 hex | `字符串` / `颜色控件` |
-| `QG_CustomColor` | QG 自定义颜色 | 按宽高生成纯色 / 上下渐变 / 中心渐变底图，可加灰度颗粒 | `图像` |
-| `QG_DominantColor` | QG 主色提取 | 统计图像出现最多的颜色（降采样 + 滤黑边白边 + 容差分桶），输出大写 `#RRGGBB` | `主色 HEX` |
 | `QG_FaceAlign` | QG 面部对齐 | 目标图人脸按参考图缩放/旋转对齐后裁回参考尺寸；无参考图时仅摆平角度 | `图像` |
 | `QG_IDPhotoOutfit` | QG 证件照服装发型 | 面板网格选服装/发型模板出提示词（内置 7 分类 200 张，可自行补图） | `提示词` |
 | `QG_MarriageCloth` | QG 结婚登记照服装 | 面板画廊选服装参考图，出一张 IMAGE 给图生图（内置 81 张，序号 0 = 纯色底） | `image` |
 | `QG_MaskTopExpand` | QG 头顶遮罩扩展 | 从遮罩最高点向上补矩形，给外补画板留发量空间（可羽化、可合并原遮罩） | `mask` |
 | `QG_IDPhotoPrompt` | QG 证件照简易提示词 | 13 维下拉 + seed 组合成一句中文人像提示词（随机可复现，值英文编号、中文仅显示） | `prompt` |
 | `QG_PhotoSheetMixed` | QG 证件照混合排版（A5） | 13 种 A5 固定版式，含双尺寸混排 / 旋转 / 竖版 / 零间距，批量逐帧出图 | `sheet` / `layout_name` / `total` |
-| `QG_ImageComposite` | QG 图像合成 | 把源图按坐标贴到目标画布，遮罩控制混合；负坐标与四边越界按裁切处理，批次自动补齐 | `image` |
 | `QG_YoloDetectorLoader` | QG 检测模型加载器 | 扫描本机 ultralytics 权重并加载成自造检测器 QG_YOLO_DETECTOR；只用 ultralytics，不依赖 Impact | `detector` |
 | `QG_SamModelLoader` | QG SAM 模型加载器 | 扫描本机 SAM 权重并加载成自造对象 QG_SAM_MODEL，按文件名识别 vit_b/l/h；不依赖 Impact | `sam_model` |
 | `QG_SimpleSegDetector` | QG 简易 Seg 检测 | 检测器出框 → 可选 SAM 逐框精修 → 膨胀/质量过滤，自造类型 QG_SEGS + 原生 MASK 双输出 | `segs` / `MASK` |
 | `QG_MaskToSeg` | QG 遮罩到 Seg | 把 MASK 按连通域逐段转成自造 QG_SEGS：合并/裁剪系数/填充 BBox/最小尺寸/填充轮廓五个控件；批次先取最大值合成再分段 | `segs` |
-| `QG_ImageMaskPreview` | QG 图像与遮罩预览 | 在图像上叠加遮罩区域颜色与序号：每帧遮罩分别上色、中心画序号（可跟随遮罩缩放或固定大小）；颜色走本包色块，不依赖孤海 GHCOLOR | `image` |
 | `QG_GoogleTranslate` | QG 谷歌翻译 | Google 免费通道文本翻译，零额外依赖、不需要 API Key（设 `GOOGLE_TRANSLATION_API_KEY` 环境变量自动改走官方接口）；节点上带「手动翻译」按钮，失败时原文通过 | `translated_text` |
 
 ## 示例工作流
@@ -62,11 +53,13 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 
 三份都由 8177 真机 `/object_info` 生成控件默认值与连线类型。前两份曾用真机前端验证过 `graphToPrompt()` 成立；本轮三份又统一按 `graphToPrompt` 的规则转成 API prompt 提交给 8177，全部 `node_errors={}`、执行 `success`（全链路 2 组图 / 模板 1 组 / 离线 2 组）：节点与连线完整、无未知节点、无断链。画布上的「使用说明」便签写了每一步该做什么，也写清哪些资源已随包、哪些仍需按需下载。
 
+> **2026-11-25 迁移说明**：取色器 / 颜色转换 / 自定义颜色 / 主色提取 / 图像批次组合 / 图像合成 / 遮罩次序过滤 / 图像与遮罩预览 已迁至 **ComfyUI-QG-tools**（同名节点，装那个即可）。
+
 ## 各节点使用说明
 
 下面按一条典型工作流的**数据流顺序**排：图进画布 → 矫正朝向 → 对齐分辨率 → 抠图 / 反推 → 优化 / 翻译提示词 → 采样；最后四个是纯画布辅助节点，跟数据流无关，放末尾。
 
-本节覆盖全部 39 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点，以及自 QG-tools 中转移植的谷歌翻译）。
+本节覆盖全部 30 个节点（含并入的证件照 / 排版 / 拼版 / 水印 7 个节点，以及自 QG-tools 中转移植的谷歌翻译）。
 
 每节固定四块：作用、怎么接线、控件说明、输出怎么接。参数默认值都是「拖出来就是能跑」的那一档，先把默认值跑通再调。
 
@@ -128,31 +121,22 @@ weights。**用户自己放的同名权重优先**，内置副本只在用户目
 | `QG_IDPhotoCrop` | ✅ 原创 | 裁剪几何对齐孤海工具箱口径（自实现） | 1% |
 | `QG_PhotoSheet` | ✅ 原创 | 排版几何自实现 | 0% |
 | `QG_MultiPhotoSheet` | ✅ 原创 | 多人各占一格的拼版几何自实现（纯整数规划），与「一张照片复制多份」的排版节点正交 | 0% |
-| `QG_ImageBatchBuilder` | ✅ 原创 | 多输入槽汇总成 batch 的收集/对齐逻辑自实现，独立于核心 `ImageBatch` | 0% |
 | `QG_GoogleTranslate` | ⚠️ **MIT 移植** | 思路与实现来自 AlekPet「GoogleTranslateTextNode」（MIT），经自有插件 ComfyUI-QG-tools 中转后移植；免费/官方双通道、分片、双跳重试逻辑逐字保留，V3 节点外壳改写为本包统一的 V1 风格 | **72%**（语言表 106 项与网络层逐字保留；节点外壳与路由新写/改写） |
 | `QG_RemoveBackgroundV2` | ✅ 原创（参照规格） | 功能规格参考 LayerStyle「RmBgUltra V2」；粗分割复用本包 BiRefNet，trimap / ViTMatte 推理 / PyMatting / 引导滤波全部独立实现，未复制上游源码 | 0% |
-| `QG_MaskOrderFilter` | ✅ 原创（参照规格） | 控件与行为参考 Goohaitools「Seg次序过滤」（GPL-3.0）；排序/分组/索引筛选/IoU 去重/合并全部独立实现，吃原生 MASK 或本包 QG_SEGS，出本包自造 QG_SEGS + 原生 MASK，不碰 Impact-Pack 的 SEGS，未复制上游源码 | 0% |
 | `QG_IDCardSheet` | ⚠️ GPL 参考后重写 | Goohaitools「身份证自动扶正拼版」（GPL-3.0），三处核心算法已替换 | 未逐项统计（结构/命名沿用） |
 | `QG_Watermark` | ✅ 原创 | 斜向水印自实现 | 0% |
-| `QG_DualColorPicker` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 取色器（双）」（GPL-3.0）；代码自写，前端复用本包 `qg_color_picker.js`，未复制上游源码 | 0% |
-| `QG_ColorPicker` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 取色器」（GPL-3.0）；代码自写，前端复用本包 `qg_color_picker.js`，未复制上游源码 | 0% |
-| `QG_ColorConvert` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 颜色转换」（GPL-3.0）；解析 / 转换代码自写，未复制上游源码 | 0% |
-| `QG_CustomColor` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海 自定义颜色」（GPL-3.0）；渲染用 numpy 向量化重写（上游逐像素画点），未复制上游源码 | 0% |
-| `QG_DominantColor` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-主色提取 (多版本兼容)」（GPL-3.0）；统计用 numpy 向量化重写（上游 Python 逐像素循环），未复制上游源码 | 0% |
 | `QG_FaceAlign` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-面部对齐」（GPL-3.0）；几何与统计自写，人脸检测复用本包 `_face_helpers`（上游只支持 mediapipe），未复制上游源码 | 0% |
 | `QG_IDPhotoOutfit` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照服装发型」（GPL-3.0）；扫描与提示词解析逻辑自写，**内置素材取自孤海公开素材库**（7 分类 200 张，见 THIRD-PARTY-NOTICES），前端界面形态与其一致，未复制上游代码 | 0%（代码）/ 素材 100% 同源 |
 | `QG_MarriageCloth` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-结婚登记照服装」（GPL-3.0）；扫描 / 缩放 / 路径清洗自写，**内置素材取自孤海公开素材库**（81 张，见 THIRD-PARTY-NOTICES），未复制上游代码 | 0%（代码）/ 素材 100% 同源 |
 | `QG_MaskTopExpand` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-头顶遮罩」（GPL-3.0）；矩形计算自写，并修掉上游丢原遮罩、只处理单帧两个问题，未复制上游代码 | 0% |
 | `QG_IDPhotoPrompt` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照简易提示词」（GPL-3.0）；13 维选项中文词条取自公开规格（属数据），组装 / 随机 / 值映射自写，未复制上游代码；修掉上游 `random.seed()` 污染进程全局随机与「简单背景」重复叠加 | 0% |
 | `QG_PhotoSheetMixed` | ✅ 原创（参照规格） | 功能规格参考 Goohaitools「孤海-证件照排版（A5定制）」（GPL-3.0）；13 个版式用数据表 + 统一排版引擎重写（上游每个版式一段分支、共约 700 行），未复制上游代码；修掉批次只取第一帧、描边撑大网格、超界静默裁切、短 hex 崩溃 | 0% |
-| `QG_ImageComposite` | ✅ 原创（参照规格） | 功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0）；坐标求交、遮罩混合、批次补齐自写，并修掉上游负坐标走负索引贴错位置、只处理右下越界、目标帧被截短三个问题，未复制上游源码 | 0% |
 | `QG_YoloDetectorLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Subpack 的检测加载器；模型扫描、路径解析、软依赖提示、自造类型全自写，只调 ultralytics 的公开 `YOLO(path)` 接口，类型不与 Impact 互通，未复制上游源码 | 0% |
 | `QG_SamModelLoader` | ✅ 原创（参照规格） | 控件与用途参考 Impact-Pack 的 SAM 加载器；权重扫描、类型推断、后端分流（`segment_anything` / `segment_anything_hq`）、设备解析、自造类型全自写，只调它们的公开 `sam_model_registry` / `SamPredictor` 接口，未复制上游源码 | 0% |
 | `QG_SimpleSegDetector` | ✅ 原创（参照规格） | 控件与数据流参考 Impact-Pack「简易 Seg 检测」；出框/逐框 SAM 精修/膨胀/质量过滤/自造 QG_SEGS 容器全部自写，类型不与 Impact 互通，另出原生 MASK，未复制上游源码 | 0% |
 | `QG_MaskToSeg` | ✅ 原创（参照规格） | 控件语义参考 Impact-Pack「MaskToSeg」；连通域提取/合并/填充 BBox/最小尺寸/填充轮廓/自造 QG_SEGS 全部自写，类型不与 Impact 互通，缺 cv2 有纯 numpy 回退，未复制上游源码 | 0% |
-| `QG_ImageMaskPreview` | ✅ 原创（参照规格） | 控件与用途参考 Goohaitools「图像与遮罩预览」（GPL-3.0）；上色/序号/bbox/字体发现全部自写，颜色用本包 STRING 色块而非 GHCOLOR，字体走本包 OFL/models/fonts/系统字体发现，未复制上游源码 | 0% |
 
-一句话概括：**39 个节点里 37 个自行实现或按 GPL 移植并声明，2 个按 MIT 移植**（`QG_MaskByName` 为 MIT 代码的部分改编、`QG_GoogleTranslate` 为 MIT 实现的移植），且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
+一句话概括：**30 个节点里 28 个自行实现或按 GPL 移植并声明，2 个按 MIT 移植**（`QG_MaskByName` 为 MIT 代码的部分改编、`QG_GoogleTranslate` 为 MIT 实现的移植），且已在 `THIRD-PARTY-NOTICES.md` 里写明作者、上游地址、许可证全文，以及「保留了哪些函数、新写了哪些」的逐项拆分。两个带内置素材的节点（`QG_IDPhotoOutfit`、`QG_MarriageCloth`）另有一节说明素材来源：图与提示词取自 Goohaitools 公开素材库（GPL-3.0），原样复制未修改。
 
 几个容易误会的点：
 
@@ -618,28 +602,6 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 **统一格规则**：所有格子同尺寸，宽高比取**首帧照片**的比例，居中裁切填进格子，不拉伸人脸。所以 batch 里第一张照片的宽高比决定整版格子形状——建议先把所有人的照片裁成同一规格（用「QG 证件照裁剪」）再拼。最后一行不满时居中，不留一侧大空档。
 
 **输出**：`拼版图像`（一张纸）/ `行数` / `列数` / `人数`（实际拼进去的帧数）。
-
-
-### `QG_ImageBatchBuilder` 图像批次组合
-
-> **来源：原创**。多输入槽收集与尺寸对齐逻辑自实现，不依赖核心 `ImageBatch`。
-
-**作用**：一个节点把多张照片合成 batch，专治「6 张图要串 5 个 ImageBatch」的繁琐。输入槽**动态增减**：节点刚拖出来只显示 1 个槽，给最后一个槽接上图就自动在后面加一个空槽（「接一个加一槽」），最多 24 个；断开末尾连线会收起多余空槽。节点高度会跟着实际槽数自适应——新建时收紧到内容高度，接线加槽时自动增高；从工作流加载的节点则保留你拉过的尺寸，不会被改回默认。
-
-**怎么接线**：每个 LoadImage 的输出接一个槽，从上往下依次接；槽是按编号顺序拼的，不是按连线顺序。每个槽既能接单张，也能接一个 batch（整批按顺序展开），所以「6 个单帧」和「1 个 6 帧 batch」结果一样。输出直接接「QG 多人证件照拼版」的 `image`。后端 24 个槽全可选，只接 1 张也能跑；一张都不接会在运行时明确报错。
-
-**控件说明**：唯一控件是 `resize_mode`：
-
-| 值 | 说明 |
-| --- | --- |
-| `first`（默认） | 尺寸不一致时以第 1 张为准双三次缩放对齐，通道数也对齐（RGB/RGBA 互转），与核心 `ImageBatch` 行为一致 |
-| `error` | 尺寸不同直接报错，适合规格不一时早点发现、避免悄悄缩放变形 |
-
-**输出**：`image`（合成后的单个 batch）/ `count`（实际张数）。张数输出可接下游做分支判断。
-
-**槽位不够怎么办**：24 个（自动加到上限）对应 A4 证件照 3 列 × 8 行的常见上限；更多张建议先把图片放到 `input` 的某个文件夹，用能读整批的节点导入，或分两批拼两张纸。
-
-
 ### `QG_RemoveBackgroundV2` 移除背景 V2 · 细节精修
 
 > **来源：✅ 原创（参照规格）**。功能规格参考 LayerStyle 的「LayerMask: RmBgUltra V2」（GPL-3.0），流程与参数含义对齐，实现全部自写；粗分割直接复用本包的 `QG_BiRefNet`，不引入第二套权重，也不复制上游源码。
@@ -685,114 +647,6 @@ IDPhotoParams ──params──▶ PortraitMatte / IDPhotoCrop
 **控件**：`text`、`font`、`size`、`color`（`#RRGGBB` / 颜色名 / `r,g,b`）、`opacity`、`spacing`、`angle`。
 
 **输出**：`IMAGE`。
-
-
-### `QG_DualColorPicker` 双色取色器
-
-> **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海 取色器（双）」（GPL-3.0），代码自行编写，未复制其任何源码；图形化色板复用本包已有的 `web/qg_color_picker.js`。
-
-**作用**：一次给出「模式 + 主色 + 辅色」三路字符串，供下游做纯色 / 渐变背景、配色、水印等用途。两个颜色控件直接画成整块色块（背景就是当前颜色），点一下弹出预设色板，也可以直接手填色值。
-
-**怎么接线**：无输入，拖出来即可用。`主色` / `辅色` 两路是 `STRING`，接到任何接受字符串颜色的控件上（在目标控件右键选「转换为输入」再连）；`模式` 一路的类型是它的选项列表（前端显示为 `COMBO`），**可以直接驱动任何下拉输入**，例如本包「QG 自定义颜色」的 `模式`。
-
-**控件说明**：
-
-| 控件 | 默认 | 说明 |
-| --- | --- | --- |
-| `mode` | `solid` | 中文界面显示「纯色 / 上下渐变 / 中心渐变」，**存档值是英文** `solid` / `vertical_gradient` / `radial_gradient` |
-| `primary_color` | `#213d50` | 主色，色块背景即当前颜色 |
-| `secondary_color` | `#402633` | 辅色。纯色模式下不使用，但仍会输出 |
-
-后端把颜色统一成小写 `#rrggbb`：`#rgb` 自动展开、无 `#` 前缀可吃、8 位带透明度取前 6 位、`(r, g, b)` 元组也能转；非法值回退默认色，不会把脏字符串透传给下游。
-
-**输出怎么接**：`primary_color` / `secondary_color` 两路 `STRING`，`mode` 一路是下拉类型（值为英文字符串，可直连「QG 自定义颜色」等任何下拉输入）。本节点只负责「给颜色」，不生成图像；要出纯色 / 渐变图请用下游节点按 `mode` 自行合成。
-
-### `QG_ColorPicker` 取色器
-
-> **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海 取色器」（GPL-3.0），代码自行编写，未复制上游源码。
-
-**作用**：工作流的颜色起点。拖出来点色块选色，按模式直接输出颜色值和字符串，不需要上游先喂一个色值进来。
-
-**与「QG 颜色转换」的区别**：颜色转换是中间节点，吃各种写法的色值字符串做格式互转；本节点是源头节点，自带图形化色块，直接选。
-
-**控件说明**：
-
-| 控件 | 默认 | 说明 |
-| --- | --- | --- |
-| `color`（颜色） | `#213d50` | 点整块色条打开色板（预设 24 色 / 手填 HEX / 系统取色器），也可直接手填带 `#` 的 3/6 位十六进制；非法值回退 `#213d50` |
-| `mode`（模式） | `HEX` | `HEX` 大写十六进制 / `RGB` 整数 / `HSL` 百分比；值保持英文原文，存档与 API 不变 |
-
-**输出怎么接**：
-
-| 输出 | 内容 | 接到哪里 |
-| --- | --- | --- |
-| `color_control`（颜色控件） | 小写 `#rrggbb`，3 位输入保持 3 位 | 本包任意颜色控件：右键目标控件「转换为输入」再连 |
-| `string`（字符串） | `HEX` → `#RRGGBB`；`RGB` → `r, g, b`；`HSL` → `h, s%, l%`（逗号后均带一个空格） | 提示词、文件名等文本输入 |
-
-> **与孤海的 socket 差异**：孤海第 1 路输出是它自有的 `GHCOLOR` 类型，只能接孤海系节点；本包无自定义 socket，两路都用 `STRING`，因此**不能接孤海的 `GHCOLOR` 输入**，但能接本包所有文本 / 颜色输入。字符串值与孤海逐字节一致。
-
-### `QG_ColorConvert` 颜色转换
-
-> **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海 颜色转换」（GPL-3.0），解析与转换代码自行编写，未复制上游源码。
-
-**作用**：把一种写法的颜色字符串转成另一种格式。上游常接「QG 双色取色器」的输出（转输入后连线），也接受手填。
-
-**怎么接线**：把上游 STRING 节点连到「色值」（在色值控件右键选「转换为输入」），或直接在控件里手填。
-
-**控件说明**：
-
-| 控件 | 默认 | 说明 |
-| --- | --- | --- |
-| `color`（色值） | `#FFFFFF` | 接受：`#hex` / `hex`（3 位自动展开）/ RGB 整数 / HSL 百分比 / 0-1 浮点；全角逗号括号自动归一；非法写法按白色处理 |
-| `format`（转换后） | `#HEX` | 下拉值保持 `#HEX` / `HEX` / `RGB` / `HSL` 原文（存档与 API 不变），中文界面显示「带 # 十六进制」等注释 |
-
-**输出怎么接**：
-
-| 输出 | 内容 |
-| --- | --- |
-| `string`（字符串） | 按所选格式转换的结果：`#ffffff` / `ffffff` / `255,255,255` / `0,0%,100%` |
-| `color_control`（颜色控件） | 同一颜色的规范化小写 `#rrggbb`，供把颜色喂给控件类下游 |
-
-注意：与上游参考实现一致，`rgb(...)` / `hsl(...)` 函数式前缀**不**解析（裸 `255,0,128` 或全角括号写法可以）；0-1 浮点换算用截断（`0.5` → `#7f…` 而非 `#80…`）。
-
-### `QG_CustomColor` 自定义颜色
-
-> **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海 自定义颜色」（GPL-3.0），渲染逻辑用 numpy 向量化自行编写（上游逐像素画点），未复制上游源码。
-
-**作用**：按宽高生成一张纯色 / 渐变底图（`IMAGE`），做背景、底色、测试图都行。两个颜色控件直接画成整块色条（截图同款），点一下弹色板。
-
-**控件说明**：
-
-| 控件 | 默认 | 说明 |
-| --- | --- | --- |
-| `width` / `height` | `512` / `512` | 输出尺寸，1-8192 |
-| `mode` | `solid` | 中文界面显示「纯色 / 上下渐变 / 中心渐变」，**存档值英文** `solid` / `vertical_gradient` / `radial_gradient`（与双色取色器同一套，可直接互换） |
-| `color1` | `#364254` | 纯色整图用色；上下渐变**顶部**色；中心渐变**边缘**色 |
-| `color2` | `#4C3843` | 上下渐变**底部**色；中心渐变**中心**色 |
-| `scale` | `100` | 渐变推进（上下）或半径（中心）百分比：>100 提前完成、<100 更慢 |
-| `grain` | `0` | 灰度颗粒噪声强度 0-100 |
-
-**渐变方向**（与上游规格一致）：上下渐变是 颜色1（顶）→ 颜色2（底）；中心渐变是 颜色2（中心）→ 颜色1（边缘）。
-
-**两处语义差异（刻意改进，已注明）**：插值系数钳制在 [0, 1]，缩放 >100 不会溢出颜色区间卷绕成杂色（上游未钳制）；缩放为 0 时上游语义保留——上下渐变退化为正常渐变、中心渐变全图为颜色1。
-
-### `QG_DominantColor` 主色提取
-
-> **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海-主色提取 (多版本兼容)」（GPL-3.0），统计逻辑用 numpy 向量化自行编写（上游 Python 逐像素循环），未复制上游源码。上游标题里的「多版本兼容」是它针对旧版 torch / 前端做的 display 探测，与本包目标环境无关，未照搬。
-
-**作用**：给一张图，输出整张图里**出现最多的颜色**（大写 `#RRGGBB` 字符串）。适合从参考图里取主色喂给换背景底色、渐变底图这些颜色控件。
-
-**控件说明**：
-
-| 控件 | 默认 | 说明 |
-| --- | --- | --- |
-| `downsample` | `8` | 降采样系数 1-16：统计前先把图缩到 宽//系数 × 高//系数（两边下限 4 像素），越大越快、越忽略局部细节 |
-| `tolerance` | `15` | 颜色容差 0-100：每通道按 `c // 容差 * 容差` 量化分桶，0 则逐原色统计；越大越容易凑出 dominant 色 |
-
-**统计规则**（与上游规格一致）：黑边白边像素（平均亮度 <15 或 >240）先剔除，全被剔则回退全部像素；主色取像素数最多的桶，频次并列时取亮度（通道和）更高的桶；批量图像只统计第一帧。
-
-**输出怎么接**：`hex`（主色 HEX）是大写 `#RRGGBB` 字符串，可直接接到 `QG_BiRefNet` 的背景色、`QG_CustomColor` 的颜色控件、`QG_IDCardSheet` 的底色等 STRING 颜色入口。
-
 ### `QG_FaceAlign` 面部对齐
 
 > **来源：参照规格的独立实现**。功能形态参考 Goohaitools「孤海-面部对齐」（GPL-3.0），几何与统计逻辑自行编写，未复制上游源码。人脸检测复用本包 `_face_helpers`（mediapipe 优先 + Haar 回退 + 模型按需下载），上游只支持 mediapipe。
@@ -920,47 +774,6 @@ QG_IDPhotoCrop ──mask──▶ QG_MaskTopExpand ──mask──▶ 外补�
 - **原遮罩不再被丢掉。** 上游 `new_mask = zeros_like(...)` 之后只填矩形，叫 expand 实际是 replace。
 - **批量遮罩逐帧处理。** 上游 `mask.squeeze(0)` 假定只有一帧，批次进来后维度错位。
 - 另外顶行偶尔一个游离像素会把矩形整体拽偏，所以中心取**顶行横坐标的中位数**而不是平均值。
-
-
-### `QG_ImageComposite` 图像合成
-
-> **来源：原创（参照规格）**。功能规格参考 ComfyUI_essentials 的 `ImageComposite+`（GPL-3.0），代码自行实现。
-
-**作用**：把源图（角标、水印、裁下来的头像、另一张尺寸不同的图）放到目标画布的指定位置，遮罩决定哪些像素替换底图。**目标图的尺寸就是输出尺寸**，输出永远是目标大小的完整画面——不是把两张图拼成一张更大的图。
-
-```
-目标画布 ──▶ destination ┐
-源图     ──▶ source      ├──▶ QG_ImageComposite ──▶ 合成图（= 目标尺寸）
-遮罩（可选）▶ mask       ┘
-```
-
-**坐标怎么算**：
-
-```
-最终位置 = (x + offset_x, y + offset_y)
-```
-
-原点在画布左上角，x 向右、y 向下，单位是像素。`offset_x` / `offset_y` 只是叠加量：单独用时留 0；接上游动态值（逐帧坐标、滑块输出）时接到偏移上，x/y 保持基线不动，清掉偏移就回原位。
-
-| 控件 | 说明 |
-| --- | --- |
-| `x` / `y` | 源图左上角落在画布上的位置，**可为负**（负值 = 从左侧 / 上侧裁掉一部分再贴） |
-| `offset_x` / `offset_y` | 叠加到 x / y 上，便于被上游驱动 |
-| `mask` 遮罩（可选） | 与源图同尺寸：白 = 用源图、黑 = 留底图、灰 = 按比例混合。尺寸不符自动缩放到源图尺寸；单帧遮罩覆盖所有帧。不接 = 源图直接覆盖 |
-
-**和上游的三处不同**（都是实测会出错的地方）：
-
-- **负坐标不再贴错位置。** 上游用 `d[y:y+h, x:x+w]` 直接切片，x/y 为负时 Python 走负索引，本该从左侧裁掉的像素反而被贴到画布右边。这里先求「源图矩形 ∩ 画布矩形」的交集再取对应区域，四边越界统一按裁切处理。
-- **目标帧不会被悄悄丢掉。** 上游把目标强行截到源图帧数，目标帧更多时后面的帧直接消失。这里取 `max(目标帧数, 源帧数)`，短的一边重复最后一帧补齐。
-- **完全落在画布外会留一行日志**，而不是静默输出一张和底图一模一样的图（输出结果本身仍是对的）。
-
-**典型用法**：
-
-- 证件照加斜向水印：`QG_IDPhotoCrop` → `destination`，`QG_Watermark` → `source`，`x`/`y` 留 0，不接遮罩；
-- 抠好的头像贴到纯色底：纯色图 → `destination`，前景图 → `source`，遮罩 → `mask`，用 x/y 微调位置；
-- 批量贴同一张角标：`source` 只有一帧时自动广播到目标每一帧。
-
-
 ### 百度通道的几个硬限制（踩过才知道）
 
 | 限制 | 现状 | 处理方式 |
@@ -1082,20 +895,6 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 输出 `IMAGE`（批量逐帧，一帧一张相纸）、`STRING` 版式中文名、`INT` 一张相纸上的份数。
 
 实现上 13 个版式是**数据**：每条版式由若干「横带」组成，横带里是若干「区域」（尺寸 + 行列 + 是否旋转），一个引擎统一算居中与粘贴，几何计算 `layout_plan()` 是纯整数运算、不依赖 PIL，所以 5 档 DPI × 13 版式的「不越界 / 不重叠 / 份数正确」可以离线断言。相对参照规格修掉四处：批量只取第一帧、`ImageOps.expand` 描边撑大照片挤占相邻格、超界被 `paste` 静默裁切、`#ABC` 短 hex 按固定下标切字符串导致异常。
-
-## 遮罩次序过滤（`QG_MaskOrderFilter`）
-
-把 MASK 批次的每一帧当成一个独立段，按规则排序、按 X 分组、按索引筛选，再合并或逐帧输出。功能与输出布局对齐 Goohaitools 的「Seg次序过滤」：**Seg 在上、Mask 在下**；但上游吃/出的是 Impact-Pack 的 `SEGS`，必须先装 Impact-Pack 才能连线，本节点的 Seg 是本包自造 `QG_SEGS` 兼容容器，不依赖任何上游，任何环境都能用。
-
-- **两个输入口二选一**：`segs 分段`（本包 `QG 简易 Seg 检测` 输出的 `QG_SEGS` 容器，每段取其中遮罩当一段，排在上面）与 `遮罩`（MASK 批次，每帧一段，排在下面）都可接；两个都不接会报中文错误，`masks` 与 `segs` 都接时优先用 `masks`。segs 只认本包自造类型，走 duck-typing 的 `mask_batch()`，不导入检测节点、不碰 Impact/LitSegs 的第三方结构。接 segs 时会把原段的框/标签/打分透传到输出 Seg。
-
-- **优先规则**：`面积大小` / `宽度大小` / `高度大小`（正序从大到小），`上下左右`（按 X 坐标分组，组从左到右、组内从上到下），`下上左右`（组内从下到上）。分组阈值控制 X 相差多少像素算同一列。
-- **筛选**：开始索引 + 过滤数量挑选排序后的段；过滤数量为 0 表示取到末尾，数量超出尾部会从头循环。
-- **重叠因子**：新增控件（Goohaitools 本机源码里没有，但截图界面里有）。按各段外接框的 IoU 去重：与前面已保留段重叠超过该比例就跳过，0 关闭。
-- **合并遮罩**：打开时对所有段取逐像素最大值输出单张 `[H,W]`；关闭时按筛选顺序堆成批次，每段仍是独立遮罩。
-- **双输出**：`Segs`（筛选后的 `QG_SEGS`，每段独立遮罩，即使「合并遮罩」打开也保留分段）与 `MASK`（合并单张或逐帧批次）。Seg 可继续接本包 seg 下游，不能喂给 Impact 的 Detailer。
-- **实现边界**：每帧的外接框由非零像素行列下标直接求 min/max，不引 cv2、不依赖第三方 SEGS；来源与许可见 `THIRD-PARTY-NOTICES.md`（无新增第三方条目，纯原创）。
-
 ## 简易 Seg 检测三件套（`QG_YoloDetectorLoader` / `QG_SamModelLoader` / `QG_SimpleSegDetector`）
 
 对标 Impact-Pack 的「简易 Seg 检测」：目标检测出框 → SAM 逐框把矩形细化成轮廓 → 打包成段集合。但**三个节点、三种类型全部自己造**：`QG_YOLO_DETECTOR` / `QG_SAM_MODEL` / `QG_SEGS` 都带本包前缀，推理只用 `ultralytics` 和 `segment_anything`（HQ 权重另用 `segment_anything_hq`）两个通用库，**不装 Impact-Pack 也能用**，也不会和 Impact 生态同名撞车。
@@ -1103,7 +902,7 @@ A5 相纸上的 13 种固定版式：6 种单尺寸网格（小1寸 14 张 / 标
 - **`QG_YoloDetectorLoader`**：扫描本机 `models/ultralytics/{bbox,segm}` 的权重（含 `extra_model_paths` 挂载；也可用环境变量 `QG_ULTRALYTICS_DIR` 指定），下拉项形如 `bbox/face_yolov8n.pt`；子目录同样收录（如 `bbox/yolo11/xxx.pt`，最多 3 层）。输出自造检测器对象；`bbox/` 只出框，`segm/` 是实例分割权重（本节点当前只用其框）。
 - **`QG_SamModelLoader`**：扫描 `models/sams`（或 `QG_SAMS_DIR`），子目录同样收录（下拉显示 `子目录/文件名`，最多 3 层），与 ComfyUI 自身 `get_filename_list` 的递归口径一致。按文件名自动识别 `vit_b` / `vit_l` / `vit_h`（只看文件名，不受目录名影响）。普通 SAM 权重用 `segment_anything` 加载；文件名含 `sam_hq` 的走 HQ-SAM 后端（`segment_anything_hq`，需另装 `segment-anything-hq`），两种权重格式与库并不通用。输出自造 SAM 对象；SAM 权重体积大（vit_b 约 375 MB、vit_h 约 2.5 GB），显存小的机器建议用 `vit_b`。
 - **`QG_SimpleSegDetector`**：接检测器 + 单张图，可选接 SAM 模型。不接 SAM 时直接用矩形框当遮罩；接了 SAM 就把框细化成轮廓。控件与参考节点一致：BBox 阈值 / 膨胀、裁剪系数、最小尺寸、次要阈值 / 膨胀 / BBox 扩展、SAM 遮挡检测阈值、扩张后。
-- **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 `QG_MaskOrderFilter` 等遮罩节点。过滤器筛选后同样回出 Segs + Mask 两路，可继续串接本包节点。
+- **输出取舍**：自造类型 `QG_SEGS` 只能接本包下游，**不能喂给 Impact 的 Detailer**；另有一路 ComfyUI 原生 `MASK` 批次（每段一帧），可直接接 QG-tools 的 `QG_MaskOrderFilter`（同名节点已迁过去）等遮罩节点。
 - **模型放哪**：权重不随包，放本机模型库即可；两个加载器缺库时节点照常出现、照常列权重，只在真正运行时给中文安装提示。
 
 ### 模型下载地址（权重不随包，需手动下载放置）
@@ -1145,7 +944,7 @@ python -m pip install segment-anything-hq
 
 > **来源：原创（参照规格）**。控件语义参考 Impact-Pack「MaskToSeg」，连通域提取、合并、填充与自造容器全部独立实现，未复制上游源码，也不导入 `impact.core`。
 
-**作用**：把 ComfyUI 原生 MASK 转成自造 `QG_SEGS`——遮罩里每个独立连通区域出一段（带框、标签、打分、遮罩）。和检测器那一路是互补的两条造段路径：检测路线靠 YOLO 出框、SAM 出轮廓；这条路线直接吃现成遮罩。输出可接 `QG_MaskOrderFilter` 等本包下游。
+**作用**：把 ComfyUI 原生 MASK 转成自造 `QG_SEGS`——遮罩里每个独立连通区域出一段（带框、标签、打分、遮罩）。和检测器那一路是互补的两条造段路径：检测路线靠 YOLO 出框、SAM 出轮廓；这条路线直接吃现成遮罩。输出可接 QG-tools 的 `QG_MaskOrderFilter`（同名节点已迁过去）继续排序筛选。
 
 ```
 遮罩 ──▶ QG_MaskToSeg ──▶ Segs(QG_SEGS) ──▶ QG 遮罩次序过滤 ──▶ Segs + Mask
@@ -1169,52 +968,12 @@ python -m pip install segment-anything-hq
 | `轮廓方式` | 填充轮廓 | **填充轮廓**：用连通域实心轮廓当段遮罩；**保留原遮罩**：与原遮罩相乘，保留灰度与镂空 |
 
 **实现边界**：用 `cv2.findContours`（RETR_TREE，只取顶层轮廓）提取连通域；缺 `cv2` 时自动回退到纯 numpy 的 4 邻域洪泛标记，结果一致。整批 MASK 先取逐像素最大值合成再分段，与参考节点的 `batch_mask_to_segs` 同口径。空遮罩返回 0 段的空容器，不报错。
-
-### `QG_ImageMaskPreview` 图像与遮罩预览
-
-> **来源：原创（参照规格）**。控件与用途参考 Goohaitools「图像与遮罩预览」（GPL-3.0），上色 / 序号 / 外接框 / 字体发现全部独立实现，未复制上游源码。
-
-**作用**：把 MASK 区域用指定颜色半透明盖到图像上，并在每帧遮罩中心画序号（1、2、3…），做分割 / 检测结果的直观预览。上游 `GHCOLOR` 是它私有 socket，本包两个颜色输入都是普通 `STRING` 色值，前端接本包统一色块 + 色板，工作流存的是可读的 `#RRGGBB`。
-
-```
-图像 ──┐
-       ├─▶ QG 图像与遮罩预览 ──▶ 图像（预览）
-遮罩 ──┘
-```
-
-**输入 / 输出**
-
-| 槽 | 类型 | 说明 |
-| --- | --- | --- |
-| `图像` | IMAGE | 取第一帧；RGB / RGBA 均可，透明部分按 alpha 压黑 |
-| `遮罩` | MASK | `[H,W]` 单张或 `[B,H,W]` 批次；每帧当一个独立对象分别上色、分别编号；尺寸不符最近邻缩放到图像尺寸 |
-| `图像` | IMAGE | 叠加后的预览图 `[1,H,W,3]`，可直接接 Preview Image 节点 |
-
-**控件**
-
-| 控件 | 默认值 | 说明 |
-| --- | --- | --- |
-| `遮罩不透明` | `0.4` | 遮罩区域叠加颜色的强度，0 不叠加、1 完全盖住 |
-| `遮罩颜色` | `#c524ff` | 遮罩叠加色，点色块弹色板或手填 `#RRGGBB` |
-| `显示序号` | 显示 | 在每帧遮罩外接框中心画序号，从 1 数起 |
-| `序号不透明` | `0.8` | 序号文字的 alpha |
-| `序号缩放` | 跟随遮罩缩放 | **跟随遮罩缩放**：字号按各自遮罩高度×比例；**固定大小**：取最大遮罩高度统一字号 |
-| `序号比例` | `0.5` | 字号 = 遮罩高度 × 该比例，最小 1 像素 |
-| `序号字体` | 随包 OFL 字体 | 下拉列随包 `NotoSansSC-VF.ttf` > `models/fonts` > 系统字体中真实存在的文件 |
-| `序号颜色` | `#ffffff` | 序号文字色，点色块取色 |
-
-**实现边界**：与上游逐帧 `Image.paste` + `alpha_composite` 等价，但文字居中改用 `textbbox` 的真实包围盒；RGBA 输入先按 alpha 压黑再转 RGB；遮罩经 `nan_to_num` + clip 后才进 uint8，NaN 不会静默变成整块黑。空遮罩照常输出原图，不报错。颜色控件在 `web/qg_color_picker.js` 的 `COLOR_WIDGETS` / `PANEL_TITLE` / `BANNER_TEXT` 三处登记成带中文标签的整块色条。
-
 ## 前端增强（不产生节点，直接作用于画布）
 
 | 文件 | 作用 |
 | --- | --- |
-| `web/qg_color_picker.js` | 把字符串颜色字段变成色块 + 弹出色板（`QG_BiRefNet.background_color` 用胶囊样式；`QG_DualColorPicker` 的 `primary_color` / `secondary_color`、`QG_CustomColor` 的 `color1` / `color2`、`QG_ColorPicker` 的 `color` 用整块色条样式） |
-| `web/qg_custom_color.js` | 「QG 自定义颜色」模式下拉的中文显示（值仍为英文，与双色取色器同一套） |
-| `web/qg_dual_color_picker.js` | 「QG 双色取色器」模式下拉的中文显示（值仍为英文）；把 `mode` 输出槽类型对齐成 `COMBO`，使它可直接连下游下拉输入 |
+| `web/qg_color_picker.js` | 把字符串颜色字段变成色块 + 弹出色板（`QG_BiRefNet.background_color` 用胶囊样式；其余节点用整块色条样式） |
 | `web/qg_id_photo_size_picker.js` | 「QG 证件照尺寸选择」把 `preset` 输出槽类型对齐成 `COMBO`，使它可直接连裁剪 / 参数节点的预设下拉（改 `nodeData` 用 `try/catch` 兜住冻结）；中文标签复用 `qg_photokit_zh.js` 的同一份预设文案 |
-| `web/qg_color_convert.js` | 「QG 颜色转换」格式下拉的中文显示（值保持 `#HEX` / `HEX` / `RGB` / `HSL` 原文） |
-| `qg_color_picker.py` | QG_ColorPicker（点色块选色，按 HEX / RGB / HSL 输出颜色值与字符串） |
 | `web/qg_face_align.js` | 「QG 面部对齐」填充模式下拉的中文显示（值仍为英文 `custom_color` / `border_color`） |
 | `web/qg_id_photo_outfit.js` | 「QG 证件照服装发型」的模板选择面板（网格缩略图 / 搜索 / 点选写回提示词） |
 | `web/qg_marriage_cloth.js` | 「QG 结婚登记照服装」的画廊面板（预览框 / 缩略图网格 / 点选写回序号与文件名） |
@@ -1228,7 +987,7 @@ python -m pip install segment-anything-hq
 
 ### 给别的颜色字段加取色器
 
-想给别的节点的字符串颜色字段也加图形化取色，在 `web/qg_color_picker.js` 顶部的 `COLOR_WIDGETS` 里加一行即可，后端不用改。目前挂着 `QG_BiRefNet` 的 `background_color`、`QG_DualColorPicker` 的 `primary_color` / `secondary_color`、`QG_CustomColor` 的 `color1` / `color2` 与 `QG_FaceAlign` 的 `custom_fill_color`、`QG_ImageMaskPreview` 的 `mask_color` / `index_color`；写进 `BANNER_TEXT` 的控件会改用「整块色块 + 居中文字」绘制。
+想给别的节点的字符串颜色字段也加图形化取色，在 `web/qg_color_picker.js` 顶部的 `COLOR_WIDGETS` 里加一行即可，后端不用改。目前挂着 `QG_BiRefNet` 的 `background_color` 与 `QG_FaceAlign` 的 `custom_fill_color`、`QG_IDPhotoParams` 的 `bg_custom`、`QG_MultiPhotoSheet` 的 `bg_color` / `border_color` 等；写进 `BANNER_TEXT` 的控件会改用「整块色块 + 居中文字」绘制。
 
 ## 安装
 
@@ -1267,7 +1026,6 @@ python -m pip install segment-anything-hq
 | `QG_SamModelLoader` | pip：`segment_anything`（facebookresearch 官方仓库）；HQ-SAM 权重另需 `segment-anything-hq`；`models/sams` 下自备 SAM 权重（或 `QG_SAMS_DIR`） | 同上，缺库运行时提示；HQ 权重缺对应包时给中文安装指引；权重体积大，显存小建议用 vit_b |
 | `QG_SimpleSegDetector` | 无额外 pip 依赖；但要接前两个加载器的输出才有意义 | 缺检测器直接报中文提示；不接 SAM 时退化为矩形框遮罩 |
 | `QG_MaskToSeg` | 无额外 pip 依赖；用 `cv2.findContours` 提取连通域，缺 cv2 时纯 numpy 回退 | 空遮罩返回 0 段空容器，不报错；自造 QG_SEGS 只能接本包下游 |
-| `QG_ImageMaskPreview` | 无额外 pip 依赖，只用 torch / numpy / PIL | 颜色走本包 STRING 色块不依赖 GHCOLOR；字体缺文件回退 PIL 默认字体；空遮罩输出原图 |
 
 ### 容错到什么程度
 
@@ -1416,11 +1174,8 @@ ComfyUI-QG-Multipack/
 ├── face_rectify_node.py        QG_FaceRectify
 ├── qg_id_photo_prompt.py       QG_IDPhotoPrompt（13 维提示词，选项表是 JS/词表单一真源）
 ├── photo_sheet_mixed_node.py   QG_PhotoSheetMixed（13 版式数据表 + 统一排版引擎）
-├── qg_image_composite.py       QG_ImageComposite（源图按坐标贴到目标画布，可选遮罩混合）
 ├── qg_id_photo_size_picker.py  QG_IDPhotoSizePicker（尺寸选择，preset 可连裁剪/参数节点的下拉）
-├── qg_color_picker.py          QG_ColorPicker（点色块选色，按 HEX/RGB/HSL 输出颜色值与字符串）
 ├── qg_multi_photo_sheet.py     QG_MultiPhotoSheet（多人各占一格拼到同一张纸，统一格居中裁切）
-├── qg_image_batch_builder.py   QG_ImageBatchBuilder（动态槽：默认 1 个接一个加一个，上限 24，成 IMAGE batch）
 ├── qg_remove_background_v2.py  QG_RemoveBackgroundV2（BiRefNet 粗分割 + ViTMatte/PyMatting/GuidedFilter 细节精修）
 ├── web/                        前端脚本（逐个说明见「前端增强」一章）
 ├── workflows/                  两份可直接加载的证件照示例工作流 json
@@ -1446,7 +1201,7 @@ ComfyUI-QG-Multipack/
 | `locales/zh/nodeDefs.json` | ComfyUI 官方前端 i18n | ComfyUI 前端自动加载 | 节点 key → `display_name` / `description` / `inputs`({name,tooltip}) / `outputs`（**输出索引字符串** "0"/"1"…） |
 | `translations/zh-CN/Nodes/`、`Menus/ComfyUI-QG-Multipack.json` | ComfyUI-Global-Translation（原 AIGODLIKE 系） | 汉化插件按需加载 | 节点 key → `title` / `description` / `inputs` / `widgets` / `outputs`（**槽名/控件参数名**）；Menus 是全局下拉值映射 |
 
-- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 33 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
+- **交付方式**：把 `translations/zh-CN/Nodes/` 与 `Menus/` 下这两个 JSON 拷进汉化插件的 `zh-CN/Nodes`、`zh-CN/Menus` 即可，插件会自动识别。本包有 30 个节点、Menus 286 条（证件照 13 维下拉的英文编号值→中文显示映射都在里面）。
 - **规范约定**：`widgets` 键用源码里的真实参数名，不用界面显示名；**不写恒等翻译**（键==值的条目无意义，还会污染插件的「已翻译文本」判定）；`ui` 字段用于翻译节点内嵌 DOM 面板的英文原文——本包面板文案本身就是中文，暂不需要 `ui` 词条。分类也不用 `Categories` 词表（本包 category 已是「QG 工具」）。
 - 新增/改名节点、增删控件或输出槽时，两套词表都要同步；`tests/test_i18n_standard.py` 会校验节点数、需汉化项覆盖、无恒等翻译、description 齐全。
 
