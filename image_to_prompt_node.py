@@ -31,6 +31,13 @@ Tag 标签流、自然语言短描述、图像编辑指令、视频动态提示�
 
 批量：IMAGE 是 batch 时逐帧独立调用，合并文本用 ``\\n---\\n`` 分隔，第二个
 输出口给出逐帧结果列表；单张时列表就是单元素列表。
+
+多图合并（对齐 MUJUN-2025/ComfyUI-Prompt-Assistant fork，GPL-3.0）
+--------------------------------
+除主口 ``image`` 外还有 ``image2``~``image9`` 八个 optional 口（前端动态增减）。
+任一额外口接入时进入合并模式：全部帧（主图 batch 也会展开）压进**一次**请求，
+由模型综合描述输出一条结果；只接主口时行为与原来完全一致。帧数超过模型多图
+上限时保留前 N 张并在控制台提示，不中断任务。
 """
 
 from __future__ import annotations
@@ -55,6 +62,10 @@ TIMEOUT = 120
 MAX_TOKENS = 1024
 TEMPERATURE = 0.7
 TOP_P = 0.9
+
+# 额外图像输入口数量：image2 ~ image9（与上游 fork 一致）
+MAX_EXTRA_IMAGES = 8
+EXTRA_IMAGE_KEYS = tuple(f"image{n}" for n in range(2, MAX_EXTRA_IMAGES + 2))
 
 # --------------------------------------------------------------------------
 # 规则
@@ -225,6 +236,49 @@ def _batch_params(frames: int) -> tuple:
     return 480, 55
 
 
+def model_max_images(model: str) -> int:
+    """按模型名推断一次请求能合并几张图；未知模型给保守默认 10。
+
+    映射口径照搬 MUJUN-2025/ComfyUI-Prompt-Assistant 的
+    ``get_model_max_images``（GPL-3.0）：已知系列给宽松上限，末段含视觉
+    关键词的兜底放宽，其它一律 10——乐观默认比误杀强，反正真正发请求前
+    每帧还要压缩，超限的代价是 413 而不是崩溃。
+    """
+    name = str(model or "").lower()
+    if "gemini" in name or "google" in name:
+        return 3000
+    if "qwen" in name:
+        return 100
+    if "glm" in name:
+        return 100 if "4.6v" in name else 5
+    if "gpt-4" in name or "gpt-5" in name:
+        return 100
+    if "claude" in name or "grok" in name:
+        return 20
+    if any(keyword in name for keyword in ("vision", "visual", "vl", "multimodal")):
+        return 100
+    return 10
+
+
+def flatten_frames(tensors) -> list:
+    """把若干 IMAGE 张量展开成单帧列表。
+
+    每个输入口本身可能是 batch ``[N,H,W,C]``：4 维就逐帧切，3 维整帧收。
+    形状认不出的跳过——下游 len(frames)==0 自然会走「没有可反推的图像」。
+    """
+    frames = []
+    for tensor in tensors:
+        if tensor is None:
+            continue
+        shape = tuple(getattr(tensor, "shape", ()) or ())
+        if len(shape) == 4:
+            for index in range(int(shape[0])):
+                frames.append(tensor[index:index + 1])
+        elif len(shape) == 3:
+            frames.append(tensor)
+    return frames
+
+
 def tensor_to_data_url(image, max_side: int = 1024, quality: int = 75) -> str:
     """一帧 IMAGE（0~1 浮点，HWC）→ ``data:image/jpeg;base64,...``。"""
     from PIL import Image
@@ -344,6 +398,22 @@ def _build_messages(system_text: str, image_data: str) -> list:
                 {"type": "image_url", "image_url": {"url": image_data}},
             ],
         },
+    ]
+
+
+def _build_multi_messages(system_text: str, image_data_list: list) -> list:
+    """多图合并版消息体：所有图放进同一条 user 消息做综合描述。
+
+    与单图版同样的约束：system 单独一条（GLM-4V 硬要求），user 里只放一句
+    引子加图片数组。图与图之间没有分隔文字——有些模型会把分隔符当成正文
+    一起描述，交给模型自己判断更稳。
+    """
+    content = [{"type": "text", "text": "请分析这些图片。"}]
+    for image_data in image_data_list:
+        content.append({"type": "image_url", "image_url": {"url": image_data}})
+    return [
+        {"role": "system", "content": system_text},
+        {"role": "user", "content": content},
     ]
 
 
@@ -841,6 +911,22 @@ class QGImageToPrompt:
                     },
                 ),
             },
+            "optional": {
+                **{
+                    key: (
+                        "IMAGE",
+                        {
+                            "tooltip": (
+                                "可选的额外图片。接入任意一个后，所有已连接的图"
+                                "（含主口 batch 的全部帧）会合并进一次请求，由"
+                                "模型综合描述输出一条结果；只接主口时保持原有"
+                                "行为。前端会随连接自动增减这些口。"
+                            ),
+                        },
+                    )
+                    for key in EXTRA_IMAGE_KEYS
+                },
+            },
         }
 
     RETURN_TYPES = ("STRING", "STRING")
@@ -855,7 +941,7 @@ class QGImageToPrompt:
     @classmethod
     def IS_CHANGED(cls, image=None, rule="", custom_rule=False,
                    custom_rule_content="", user_prompt="", vlm_service="",
-                   auto_unload=True, seed=0, **_kwargs):
+                   auto_unload=True, seed=0, **kwargs):
         """图、规则、服务或种子变了才重跑。
 
         用 md5 拼而不是内置 ``hash()``：字符串 hash 每个进程带随机盐，重启
@@ -864,9 +950,13 @@ class QGImageToPrompt:
         ``rule`` 是规则**名字**，正文在 rules.json 里。只拼名字的话，用户在
         规则管理器里改措辞（名字不变）时 ComfyUI 会认为输入没变、直接复用
         上次输出，规则改了等于没改。再拼一个规则库指纹兜住这种情况。
+
+        ``image2``~``image9`` 逐个算指纹拼进去（未连接是 None，指纹为固定
+        值）：换哪一张额外图、或接上/断开某个口，都会正确触发重新反推。
         """
         blob = "\x1f".join([
             image_fingerprint(image),
+            *[image_fingerprint(kwargs.get(key)) for key in EXTRA_IMAGE_KEYS],
             str(rule), str(bool(custom_rule)),
             hashlib.md5(str(custom_rule_content or "").encode("utf-8")).hexdigest(),
             hashlib.md5(str(user_prompt or "").encode("utf-8")).hexdigest(),
@@ -876,16 +966,17 @@ class QGImageToPrompt:
         return hashlib.md5(blob.encode("utf-8")).hexdigest()
 
     def execute(self, image, rule, custom_rule, custom_rule_content,
-                user_prompt, vlm_service, auto_unload=True, seed=0):
-        if image is None:
+                user_prompt, vlm_service, auto_unload=True, seed=0, **kwargs):
+        extras = [kwargs.get(key) for key in EXTRA_IMAGE_KEYS]
+        if image is None and not any(e is not None for e in extras):
             raise RuntimeError(
-                "QG 图像反推：没有图片输入。把 Load Image 之类的输出接到 image 上。")
+                "QG 图像反推：没有图片输入。把 Load Image 之类的输出接到 image 上，"
+                "或多图场景把图接进 image2~image9。")
 
-        # 空 batch [0,H,W,C]：下面 tensor_to_data_url 会取第 0 帧，直接抛
-        # IndexError。与本包其他节点一致给出空结果而不是崩，顺手把流式气泡
-        # 收尾，免得画布上一直挂着「反推中…」。
-        shape = tuple(getattr(image, "shape", ()) or ())
-        if len(shape) == 4 and shape[0] == 0:
+        # 全部输入展开成单帧列表（主口 batch 也展开）。全空才报空——主口空
+        # 批次但额外口有图时，合并模式照常能跑。
+        frames = flatten_frames([image, *extras])
+        if not frames:
             print("[QG-ImageToPrompt] 图像批次为空（0 帧），没有可反推的图像。")
             push = stream_pusher()
             if push:
@@ -912,23 +1003,63 @@ class QGImageToPrompt:
             system_text = system_text + "\n\n" + extra
         system_text = system_text + "\n\n" + NO_THINKING_HINT
 
+        # 多图模式：任一额外口接入 → 全部帧合并进一次请求，输出一条综合描述。
+        # 只接主口时保持原行为（单张直接反推，batch 逐帧独立反推）。
+        multi = any(e is not None for e in extras)
+        push = stream_pusher()
+
+        if multi:
+            limit = model_max_images(target["model"])
+            if len(frames) > limit:
+                print(f"[QG-ImageToPrompt] 多图反推 | 共 {len(frames)} 帧超过"
+                      f"模型「{target['model']}」的多图上限 {limit}，已截断，"
+                      f"忽略后 {len(frames) - limit} 张。")
+                frames = frames[:limit]
+            max_side, quality = _batch_params(len(frames))
+            print(f"[QG-ImageToPrompt] {rule_name} · {vlm_service} · "
+                  f"多图合并 {len(frames)} 张 · 长边 {max_side}px")
+            try:
+                data_urls = [
+                    tensor_to_data_url(frame, max_side=max_side, quality=quality)
+                    for frame in frames
+                ]
+                on_delta = None
+                if push:
+                    on_delta = lambda text: push(clean_answer(text))  # noqa: E731
+                answer = clean_answer(_ask(
+                    _build_multi_messages(system_text, data_urls),
+                    target, on_delta, vision=True))
+                if not answer:
+                    raise RuntimeError(
+                        f"视觉模型「{target['model']}」返回了空结果。"
+                        "可能是模型只输出了思考过程，或该模型不支持图像输入。")
+                if push:
+                    push(answer, done=True)
+            except Exception as error:
+                if push:
+                    push("反推失败：%s" % error, done=True)
+                raise
+            if auto_unload:
+                release_local_model(target["provider"], target["model"])
+            return (answer, [answer])
+
+        # 原行为：单张 / 主口 batch 逐帧独立反推
         batch = getattr(image, "shape", ()) and len(image.shape) == 4 and image.shape[0] > 1
-        frames = int(image.shape[0]) if batch else 1
-        max_side, quality = _batch_params(frames)
+        frame_count = int(image.shape[0]) if batch else 1
+        max_side, quality = _batch_params(frame_count)
 
         print(f"[QG-ImageToPrompt] {rule_name} · {vlm_service} · "
-              f"{frames} 帧 · 长边 {max_side}px")
+              f"{frame_count} 帧 · 长边 {max_side}px")
 
         results = []
         # 边收边推给画布上的节点预览；拿不到前端（单测 / 无 server）就是 None
-        push = stream_pusher()
         try:
-            for index in range(frames):
+            for index in range(frame_count):
                 frame = image[index:index + 1] if batch else image
                 data_url = tensor_to_data_url(frame, max_side=max_side, quality=quality)
-                prefix = f"第 {index + 1}/{frames} 帧\n" if frames > 1 else ""
-                if frames > 1:
-                    print(f"[QG-ImageToPrompt] 第 {index + 1}/{frames} 帧…")
+                prefix = f"第 {index + 1}/{frame_count} 帧\n" if frame_count > 1 else ""
+                if frame_count > 1:
+                    print(f"[QG-ImageToPrompt] 第 {index + 1}/{frame_count} 帧…")
 
                 on_delta = None
                 if push:
@@ -942,7 +1073,7 @@ class QGImageToPrompt:
                         "可能是模型只输出了思考过程，或该模型不支持图像输入。")
                 results.append(answer)
                 if push:
-                    push(prefix + answer, done=(index == frames - 1))
+                    push(prefix + answer, done=(index == frame_count - 1))
         except Exception as error:
             # 失败也发一次 done，否则前端那条「反推中…」会一直挂着
             if push:
@@ -958,6 +1089,6 @@ class QGImageToPrompt:
 
 
 NODE_CLASS_MAPPINGS = {"QG_ImageToPrompt": QGImageToPrompt}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_ImageToPrompt": "图像反推提示词"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_ImageToPrompt": "QG 图像反推提示词"}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

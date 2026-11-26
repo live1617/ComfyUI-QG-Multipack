@@ -16,7 +16,7 @@
 | `QG_FaceRectify` | ✅ 原创 | 思路参考 Goohaitools「Face Rectify」 | 1% |
 | `QG_BiRefNet` | ✅ 原创 | 行为对齐 1038lab/ComfyUI-RMBG | 1% |
 | `QG_Translate` | ✅ 原创 | — | 1% |
-| `QG_ImageToPrompt` | ✅ 原创 | 控件顺序参考 ComfyUI-Prompt-Assistant | 0% |
+| `QG_ImageToPrompt` | ✅ 原创（含 GPL-3.0 参考） | 控件顺序参考 ComfyUI-Prompt-Assistant；多图合并（image2~image9 动态口、一次请求合并、上限截断）按 MUJUN-2025/ComfyUI-Prompt-Assistant fork 的功能规格独立实现，模型上限映射口径与其 `get_model_max_images` 一致（GPL-3.0） | 0%（对照本机原版）；多图部分为按规格重写，无逐行照抄 |
 | `QG_PromptOptimize` | ✅ 原创 | 面板形态参考 ComfyUI-Prompt-Assistant「提示词优化」 | 新建，未比对（HTTP 层与反推节点同源） |
 | `QG_PromptTranslate` | ✅ 原创 | — | 0% |
 | `QG_IDPhotoParams` | ✅ 原创 | 参数规格参考 HivisionIDPhotos（Apache-2.0） | 0% |

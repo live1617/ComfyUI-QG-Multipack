@@ -213,6 +213,93 @@ changed = dict(base, user_prompt="夜景")
 check("换附加要求换指纹", cls.IS_CHANGED(**base) != cls.IS_CHANGED(**changed))
 check("是 md5 长度", len(cls.IS_CHANGED(**base)) == 32)
 
+print("\n=== K. 多图合并（对齐 MUJUN-2025 fork，GPL-3.0）===")
+check("glm-4.6v 上限 100", mod.model_max_images("glm-4.6v-flash") == 100)
+check("普通 glm 上限 5", mod.model_max_images("glm-4v-flash") == 5)
+check("qwen 上限 100", mod.model_max_images("qwen-vl-plus-latest") == 100)
+check("gpt-4 系上限 100", mod.model_max_images("openai/gpt-4o-mini") == 100)
+check("vision 关键词放宽", mod.model_max_images("my-vision-model") == 100)
+check("未知模型上限 10", mod.model_max_images("my-local-model") == 10)
+
+small1 = np.zeros((1, 8, 8, 3), dtype=np.float32)
+small2 = np.ones((1, 8, 8, 3), dtype=np.float32)
+check("batch 展开逐帧", len(mod.flatten_frames([np.zeros((2, 8, 8, 3), dtype=np.float32)])) == 2)
+check("3 维整帧收", len(mod.flatten_frames([small1])) == 1)
+check("None 跳过", len(mod.flatten_frames([None, small2])) == 1)
+check("全空返回空列表", mod.flatten_frames([None, None]) == [])
+
+multi_msgs = mod._build_multi_messages("规则正文", ["u1", "u2", "u3"])
+check("多图也是两条消息", len(multi_msgs) == 2)
+check("system 独立", multi_msgs[0]["role"] == "system"
+      and multi_msgs[0]["content"] == "规则正文")
+mu = multi_msgs[1]["content"]
+check("1 段引子 + 3 张图", len(mu) == 4 and mu[0]["type"] == "text"
+      and sum(1 for c in mu if c["type"] == "image_url") == 3)
+
+spec_multi = cls.INPUT_TYPES()
+check("optional 声明 image2..image9",
+      all(f"image{n}" in spec_multi["optional"] for n in range(2, 10)))
+
+saved_ask = mod._ask
+saved_target = mod.resolve_vision_target
+try:
+    seen_msgs = []
+
+    def fake_ask(messages, target, on_delta=None, vision=True):
+        seen_msgs.append(messages)
+        return "综合描述"
+
+    def fake_target(choice):
+        return {"provider": "Zhipu GLM", "model": "glm-4.6v-flash",
+                "api_url": "http://example.invalid/chat/completions",
+                "api_key": ""}
+
+    mod._ask = fake_ask
+    mod.resolve_vision_target = fake_target
+    # 注意 execute 是实例方法：必须先实例化，否则首个实参会绑给 self
+    node = cls()
+    out = node.execute(small1, mod.DEFAULT_RULE, False, "", "",
+                       mod.DEFAULT_SERVICE, True, 0, image2=small2)
+    check("多图输出单条综合描述", out[0] == "综合描述", out[0][:20])
+    check("列表口是单元素列表", out[1] == ["综合描述"], out[1])
+    check("一次请求带两张图", sum(1 for c in seen_msgs[-1][1]["content"]
+                                 if c["type"] == "image_url") == 2)
+
+    fp_a = cls.IS_CHANGED(image=small1, rule=mod.DEFAULT_RULE, image2=small2)
+    fp_b = cls.IS_CHANGED(image=small1, rule=mod.DEFAULT_RULE, image2=small1)
+    check("换额外图换指纹", fp_a != fp_b)
+    check("断开额外口也换指纹",
+          fp_a != cls.IS_CHANGED(image=small1, rule=mod.DEFAULT_RULE))
+
+    calls_count = []
+    mod._ask = lambda m, t, on_delta=None, vision=True: (
+        calls_count.append(m) or "帧%d" % len(calls_count))
+    batch2 = np.concatenate([small1, small2], axis=0)
+    out2 = node.execute(batch2, mod.DEFAULT_RULE, False, "", "",
+                        mod.DEFAULT_SERVICE, True, 0)
+    check("主口 batch 仍逐帧独立", len(calls_count) == 2, len(calls_count))
+    check("逐帧合并文本", out2[0] == "帧1\n---\n帧2", out2[0][:24])
+
+    # 截断：glm-4v-flash 上限 5，6 帧 → 保留前 5
+    seen_msgs.clear()
+    mod._ask = fake_ask
+    many = [np.full((1, 8, 8, 3), i / 10.0, dtype=np.float32) for i in range(6)]
+    limit_target = dict(fake_target(""), model="glm-4v-flash")
+    mod.resolve_vision_target = lambda choice: limit_target
+    out3 = node.execute(many[0], mod.DEFAULT_RULE, False, "", "",
+                        mod.DEFAULT_SERVICE, True, 0,
+                        image2=many[1], image3=many[2], image4=many[3],
+                        image5=many[4], image6=many[5])
+    images_sent = sum(1 for c in seen_msgs[-1][1]["content"]
+                      if c["type"] == "image_url")
+    check("超上限截断到 5", images_sent == 5, images_sent)
+finally:
+    mod._ask = saved_ask
+    mod.resolve_vision_target = saved_target
+
+check("显示名带 QG 前缀",
+      mod.NODE_DISPLAY_NAME_MAPPINGS["QG_ImageToPrompt"] == "QG 图像反推提示词")
+
 print("\n---")
 print("失败 %d 项" % len(fails))
 if fails:
