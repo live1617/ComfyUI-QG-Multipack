@@ -27,7 +27,12 @@ const PAD = 6;
 const RADIUS = 10;
 const BORDER_SEL = 3;
 const NODE_W = 660;          // 初始尺寸（与参照实现同规格）
-const NODE_H = 880;
+// 高度按「预览框 + 2 行 3 列缩略图完整可见」反推：
+//   3 列每张宽 (644-2*8)/3 ≈ 209 → 高 ≈ 105，2 行 + 间隙 ≈ 217；
+//   预览框 = min(320, 0.42×总高)；控件区 chrome = 8 + 6×22 + 46 = 186。
+//   total ≈ 745 时 DOM 区 559 ≥ 预览 313 + 间隙 10 + 网格 217 + 内边距 12，
+//   且第 3 行起点(225)超出可视(224)，正好不露边。
+const NODE_H = 745;
 const PV_MAX_W = 640;
 const EMPTY_TEXT = "暂无服装素材。把图片放进 ComfyUI/models/marriage_cloth/"
     + "（jpg / png / webp），或使用插件内置素材，然后刷新页面。";
