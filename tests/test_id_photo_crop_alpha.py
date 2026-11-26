@@ -92,6 +92,24 @@ def main():
         params.update(kw)
         return node.execute(**params)
 
+    print("\n[0] 空批次（0 帧）不崩")
+    empty = torch.empty((0, 32, 32, 3), dtype=torch.float32)
+    out = run(empty)
+    check("空批次返回 5 个输出", len(out) == 5, str(len(out)))
+    check("空批次图像是 0 帧", tuple(out[0].shape)[0] == 0,
+          str(tuple(out[0].shape)))
+    check("空批次遮罩是 0 帧", tuple(out[1].shape)[0] == 0,
+          str(tuple(out[1].shape)))
+    check("空批次 filled=False", out[2] is False, str(out[2]))
+    check("空批次 dpi 仍按预设给出", int(out[3]) > 0, str(out[3]))
+    check("空批次示意图仍是 [1,H,W,3]",
+          len(tuple(out[4].shape)) == 4 and tuple(out[4].shape)[0] == 1
+          and tuple(out[4].shape)[-1] == 3, str(tuple(out[4].shape)))
+    empty_rgba = torch.empty((0, 32, 32, 4), dtype=torch.float32)
+    out_rgba = run(empty_rgba, alpha_mode="keep")
+    check("空批次 keep 保留四通道", tuple(out_rgba[0].shape)[-1] == 4,
+          str(tuple(out_rgba[0].shape)))
+
     print("\n[1] 通道归一化（_to_pil）")
     to_pil = mod._to_pil
     for channels, mode, label in [(1, "RGB", "单通道"),

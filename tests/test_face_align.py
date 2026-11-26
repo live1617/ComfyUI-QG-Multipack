@@ -342,6 +342,14 @@ check("取色器说明含新控件", "QG_FaceAlign` 的 `custom_fill_color" in r
 check("新章节存在", "### `QG_FaceAlign` 面部对齐" in readme)
 check("章节注明置信度真正生效", "真正生效" in readme)
 
+# 按需下载 face_landmarker.task 之后重载必须沿用用户选的置信度，
+# 否则非默认阈值（如 0.8）会静默退回 0.3。
+_face_src = read("_face_helpers.py")
+_download_block = _face_src.split("_download_face_landmarker() is not None", 1)
+check("mediapipe 模型下载后重载带置信度",
+      len(_download_block) == 2
+      and "_load_mediapipe(confidence)" in _download_block[1][:400])
+
 print()
 print("TOTAL ok=%d fail=%d" % (ok, fail))
 sys.exit(1 if fail else 0)

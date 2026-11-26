@@ -298,6 +298,21 @@ class QGIDPhotoCrop:
         out_w, out_h, dpi_used = output_pixels(preset, unit, custom_width,
                                                custom_height, dpi)
 
+        if int(batch.shape[0]) == 0:
+            # 空批次是常态（上游抠图/裁剪节点可能 0 帧）：下面的循环不执行，
+            # np.stack([]) 会抛裸 ValueError 把整条队列炸掉。按本包约定给
+            # 空张量 + 一张占位示意图，不崩也不误报「裁剪成功」。
+            print("[ID Photo Crop] 图像批次为空（0 帧），返回空结果。")
+            empty_ch = (4 if (str(alpha_mode) == "keep"
+                              and int(batch.shape[-1]) >= 4) else 3)
+            empty_image = torch.empty((0, out_h, out_w, empty_ch),
+                                      dtype=torch.float32)
+            empty_mask = torch.empty((0, out_h, out_w), dtype=torch.float32)
+            guide = _to_tensor(Image.new(
+                "RGB", (max(1, out_w), max(1, out_h)),
+                parse_color(fill_color, "ID Photo Crop fill_color")))
+            return (empty_image, empty_mask, False, dpi_used, guide)
+
         # keep only makes sense when at least one frame has alpha. A batch may
         # mix RGB and RGBA frames, and torch.stack cannot join different channel
         # counts, so the output mode is decided once for the whole stack: if

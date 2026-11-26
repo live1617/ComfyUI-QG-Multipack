@@ -188,6 +188,24 @@ try:
     check("关闭细节不调 ViTMatte", not any(c[0] == "vit" for c in calls))
     check("关闭细节遮罩取粗分割", float(out_mask2[0, 0, 0]) > 0.7)
 
+    # 环境变量里的模型名拼错时，要给可操作的中文错误而不是裸 KeyError。
+    old_env = os.environ.get(mod._MODEL_ENV)
+    os.environ[mod._MODEL_ENV] = "__not_a_model__"
+    try:
+        cls().run(frames[:1], "VITMatte", 2, 2, 0.01, 0.99, True, "cpu", 2.0)
+        check("非法模型名报错", False, "没有抛异常")
+    except RuntimeError as exc:
+        check("非法模型名报中文错误",
+              "不在可用列表" in str(exc) and "__not_a_model__" in str(exc),
+              str(exc)[:120])
+    except KeyError as exc:
+        check("非法模型名报中文错误", False, "裸 KeyError: %s" % exc)
+    finally:
+        if old_env is None:
+            os.environ.pop(mod._MODEL_ENV, None)
+        else:
+            os.environ[mod._MODEL_ENV] = old_env
+
     try:
         cls().run(np.zeros((0, 16, 16, 3), np.float32), "VITMatte",
                   2, 2, 0.01, 0.99, True, "cpu", 2.0)

@@ -366,6 +366,14 @@ class QGRemoveBackgroundV2:
                 "QG 移除背景 V2 依赖本包的 birefnet_node.py，请确认插件完整安装。")
 
         model_name = _coarse_model_name(model)
+        if model_name not in _BR.MODEL_CONFIG:
+            # 环境变量 QG_REMOVEBG_MODEL 设错、或老工作流存档里写了个不存在的
+            # 模型名时，_runner.predict 会以裸 KeyError 炸掉队列。这里拦成
+            # 可操作的中文错误，并列出真正可选的模型。
+            raise RuntimeError(
+                "QG 移除背景 V2：模型「%s」不在可用列表里。请检查环境变量 %s "
+                "是否设错，或在节点上重新选模型（可选：%s）。"
+                % (model_name, _MODEL_ENV, ", ".join(_BR.MODEL_CONFIG)))
         cfg = _BR.MODEL_CONFIG.get(model_name) or {}
         process_res = int(cfg.get("res") or 1024)
         detail_range = max(1, int(detail_erode)) + max(1, int(detail_dilate))

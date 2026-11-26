@@ -371,7 +371,9 @@ def _detect_mediapipe(rgb, pick, confidence=None):
         if _download_face_landmarker() is not None:
             _MP_STATE["tried"] = False
             _MP_STATE["landmarker"] = None
-            landmarker = _load_mediapipe()
+            # 必须把 confidence 一起传下去：否则非默认阈值（例如 0.8）
+            # 在按需下载后会静默退回默认 0.3，同一个人脸被误判出来。
+            landmarker = _load_mediapipe(confidence)
     if landmarker is None:
         return None
     sets = _MP_SETS or _mp_index_sets()

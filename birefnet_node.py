@@ -545,8 +545,14 @@ def _offset_mask(mask_pil, offset):
 
 
 def _refine_foreground(rgb_pil, mask_pil):
-    """前景颜色精修：对 0.05..0.95 过渡区做二值边缘与原概率的混合，
-    弱化半透明边缘残留的原背景色。"""
+    """前景精修：对 0.05..0.95 过渡区做二值边缘与原概率的混合，
+    弱化半透明边缘残留的原背景色。
+
+    返回 ``(原 RGB, 精修后的遮罩)``。**RGB 必须保持直通值**：调用方会把
+    RGB 与遮罩合并成 RGBA 再走 ``Image.alpha_composite``，如果在这里先把
+    RGB 乘一遍 alpha，合成时就会乘第二遍，半透明边缘会暗两次（发黑描边）。
+    精修只作用于遮罩，遮罩输出口仍给原遮罩，避免改变 MASK 的既有语义。
+    """
     try:
         import cv2
     except ImportError as error:
@@ -566,10 +572,9 @@ def _refine_foreground(rgb_pil, mask_pil):
     refined = np.where(transition, 0.85 * mask + 0.15 * edge_blur, binary)
     edge_band = (mask > 0.2) & (mask < 0.8)
     refined = np.where(edge_band, refined * 0.98, refined)
-
-    img = np.asarray(rgb_pil).astype(np.float32)
-    out = img * refined[..., None]
-    return Image.fromarray(out.clip(0, 255).astype(np.uint8), "RGB")
+    refined_mask = Image.fromarray(
+        (np.clip(refined, 0.0, 1.0) * 255.0).round().astype(np.uint8), "L")
+    return rgb_pil, refined_mask
 
 
 def _hex_to_rgba(color):
@@ -722,10 +727,10 @@ class QGBiRefNet:
                               "或把灵敏度调小一点再试。" % (keep * 100.0))
 
                 if refine_foreground:
-                    fg_rgb = _refine_foreground(rgb, mask)
+                    fg_rgb, fg_mask = _refine_foreground(rgb, mask)
                 else:
-                    fg_rgb = rgb
-                foreground = Image.merge("RGBA", (*fg_rgb.split(), mask))
+                    fg_rgb, fg_mask = rgb, mask
+                foreground = Image.merge("RGBA", (*fg_rgb.split(), fg_mask))
 
                 if background == "Alpha":
                     frame_out = foreground

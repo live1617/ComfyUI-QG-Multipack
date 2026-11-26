@@ -203,6 +203,22 @@ runner2._load = _orig_load
 runner2.unload = _orig_unload
 bn.mm.get_torch_device = _orig_device
 
+# ---- F. 前景精修不预乘 alpha（否则合成时边缘暗两次）----
+from PIL import Image as _PILImage
+
+_rgb = _PILImage.new("RGB", (16, 16), (200, 100, 50))
+_mask = _PILImage.new("L", (16, 16), 128)
+_fg_rgb, _fg_mask = bn._refine_foreground(_rgb, _mask)
+check("F1 精修返回直通 RGB（不预乘）",
+      np.array_equal(np.asarray(_fg_rgb), np.asarray(_rgb)))
+check("F2 精修返回灰度遮罩", _fg_mask.mode == "L")
+_comp = _PILImage.alpha_composite(
+    _PILImage.new("RGBA", _rgb.size, (255, 255, 255, 255)),
+    _PILImage.merge("RGBA", (*_fg_rgb.split(), _fg_mask)))
+_comp_r = float(np.asarray(_comp.convert("RGB"))[8, 8, 0])
+check("F3 半透明边缘没有被二次乘暗", _comp_r > 200,
+      "合成后 R=%.1f（二次预乘会降到 ~183）" % _comp_r)
+
 print()
 print("=== 合计：PASS %d / FAIL %d ===" % (ok, fail))
 sys.exit(0 if fail == 0 else 1)
