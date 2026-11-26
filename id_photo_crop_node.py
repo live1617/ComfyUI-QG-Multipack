@@ -462,4 +462,4 @@ class QGIDPhotoCrop:
 
 
 NODE_CLASS_MAPPINGS = {"QG_IDPhotoCrop": QGIDPhotoCrop}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDPhotoCrop": "ID Photo Crop"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDPhotoCrop": "QG 证件照裁剪"}

@@ -653,6 +653,6 @@ class QGPromptTranslate:
 
 
 NODE_CLASS_MAPPINGS = {"QG_PromptTranslate": QGPromptTranslate}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_PromptTranslate": "提示词翻译"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_PromptTranslate": "QG 提示词翻译"}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

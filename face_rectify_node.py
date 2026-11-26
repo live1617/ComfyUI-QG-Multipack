@@ -278,6 +278,6 @@ class QGFaceRectify:
 
 
 NODE_CLASS_MAPPINGS = {"QG_FaceRectify": QGFaceRectify}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_FaceRectify": "Face Rectify"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_FaceRectify": "QG 人脸自动矫正"}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

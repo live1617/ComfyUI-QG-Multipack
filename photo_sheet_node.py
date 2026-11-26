@@ -503,4 +503,4 @@ class QGPhotoSheet:
 
 
 NODE_CLASS_MAPPINGS = {"QG_PhotoSheet": QGPhotoSheet}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_PhotoSheet": "Photo Sheet"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_PhotoSheet": "QG 照片排版"}

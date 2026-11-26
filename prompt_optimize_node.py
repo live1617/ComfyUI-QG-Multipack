@@ -330,6 +330,6 @@ class QGPromptOptimize:
 
 
 NODE_CLASS_MAPPINGS = {"QG_PromptOptimize": QGPromptOptimize}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_PromptOptimize": "提示词优化"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_PromptOptimize": "QG 提示词优化"}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

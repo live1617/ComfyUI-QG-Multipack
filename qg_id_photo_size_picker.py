@@ -80,4 +80,4 @@ class QGIDPhotoSizePicker:
 
 
 NODE_CLASS_MAPPINGS = {"QG_IDPhotoSizePicker": QGIDPhotoSizePicker}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDPhotoSizePicker": "ID Photo Size Picker"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDPhotoSizePicker": "QG 证件照尺寸选择"}

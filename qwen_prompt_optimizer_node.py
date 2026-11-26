@@ -366,4 +366,4 @@ class QG_QwenPromptOptimizer:
 
 
 NODE_CLASS_MAPPINGS = {"QG_QwenPromptOptimizer": QG_QwenPromptOptimizer}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_QwenPromptOptimizer": "Qwen image 2.1 提示词优化"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_QwenPromptOptimizer": "QG Qwen image 2.1 提示词优化"}

@@ -187,6 +187,6 @@ class QGTranslate:
 
 
 NODE_CLASS_MAPPINGS = {"QG_Translate": QGTranslate}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_Translate": "Translate (LLM)"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_Translate": "QG LLM 翻译"}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

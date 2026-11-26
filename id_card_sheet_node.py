@@ -248,4 +248,4 @@ class QGIDCardSheet:
 
 
 NODE_CLASS_MAPPINGS = {"QG_IDCardSheet": QGIDCardSheet}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDCardSheet": "ID Card Sheet"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDCardSheet": "QG 身份证拼版"}

@@ -391,6 +391,6 @@ NODE_CLASS_MAPPINGS = {
     "QG_QwenRestore": QG_QwenRestore,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "QG_QwenTextEncode": "Qwen Image 2.1 文本编码",
-    "QG_QwenRestore": "还原 Qwen Image 2.1 画布",
+    "QG_QwenTextEncode": "QG Qwen Image 2.1 文本编码",
+    "QG_QwenRestore": "QG 还原 Qwen Image 2.1 画布",
 }

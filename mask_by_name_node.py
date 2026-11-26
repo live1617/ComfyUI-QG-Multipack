@@ -481,6 +481,6 @@ class QGMaskByName:
 
 
 NODE_CLASS_MAPPINGS = {"QG_MaskByName": QGMaskByName}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_MaskByName": "Mask by Name"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_MaskByName": "QG 文字取蒙版"}
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]

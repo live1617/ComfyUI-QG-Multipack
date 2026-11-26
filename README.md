@@ -11,15 +11,15 @@ ComfyUI 自定义节点包，界面里的品牌名是「QG 工具」，节点都
 | 节点 key | 显示名 | 作用 | 输出 |
 | --- | --- | --- | --- |
 | `QG_BiRefNet` | QG BiRefNet 去除背景 | 18 个抠图模型的统一入口（18 个模型见下文） | `IMAGE` / `MASK` / `MASK_IMAGE` |
-| `QG_MaskByName` | Mask by Name | 输入一句话（如 "the girl's hair"），用 ComfyUI 内置 SAM 3 找出对应区域（需自备 SAM 3 权重，见[安装](#安装)） | `MASK` / `cut_out` / `found` |
-| `QG_QwenTextEncode` | Qwen Image 2.1 文本编码 | Qwen Image 2.1 专用条件编码：最多 10 张参考图（输入口动态增减）+ 填充/裁剪 + 局部遮罩，一次出 positive / negative / 初始 latent / 还原信息 | `positive` / `negative` / `latent` / `info` |
-| `QG_QwenRestore` | 还原 Qwen Image 2.1 画布 | 吃上面节点的 `info`，把「填充」模式加的灰边画布按比例裁回去（与本包或 Goohaitools 原版的 info 均可互连） | `image` |
-| `QG_QwenPromptOptimizer` | Qwen image 2.1 提示词优化 | 本地 llama-cpp 反推/优化提示词：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；需 `models/LLM` 下的 Qwen GGUF + mmproj，依赖缺失时节点内按钮给出手动安装指引 | `prompt` / `json` / `是否反推` |
-| `QG_Translate` | LLM 翻译 | 调 DeepSeek / Kimi / 通义 / 智谱 / 硅基流动 / OpenRouter / 本地 Ollama 等 OpenAI 兼容接口做翻译 | `text` |
-| `QG_PromptTranslate` | 提示词翻译 | 原文进、译好的提示词出；服务可选两条百度通道（通用 / 大模型）或任一已配服务商，目标语言 / 自动释放显存 / 种子四个控件 | `translated_text` |
+| `QG_MaskByName` | QG 文字取蒙版 | 输入一句话（如 "the girl's hair"），用 ComfyUI 内置 SAM 3 找出对应区域（需自备 SAM 3 权重，见[安装](#安装)） | `MASK` / `cut_out` / `found` |
+| `QG_QwenTextEncode` | QG Qwen Image 2.1 文本编码 | Qwen Image 2.1 专用条件编码：最多 10 张参考图（输入口动态增减）+ 填充/裁剪 + 局部遮罩，一次出 positive / negative / 初始 latent / 还原信息 | `positive` / `negative` / `latent` / `info` |
+| `QG_QwenRestore` | QG 还原 Qwen Image 2.1 画布 | 吃上面节点的 `info`，把「填充」模式加的灰边画布按比例裁回去（与本包或 Goohaitools 原版的 info 均可互连） | `image` |
+| `QG_QwenPromptOptimizer` | QG Qwen image 2.1 提示词优化 | 本地 llama-cpp 反推/优化提示词：接图+空提示词=看图反推完整生成提示词，接图+有提示词=按指令改写，不接图=文生图扩写；需 `models/LLM` 下的 Qwen GGUF + mmproj，依赖缺失时节点内按钮给出手动安装指引 | `prompt` / `json` / `是否反推` |
+| `QG_Translate` | QG LLM 翻译 | 调 DeepSeek / Kimi / 通义 / 智谱 / 硅基流动 / OpenRouter / 本地 Ollama 等 OpenAI 兼容接口做翻译 | `text` |
+| `QG_PromptTranslate` | QG 提示词翻译 | 原文进、译好的提示词出；服务可选两条百度通道（通用 / 大模型）或任一已配服务商，目标语言 / 自动释放显存 / 种子四个控件 | `translated_text` |
 | `QG_ImageToPrompt` | QG 图像反推提示词 | 图片进、提示词出：规则来自设置里的规则管理器（内置 5 条：像素级描述 / Tag 标签流 / 自然语言短描述 / 图像编辑指令 / 视频动态提示词），视觉模型按「服务商/模型」选，**边推理边在节点下方出字**，batch 逐帧反推；image2~image9 多图合并反推 | `提示词输出` / `提示词列表` |
-| `QG_PromptOptimize` | 提示词优化 | 提示词进、更好的提示词出：规则取「提示词优化规则」组（内置 4 条：扩写-通用 / 润色-精炼 / 扩写-细节质感 / 改写-英文），保留括号权重与 LoRA 标签，**边生成边在节点下方出字**，可接上游文本两路合并 | `提示词输出` |
-| `QG_FaceRectify` | Face Rectify | 自动把人脸转正：先按 90° 粗扫矫正横躺/倒置，再用 5 点 landmark 纠正倾斜，最后统一裁边 | `image` |
+| `QG_PromptOptimize` | QG 提示词优化 | 提示词进、更好的提示词出：规则取「提示词优化规则」组（内置 4 条：扩写-通用 / 润色-精炼 / 扩写-细节质感 / 改写-英文），保留括号权重与 LoRA 标签，**边生成边在节点下方出字**，可接上游文本两路合并 | `提示词输出` |
+| `QG_FaceRectify` | QG 人脸自动矫正 | 自动把人脸转正：先按 90° 粗扫矫正横躺/倒置，再用 5 点 landmark 纠正倾斜，最后统一裁边 | `image` |
 | `QG_IDPhotoParams` | QG 证件照参数 | 尺寸/底色/渲染/dpi 集中一路传出，供抠图与排版节点复用 | `params` / `宽` / `高` / `DPI` / `主色` |
 | `QG_PortraitMatte` | QG 人像抠图换背景 | 抠图→换底→美颜→按证件照构图裁好（可选 mediapipe 人脸对齐） | `成品图` / `蒙版` / `高清图` |
 | `QG_IDPhotoCrop` | QG 证件照裁剪 | 把已有照片裁成指定尺寸、眼睛摆平（不抠图） | `裁剪后图像` / `扩展遮罩` / `是否扩图` / `DPI` / `定位示意图` |

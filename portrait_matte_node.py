@@ -335,4 +335,4 @@ class QGPortraitMatte:
 
 
 NODE_CLASS_MAPPINGS = {"QG_PortraitMatte": QGPortraitMatte}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_PortraitMatte": "Portrait Matte"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_PortraitMatte": "QG 人像抠图换背景"}

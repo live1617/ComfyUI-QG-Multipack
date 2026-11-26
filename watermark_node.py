@@ -124,4 +124,4 @@ class QGWatermark:
 
 
 NODE_CLASS_MAPPINGS = {"QG_Watermark": QGWatermark}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_Watermark": "Watermark"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_Watermark": "QG 斜向水印"}

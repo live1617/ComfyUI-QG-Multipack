@@ -122,4 +122,4 @@ class QGIDPhotoParams:
 
 
 NODE_CLASS_MAPPINGS = {"QG_IDPhotoParams": QGIDPhotoParams}
-NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDPhotoParams": "ID Photo Params"}
+NODE_DISPLAY_NAME_MAPPINGS = {"QG_IDPhotoParams": "QG 证件照参数"}
